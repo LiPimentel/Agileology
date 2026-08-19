@@ -1,0 +1,46 @@
+import { z } from "zod";
+import { sanitizeRichText, sanitizePlainText } from "@/lib/sanitize";
+
+export const textBlockSchema = z.object({ html: z.string() });
+export const imageBlockSchema = z.object({
+  url: z.string(),
+  altText: z.string(),
+  alignment: z.enum(["left", "center", "right"]).default("center"),
+});
+export const linkBlockSchema = z.object({
+  label: z.string(),
+  href: z.string(),
+  internal: z.boolean(),
+  newTab: z.boolean(),
+});
+export const videoBlockSchema = z.object({ url: z.string() });
+
+export type EditorBlock =
+  | { id: string; type: "text"; content: z.infer<typeof textBlockSchema> }
+  | { id: string; type: "image"; content: z.infer<typeof imageBlockSchema> }
+  | { id: string; type: "link"; content: z.infer<typeof linkBlockSchema> }
+  | { id: string; type: "video"; content: z.infer<typeof videoBlockSchema> };
+
+/** Sanitizes a block's content before it's persisted (RS-06). */
+export function sanitizeBlockContent(type: string, content: unknown) {
+  switch (type) {
+    case "text": {
+      const parsed = textBlockSchema.parse(content);
+      return { html: sanitizeRichText(parsed.html) };
+    }
+    case "image": {
+      const parsed = imageBlockSchema.parse(content);
+      return { ...parsed, altText: sanitizePlainText(parsed.altText) };
+    }
+    case "link": {
+      const parsed = linkBlockSchema.parse(content);
+      return { ...parsed, label: sanitizePlainText(parsed.label) };
+    }
+    case "video": {
+      const parsed = videoBlockSchema.parse(content);
+      return parsed;
+    }
+    default:
+      throw new Error(`Unknown block type: ${type}`);
+  }
+}
