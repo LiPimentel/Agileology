@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { getSiteSettings } from "@/lib/settings";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -12,10 +13,14 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: { default: "Agileology Wave", template: "%s — Agileology Wave" },
-  description: "Coaching y gestión ágil con Agileology Wave.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings();
+  return {
+    title: { default: settings.siteTitle, template: `%s — ${settings.siteTitle}` },
+    description: settings.defaultMetaDescription ?? "Coaching y gestión ágil.",
+    icons: settings.faviconUrl ? { icon: settings.faviconUrl } : undefined,
+  };
+}
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
