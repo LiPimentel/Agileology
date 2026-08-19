@@ -1,0 +1,256 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ContentStatus {
+  draft
+  published
+}
+
+enum BlockType {
+  text
+  image
+  link
+  video
+}
+
+enum BlogLayout {
+  grid
+  list
+}
+
+enum MessageStatus {
+  new
+  read
+}
+
+model Admin {
+  id                  String    @id @default(cuid())
+  name                String
+  email               String    @unique
+  passwordHash        String
+  twoFactorEnabled    Boolean   @default(false)
+  twoFactorSecret     String?
+  failedLoginAttempts Int       @default(0)
+  lockoutUntil        DateTime?
+  lastLoginAt         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  sessions  Session[]
+  auditLogs AuditLog[]
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  adminId   String
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([adminId])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  adminId   String
+  admin     Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  lastSeenAt DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@index([adminId])
+}
+
+model Page {
+  id            String        @id @default(cuid())
+  title         String
+  slug          String        @unique
+  status        ContentStatus @default(draft)
+  menuOrder     Int           @default(0)
+  menuVisible   Boolean       @default(true)
+  showInMenu    Boolean       @default(true)
+  seoTitle      String?
+  seoDescription String?
+  isSystem      Boolean       @default(false) // e.g. contact page
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  publishedAt   DateTime?
+
+  blocks        ContentBlock[]
+  background    Background?
+  mapComponent       MapComponent?
+  contactFormComponent ContactFormComponent?
+  versions      PageVersion[]
+  contactSubmissions ContactFormSubmission[]
+  visitLogs     VisitLog[]
+}
+
+model PageVersion {
+  id        String   @id @default(cuid())
+  pageId    String
+  page      Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  snapshot  Json
+  createdAt DateTime @default(now())
+
+  @@index([pageId])
+}
+
+model Post {
+  id            String        @id @default(cuid())
+  title         String
+  slug          String        @unique
+  status        ContentStatus @default(draft)
+  excerpt       String?
+  featuredImage String?
+  tags          String[]      @default([])
+  seoTitle      String?
+  seoDescription String?
+  publishAt     DateTime?
+  publishedAt   DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  blocks   ContentBlock[]
+  versions PostVersion[]
+}
+
+model PostVersion {
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  snapshot  Json
+  createdAt DateTime @default(now())
+
+  @@index([postId])
+}
+
+model ContentBlock {
+  id       String    @id @default(cuid())
+  pageId   String?
+  page     Page?     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  postId   String?
+  post     Post?     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  type     BlockType
+  content  Json
+  position Int       @default(0)
+
+  @@index([pageId])
+  @@index([postId])
+}
+
+model Background {
+  id             String  @id @default(cuid())
+  pageId         String  @unique
+  page           Page    @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  imageUrl       String?
+  overlayColor   String  @default("#3B0764")
+  overlayOpacity Float   @default(0.5)
+}
+
+model BlogSettings {
+  id         String     @id @default("singleton")
+  layoutType BlogLayout @default(grid)
+}
+
+model ChatMessage {
+  id          String        @id @default(cuid())
+  visitorName  String?
+  visitorEmail String?
+  message     String
+  status      MessageStatus @default(new)
+  receivedAt  DateTime      @default(now())
+}
+
+model ContactFormSubmission {
+  id          String        @id @default(cuid())
+  pageId      String?
+  page        Page?         @relation(fields: [pageId], references: [id], onDelete: SetNull)
+  name        String
+  email       String
+  message     String
+  status      MessageStatus @default(new)
+  submittedAt DateTime      @default(now())
+}
+
+model MapComponent {
+  id        String  @id @default(cuid())
+  pageId    String  @unique
+  page      Page    @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  address   String
+  latitude  Float?
+  longitude Float?
+}
+
+model ContactFormComponent {
+  id             String   @id @default(cuid())
+  pageId         String   @unique
+  page           Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  enabledFields  String[] @default(["name", "email", "message"])
+}
+
+model CommunicationSettings {
+  id                          String @id @default("singleton")
+  chatDestinationEmail        String
+  contactFormDestinationEmail String
+}
+
+model SiteSettings {
+  id                    String  @id @default("singleton")
+  siteTitle             String  @default("Agileology")
+  tagline               String?
+  logoUrl               String?
+  faviconUrl            String?
+  defaultMetaDescription String?
+  footerText            String?
+  facebookUrl           String?
+  twitterUrl            String?
+  linkedinUrl           String?
+  instagramUrl          String?
+  phone                 String?
+  whatsapp              String?
+  cookieNoticeEnabled   Boolean @default(true)
+}
+
+model Media {
+  id        String   @id @default(cuid())
+  url       String
+  filename  String
+  mimeType  String
+  size      Int
+  width     Int?
+  height    Int?
+  altText   String?
+  createdAt DateTime @default(now())
+}
+
+model VisitLog {
+  id        String   @id @default(cuid())
+  pageId    String?
+  page      Page?    @relation(fields: [pageId], references: [id], onDelete: SetNull)
+  path      String
+  referrer  String?
+  timestamp DateTime @default(now())
+
+  @@index([timestamp])
+  @@index([pageId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  adminId    String?
+  admin      Admin?   @relation(fields: [adminId], references: [id], onDelete: SetNull)
+  action     String
+  entityType String
+  entityId   String?
+  detail     String?
+  timestamp  DateTime @default(now())
+
+  @@index([timestamp])
+}
