@@ -26,7 +26,7 @@ function parseBlocks(raw: string): SubmittedBlock[] {
 
 async function upsertPageContent(pageId: string, formData: FormData) {
   const title = sanitizePlainText(String(formData.get("title") ?? "")).slice(0, 200);
-  let slug = slugify(String(formData.get("slug") ?? "") || title);
+  const slug = slugify(String(formData.get("slug") ?? "") || title);
   if (!title) throw new Error("El título es requerido.");
   if (!slug) throw new Error("El slug es requerido.");
 

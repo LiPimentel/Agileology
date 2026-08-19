@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { daysAgo } from "@/lib/date";
 
 export const metadata = { title: "Analítica — Backoffice" };
 export const dynamic = "force-dynamic";
@@ -12,7 +13,7 @@ export default async function AnalyticsPage({
 }) {
   const { range } = await searchParams;
   const days = RANGES[range ?? "7d"] ?? 7;
-  const since = new Date(Date.now() - days * 86_400_000);
+  const since = daysAgo(days);
 
   const [total, byPath, logs] = await Promise.all([
     prisma.visitLog.count({ where: { timestamp: { gte: since } } }),
@@ -28,7 +29,7 @@ export default async function AnalyticsPage({
 
   const dayCounts = new Map<string, number>();
   for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(Date.now() - i * 86_400_000);
+    const d = daysAgo(i);
     dayCounts.set(d.toISOString().slice(0, 10), 0);
   }
   for (const log of logs) {

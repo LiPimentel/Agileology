@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getSiteSettings } from "@/lib/settings";
 
 const SOCIAL: Array<{ key: "facebookUrl" | "twitterUrl" | "linkedinUrl" | "instagramUrl"; label: string }> = [
@@ -49,9 +50,9 @@ export async function Footer() {
           </div>
         )}
         <p>{settings.footerText ?? `© ${new Date().getFullYear()} ${settings.siteTitle}`}</p>
-        <a href="/privacy-policy" className="text-xs text-slate-400 hover:text-violet-700">
+        <Link href="/privacy-policy" className="text-xs text-slate-400 hover:text-violet-700">
           Política de privacidad
-        </a>
+        </Link>
       </div>
     </footer>
   );

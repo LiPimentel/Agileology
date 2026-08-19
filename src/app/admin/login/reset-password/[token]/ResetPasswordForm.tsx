@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import Link from "next/link";
 import { resetPassword, type ResetPasswordState } from "../../forgot-password/actions";
 
 const initialState: ResetPasswordState = {};
@@ -12,9 +13,9 @@ export function ResetPasswordForm({ token }: { token: string }) {
     return (
       <div className="space-y-4 text-sm text-slate-700">
         <p>Contraseña actualizada.</p>
-        <a href="/admin/login" className="text-violet-700 underline">
+        <Link href="/admin/login" className="text-violet-700 underline">
           Ir a iniciar sesión
-        </a>
+        </Link>
       </div>
     );
   }

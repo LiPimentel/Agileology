@@ -7,6 +7,27 @@ const connectionString = process.env.DATABASE_URL;
 if (!connectionString) throw new Error("DATABASE_URL is not set.");
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
 
+async function publishSeedPage(pageId: string) {
+  const alreadyPublished = await prisma.pageVersion.findFirst({ where: { pageId } });
+  if (alreadyPublished) return;
+
+  const page = await prisma.page.findUniqueOrThrow({
+    where: { id: pageId },
+    include: { blocks: { orderBy: { position: "asc" } }, background: true, mapComponent: true, contactFormComponent: true },
+  });
+  const snapshot = {
+    id: page.id,
+    title: page.title,
+    blocks: page.blocks.map((b) => ({ id: b.id, type: b.type, content: b.content })),
+    background: page.background
+      ? { imageUrl: page.background.imageUrl, overlayColor: page.background.overlayColor, overlayOpacity: page.background.overlayOpacity }
+      : null,
+    mapComponent: page.mapComponent ? { address: page.mapComponent.address } : null,
+    contactFormComponent: page.contactFormComponent ? { enabledFields: page.contactFormComponent.enabledFields } : null,
+  };
+  await prisma.pageVersion.create({ data: { pageId, snapshot } });
+}
+
 async function main() {
   const name = process.env.ADMIN_SEED_NAME ?? "Admin";
   const email = (process.env.ADMIN_SEED_EMAIL ?? "admin@example.com").toLowerCase();
@@ -76,6 +97,7 @@ async function main() {
     update: {},
     create: { pageId: home.id, overlayColor: "#3B0764", overlayOpacity: 0.55 },
   });
+  await publishSeedPage(home.id);
 
   const contact = await prisma.page.upsert({
     where: { slug: "contact" },
@@ -100,6 +122,7 @@ async function main() {
     update: {},
     create: { pageId: contact.id, enabledFields: ["name", "email", "message"] },
   });
+  await publishSeedPage(contact.id);
 
   const privacy = await prisma.page.upsert({
     where: { slug: "privacy-policy" },
@@ -125,6 +148,8 @@ async function main() {
       },
     },
   });
+
+  await publishSeedPage(privacy.id);
 
   console.log(`Seeded pages: ${home.slug}, ${contact.slug}, ${privacy.slug}`);
 }
