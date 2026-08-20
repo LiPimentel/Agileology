@@ -18,6 +18,7 @@ type SubmittedMenuItem = {
   newTab?: boolean;
   visible?: boolean;
   parentId?: string | null;
+  location?: "header" | "footer";
 };
 
 function parseItems(raw: string): SubmittedMenuItem[] {
@@ -52,6 +53,7 @@ export async function saveMenuItems(_prev: MenuFormState, formData: FormData): P
       if (linkType === "page" && !item.pageId) return null;
       const externalUrl = linkType === "url" ? String(item.externalUrl ?? "").trim() : null;
       if (linkType === "url" && (!externalUrl || !SAFE_URL.test(externalUrl))) return null;
+      const location = item.location === "footer" ? "footer" : "header";
       return {
         id: typeof item.id === "string" && item.id ? item.id : randomUUID(),
         label,
@@ -60,20 +62,23 @@ export async function saveMenuItems(_prev: MenuFormState, formData: FormData): P
         externalUrl,
         newTab: Boolean(item.newTab),
         visible: item.visible !== false,
-        parentId: typeof item.parentId === "string" ? item.parentId : null,
+        // Footer links never nest -- forced null regardless of what the
+        // client sent, same as the two-level-deep guard below.
+        parentId: location === "header" && typeof item.parentId === "string" ? item.parentId : null,
+        location,
       };
     })
     .filter((item): item is NonNullable<typeof item> => item !== null);
 
-  // A parentId is only honored when it points at another surviving item in
-  // this same submission that is itself top-level -- guards against a
-  // dangling reference (its parent got dropped above) and against two
-  // levels of nesting (MenuForm already hides the picker for this case,
-  // but don't trust the client for it).
-  const topLevelIds = new Set(validated.filter((i) => !i.parentId).map((i) => i.id));
+  // A parentId is only honored when it points at another surviving header
+  // item in this same submission that is itself top-level -- guards
+  // against a dangling reference (its parent got dropped above) and
+  // against two levels of nesting (MenuForm already hides the picker for
+  // this case, but don't trust the client for it).
+  const topLevelHeaderIds = new Set(validated.filter((i) => !i.parentId && i.location === "header").map((i) => i.id));
   const items = validated.map((item) => ({
     ...item,
-    parentId: item.parentId && item.parentId !== item.id && topLevelIds.has(item.parentId) ? item.parentId : null,
+    parentId: item.parentId && item.parentId !== item.id && topLevelHeaderIds.has(item.parentId) ? item.parentId : null,
   }));
 
   // Parents must land in the DB before their children (self-referencing FK,

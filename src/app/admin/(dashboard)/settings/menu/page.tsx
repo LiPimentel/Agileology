@@ -14,8 +14,9 @@ export default async function MenuSettingsPage() {
     <div>
       <h1 className="mb-1 text-2xl font-semibold text-slate-900">Menú del sitio</h1>
       <p className="mb-6 text-sm text-slate-500">
-        Controla qué aparece en el menú de navegación del header: páginas del sitio o enlaces a cualquier URL (externa
-        o interna).
+        Controla qué aparece en el menú superior (header) y en los enlaces extra del pie de página (footer): páginas
+        del sitio o enlaces a cualquier URL (externa o interna). Un enlace del menú superior puede tener submenú
+        (dropdown); los del pie de página no.
       </p>
       <MenuForm
         initialItems={items.map((i) => ({
@@ -27,6 +28,7 @@ export default async function MenuSettingsPage() {
           newTab: i.newTab,
           visible: i.visible,
           parentId: i.parentId,
+          location: i.location === "footer" ? "footer" : "header",
         }))}
         pages={pages}
       />

@@ -109,6 +109,11 @@ model MenuItem {
   newTab      Boolean @default(false)
   order       Int     @default(0)
   visible     Boolean @default(true)
+  // "header" (default, the nav rendered by Nav.tsx) or "footer" (a flat
+  // extra-links list rendered by Footer.tsx, e.g. static pages like Terms).
+  // Footer items never nest (see saveMenuItems) -- only header items can
+  // have children.
+  location    String  @default("header")
   // Dropdown submenus: a top-level item's children. Only one level deep --
   // enforced in saveMenuItems, not here -- a child can't itself have
   // children. Deleting the parent deletes its submenu items with it
@@ -263,6 +268,13 @@ model SiteSettings {
   twitterUrl            String?
   linkedinUrl           String?
   instagramUrl          String?
+  // Optional custom icon per network, uploaded from /admin/settings/site --
+  // when unset, the footer falls back to a built-in Facebook/X/LinkedIn/
+  // Instagram SVG icon instead of the old plain-text link.
+  facebookIconUrl       String?
+  twitterIconUrl        String?
+  linkedinIconUrl       String?
+  instagramIconUrl      String?
   phone                 String?
   whatsapp              String?
   cookieNoticeEnabled   Boolean @default(true)
