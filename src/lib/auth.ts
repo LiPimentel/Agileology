@@ -169,7 +169,7 @@ export async function createPendingTwoFactor(adminId: string) {
   const store = await cookies();
   store.set(PENDING_2FA_COOKIE, value, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env.COOKIE_SECURE !== "false",
     sameSite: "lax",
     path: "/",
     maxAge: PENDING_2FA_MINUTES * 60,

@@ -18,7 +18,7 @@ export const SESSION_MINUTES = parseSessionMinutes(process.env.SESSION_INACTIVIT
 export function sessionCookieOptions(expires: Date) {
   return {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env.COOKIE_SECURE !== "false",
     sameSite: "lax" as const,
     path: "/",
     expires,
