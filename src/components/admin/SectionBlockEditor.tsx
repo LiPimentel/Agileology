@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import type { MediaItem } from "@/components/admin/MediaGrid";
 import { BackgroundPicker, type BackgroundValue } from "@/components/admin/BackgroundPicker";
+import { BackgroundOverlay } from "@/components/public/BackgroundOverlay";
 import { TextBlockEditor } from "@/components/admin/blocks/TextBlockEditor";
 import { ImageBlockEditor } from "@/components/admin/blocks/ImageBlockEditor";
 import { LinkBlockEditor } from "@/components/admin/blocks/LinkBlockEditor";
@@ -10,6 +11,7 @@ import { VideoBlockEditor } from "@/components/admin/blocks/VideoBlockEditor";
 import {
   type BlockType,
   type BlockValue,
+  type EditorColumn,
   type EditorSection,
   emptyContent,
   newSection,
@@ -19,6 +21,65 @@ import {
 export type { EditorSection, EditorColumn } from "@/lib/sections";
 
 const BLOCK_LABELS: Record<BlockType, string> = { text: "Texto", image: "Imagen", link: "Enlace", video: "Video" };
+
+function clamp(n: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, n));
+}
+
+/**
+ * Real drag handle between a 2-column section's two columns (vs. only a
+ * range slider) -- grabbing and dragging it live-resizes the split exactly
+ * like Wix's column resize, instead of only having an abstract number to
+ * type/slide.
+ */
+function TwoColumnRow({
+  leftWidth,
+  onSplit,
+  children,
+}: {
+  leftWidth: number;
+  onSplit: (leftWidth: number) => void;
+  children: [ReactNode, ReactNode];
+}) {
+  const rowRef = useRef<HTMLDivElement>(null);
+  const dragging = useRef(false);
+
+  function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    dragging.current = true;
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+  function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (!dragging.current || !rowRef.current) return;
+    const rect = rowRef.current.getBoundingClientRect();
+    const pct = ((e.clientX - rect.left) / rect.width) * 100;
+    onSplit(clamp(Math.round(pct), 10, 90));
+  }
+  function handlePointerUp(e: React.PointerEvent<HTMLDivElement>) {
+    dragging.current = false;
+    e.currentTarget.releasePointerCapture(e.pointerId);
+  }
+
+  return (
+    <div ref={rowRef} className="flex items-stretch">
+      <div className="min-w-0" style={{ flexBasis: `calc(${leftWidth}% - 8px)` }}>
+        {children[0]}
+      </div>
+      <div
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerLeave={handlePointerUp}
+        className="mx-1 flex w-3 shrink-0 cursor-col-resize touch-none items-center justify-center"
+        title="Arrastra para redimensionar las columnas"
+      >
+        <div className="h-16 w-1 rounded-full bg-violet-300 hover:bg-violet-500" />
+      </div>
+      <div className="min-w-0" style={{ flexBasis: `calc(${100 - leftWidth}% - 8px)` }}>
+        {children[1]}
+      </div>
+    </div>
+  );
+}
 
 export function SectionBlockEditor({
   initialSections,
@@ -79,7 +140,7 @@ export function SectionBlockEditor({
       prev.map((s) => (s.id !== sectionId ? s : { ...s, columns: s.columns.map((c) => (c.id === columnId ? { ...c, width } : c)) })),
     );
   }
-  /** For a 2-column section, one slider drives the split: the other column always gets the remainder. */
+  /** For a 2-column section, one value drives the split: the other column always gets the remainder. */
   function setSplit(sectionId: string, leftWidth: number) {
     setSections((prev) =>
       prev.map((s) =>
@@ -98,130 +159,163 @@ export function SectionBlockEditor({
     setOpenBgPickers((prev) => ({ ...prev, [sectionId]: !prev[sectionId] }));
   }
 
+  function renderColumn(section: EditorSection, col: EditorColumn, showWidthInput: boolean) {
+    return (
+      <div key={col.id} className="min-w-0 rounded-md border border-dashed border-slate-200 p-3">
+        {showWidthInput && (
+          <div className="mb-2">
+            <label className="block text-xs font-medium text-slate-500">Ancho (%)</label>
+            <input
+              type="number"
+              min={10}
+              max={80}
+              value={col.width}
+              onChange={(e) => setColumnWidth(section.id, col.id, Number(e.target.value) || 0)}
+              className="mt-1 w-20 rounded-md border border-slate-300 px-2 py-1 text-sm text-slate-900"
+            />
+          </div>
+        )}
+        {!col.block ? (
+          <div className="flex flex-wrap gap-2">
+            {(Object.keys(BLOCK_LABELS) as BlockType[]).map((type) => (
+              <button
+                key={type}
+                type="button"
+                onClick={() => setColumnType(section.id, col.id, type)}
+                className="rounded-md border border-dashed border-slate-300 px-3 py-1.5 text-sm text-slate-600 hover:border-violet-400 hover:text-violet-700"
+              >
+                + {BLOCK_LABELS[type]}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-500">{BLOCK_LABELS[col.block.type]}</span>
+              <button type="button" onClick={() => clearColumn(section.id, col.id)} className="text-xs text-red-600 hover:underline">
+                Quitar
+              </button>
+            </div>
+            {col.block.type === "text" && (
+              <TextBlockEditor html={col.block.content.html} onChange={(html) => updateColumnContent(section.id, col.id, { html })} />
+            )}
+            {col.block.type === "image" && (
+              <ImageBlockEditor value={col.block.content} onChange={(v) => updateColumnContent(section.id, col.id, v)} mediaLibrary={mediaLibrary} />
+            )}
+            {col.block.type === "link" && (
+              <LinkBlockEditor value={col.block.content} onChange={(v) => updateColumnContent(section.id, col.id, v)} pages={pages} />
+            )}
+            {col.block.type === "video" && (
+              <VideoBlockEditor url={col.block.content.url} onChange={(url) => updateColumnContent(section.id, col.id, { url })} />
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <input type="hidden" name="blocksJson" value={JSON.stringify(serializeSections(sections))} readOnly />
 
-      {sections.map((section, i) => (
-        <div key={section.id} className="rounded-lg border border-slate-200 bg-white p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <span className="text-sm font-semibold text-slate-500">
-              Sección {i + 1} · {section.columns.length === 1 ? "1 componente" : `${section.columns.length} componentes`}
-            </span>
-            <div className="flex gap-2 text-sm">
-              <button type="button" disabled={i === 0} onClick={() => moveSection(section.id, -1)} className="text-slate-500 hover:text-violet-700 disabled:opacity-30">
-                ↑
-              </button>
-              <button type="button" disabled={i === sections.length - 1} onClick={() => moveSection(section.id, 1)} className="text-slate-500 hover:text-violet-700 disabled:opacity-30">
-                ↓
-              </button>
-              <button type="button" onClick={() => removeSection(section.id)} className="text-red-600 hover:underline">
-                Eliminar sección
-              </button>
-            </div>
-          </div>
+      {sections.map((section, i) => {
+        // Same rule PageRenderer uses to decide whether a section has a
+        // background of its own: real image, or a visible color overlay.
+        const hasBg = Boolean(section.background.imageUrl) || section.background.opacity > 0;
 
-          <div className="mb-4">
-            <button
-              type="button"
-              onClick={() => toggleSectionBgPicker(section.id)}
-              className="rounded-md border border-slate-300 px-3 py-1.5 text-xs hover:bg-slate-50"
-            >
-              {openBgPickers[section.id] ? "Cerrar fondo de sección" : "Fondo de esta sección (color/imagen)"}
-              {(section.background.imageUrl || section.background.opacity > 0) && " •"}
-            </button>
-            {openBgPickers[section.id] && (
-              <div className="mt-2 rounded-md border border-slate-200 bg-slate-50 p-3">
-                <BackgroundPicker
-                  compact
-                  initialImageUrl={null}
-                  initialColor="#000000"
-                  initialOpacity={0}
-                  mediaLibrary={mediaLibrary}
-                  value={section.background}
-                  onChange={(bg) => setSectionBackground(section.id, bg)}
+        const columnsRow =
+          section.columns.length === 2 ? (
+            <TwoColumnRow leftWidth={section.columns[0].width} onSplit={(w) => setSplit(section.id, w)}>
+              {[renderColumn(section, section.columns[0], false), renderColumn(section, section.columns[1], false)]}
+            </TwoColumnRow>
+          ) : (
+            <div className="flex flex-col gap-4 sm:flex-row">
+              {section.columns.map((col) => (
+                <div key={col.id} className="min-w-0 flex-1" style={section.columns.length > 1 ? { flexBasis: `${col.width}%` } : undefined}>
+                  {renderColumn(section, col, section.columns.length === 3)}
+                </div>
+              ))}
+            </div>
+          );
+
+        return (
+          <div key={section.id} className="rounded-lg border border-slate-200 bg-white p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-sm font-semibold text-slate-500">
+                Sección {i + 1} · {section.columns.length === 1 ? "1 componente" : `${section.columns.length} componentes`}
+              </span>
+              <div className="flex gap-2 text-sm">
+                <button type="button" disabled={i === 0} onClick={() => moveSection(section.id, -1)} className="text-slate-500 hover:text-violet-700 disabled:opacity-30">
+                  ↑
+                </button>
+                <button type="button" disabled={i === sections.length - 1} onClick={() => moveSection(section.id, 1)} className="text-slate-500 hover:text-violet-700 disabled:opacity-30">
+                  ↓
+                </button>
+                <button type="button" onClick={() => removeSection(section.id)} className="text-red-600 hover:underline">
+                  Eliminar sección
+                </button>
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <button
+                type="button"
+                onClick={() => toggleSectionBgPicker(section.id)}
+                className="rounded-md border border-slate-300 px-3 py-1.5 text-xs hover:bg-slate-50"
+              >
+                {openBgPickers[section.id] ? "Cerrar fondo de sección" : "Fondo de esta sección (color/imagen)"}
+                {hasBg && " •"}
+              </button>
+              {openBgPickers[section.id] && (
+                <div className="mt-2 rounded-md border border-slate-200 bg-slate-50 p-3">
+                  <BackgroundPicker
+                    compact
+                    initialImageUrl={null}
+                    initialColor="#000000"
+                    initialOpacity={0}
+                    mediaLibrary={mediaLibrary}
+                    value={section.background}
+                    onChange={(bg) => setSectionBackground(section.id, bg)}
+                  />
+                </div>
+              )}
+            </div>
+
+            {section.columns.length === 2 && (
+              <div className="mb-4">
+                <label className="block text-xs font-medium text-slate-500">
+                  Ancho de columnas ({section.columns[0].width}% / {section.columns[1].width}%) -- también puedes arrastrar el separador de abajo
+                </label>
+                <input
+                  type="range"
+                  min={10}
+                  max={90}
+                  step={1}
+                  value={section.columns[0].width}
+                  onChange={(e) => setSplit(section.id, Number(e.target.value))}
+                  className="mt-1 w-full"
                 />
               </div>
             )}
-          </div>
 
-          {section.columns.length === 2 && (
-            <div className="mb-4">
-              <label className="block text-xs font-medium text-slate-500">
-                Ancho de columnas ({section.columns[0].width}% / {section.columns[1].width}%)
-              </label>
-              <input
-                type="range"
-                min={10}
-                max={90}
-                step={5}
-                value={section.columns[0].width}
-                onChange={(e) => setSplit(section.id, Number(e.target.value))}
-                className="mt-1 w-full"
-              />
-            </div>
-          )}
-
-          <div className="flex flex-col gap-4 sm:flex-row">
-            {section.columns.map((col) => (
-              <div
-                key={col.id}
-                className="min-w-0 flex-1 rounded-md border border-dashed border-slate-200 p-3"
-                style={section.columns.length > 1 ? { flexBasis: `${col.width}%` } : undefined}
-              >
-                {section.columns.length === 3 && (
-                  <div className="mb-2">
-                    <label className="block text-xs font-medium text-slate-500">Ancho (%)</label>
-                    <input
-                      type="number"
-                      min={10}
-                      max={80}
-                      value={col.width}
-                      onChange={(e) => setColumnWidth(section.id, col.id, Number(e.target.value) || 0)}
-                      className="mt-1 w-20 rounded-md border border-slate-300 px-2 py-1 text-sm text-slate-900"
-                    />
-                  </div>
-                )}
-                {!col.block ? (
-                  <div className="flex flex-wrap gap-2">
-                    {(Object.keys(BLOCK_LABELS) as BlockType[]).map((type) => (
-                      <button
-                        key={type}
-                        type="button"
-                        onClick={() => setColumnType(section.id, col.id, type)}
-                        className="rounded-md border border-dashed border-slate-300 px-3 py-1.5 text-sm text-slate-600 hover:border-violet-400 hover:text-violet-700"
-                      >
-                        + {BLOCK_LABELS[type]}
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div>
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="text-xs font-semibold text-slate-500">{BLOCK_LABELS[col.block.type]}</span>
-                      <button type="button" onClick={() => clearColumn(section.id, col.id)} className="text-xs text-red-600 hover:underline">
-                        Quitar
-                      </button>
-                    </div>
-                    {col.block.type === "text" && (
-                      <TextBlockEditor html={col.block.content.html} onChange={(html) => updateColumnContent(section.id, col.id, { html })} />
-                    )}
-                    {col.block.type === "image" && (
-                      <ImageBlockEditor value={col.block.content} onChange={(v) => updateColumnContent(section.id, col.id, v)} mediaLibrary={mediaLibrary} />
-                    )}
-                    {col.block.type === "link" && (
-                      <LinkBlockEditor value={col.block.content} onChange={(v) => updateColumnContent(section.id, col.id, v)} pages={pages} />
-                    )}
-                    {col.block.type === "video" && (
-                      <VideoBlockEditor url={col.block.content.url} onChange={(url) => updateColumnContent(section.id, col.id, { url })} />
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
+            {/*
+              This is the actual "live preview" surface: when the section
+              has a background it's rendered with the real BackgroundOverlay
+              component (the exact same one the public page uses), at the
+              real column widths -- so what's visible here while editing is
+              what the published page will look like, not just an abstract
+              form.
+            */}
+            {hasBg ? (
+              <BackgroundOverlay imageUrl={section.background.imageUrl} overlayColor={section.background.color} overlayOpacity={section.background.opacity}>
+                <div className="rounded-md p-4">{columnsRow}</div>
+              </BackgroundOverlay>
+            ) : (
+              columnsRow
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
 
       <div className="flex flex-wrap gap-2">
         <button

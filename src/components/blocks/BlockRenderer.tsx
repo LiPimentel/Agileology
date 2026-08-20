@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { parseVideoEmbed } from "@/lib/video";
-import { IMAGE_SHAPE_CLASS, type ImageShape } from "@/lib/imageShape";
+import { IMAGE_SHAPE_WRAPPER_CLASS, IMAGE_SHAPE_IMG_CLASS, isCroppableShape, type ImageShape } from "@/lib/imageShape";
 
 export type RenderableBlock = {
   id?: string;
@@ -42,14 +42,29 @@ export function BlockRenderer({ block }: { block: RenderableBlock }) {
       const altText = String(block.content.altText ?? "");
       const alignment = String(block.content.alignment ?? "center");
       const shape = (block.content.shape as ImageShape | undefined) ?? "none";
+      const focalX = Number(block.content.focalX ?? 50);
+      const focalY = Number(block.content.focalY ?? 50);
+      const zoom = Number(block.content.zoom ?? 1);
       if (!url) return null;
       // circle/oval default to a smaller max-width -- a full-2xl-wide
       // circle reads as oversized; none/rounded keep the original rectangle
       // sizing unchanged.
       const maxWidth = shape === "circle" || shape === "oval" ? "max-w-xs" : "max-w-2xl";
+      const croppable = isCroppableShape(shape);
+      const img = (
+        <Image
+          src={url}
+          alt={altText}
+          width={1200}
+          height={800}
+          className={IMAGE_SHAPE_IMG_CLASS[shape]}
+          style={croppable ? { objectPosition: `${focalX}% ${focalY}%`, transform: `scale(${zoom})` } : undefined}
+          unoptimized
+        />
+      );
       return (
         <div className={`${maxWidth} ${ALIGN_CLASS[alignment] ?? "mx-auto"}`}>
-          <Image src={url} alt={altText} width={1200} height={800} className={IMAGE_SHAPE_CLASS[shape]} unoptimized />
+          {IMAGE_SHAPE_WRAPPER_CLASS[shape] ? <div className={IMAGE_SHAPE_WRAPPER_CLASS[shape]}>{img}</div> : img}
         </div>
       );
     }

@@ -190,7 +190,11 @@ export function TextBlockEditor({ html, onChange }: { html: string; onChange: (h
         onBlur={(e) => onChange(e.currentTarget.innerHTML)}
         onInput={(e) => onChange(e.currentTarget.innerHTML)}
         onPaste={handlePaste}
-        className="prose prose-sm min-h-32 max-w-none rounded-b-md border border-slate-300 px-3 py-2 focus:border-violet-600 focus:outline-none focus:ring-1 focus:ring-violet-600"
+        // Same prose classes BlockRenderer.tsx uses for the public render
+        // (not prose-sm, which under-sizes headings vs. how they'll
+        // actually look live) -- so what you type here is what the page
+        // will actually look like, not a smaller/plainer approximation.
+        className="prose prose-slate min-h-32 max-w-none prose-headings:text-slate-900 prose-a:text-violet-700 rounded-b-md border border-slate-300 px-3 py-2 focus:border-violet-600 focus:outline-none focus:ring-1 focus:ring-violet-600"
       />
     </div>
   );
