@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { parseVideoEmbed } from "@/lib/video";
+import { IMAGE_SHAPE_CLASS, type ImageShape } from "@/lib/imageShape";
 
 export type RenderableBlock = {
   id?: string;
@@ -40,10 +41,15 @@ export function BlockRenderer({ block }: { block: RenderableBlock }) {
       const url = String(block.content.url ?? "");
       const altText = String(block.content.altText ?? "");
       const alignment = String(block.content.alignment ?? "center");
+      const shape = (block.content.shape as ImageShape | undefined) ?? "none";
       if (!url) return null;
+      // circle/oval default to a smaller max-width -- a full-2xl-wide
+      // circle reads as oversized; none/rounded keep the original rectangle
+      // sizing unchanged.
+      const maxWidth = shape === "circle" || shape === "oval" ? "max-w-xs" : "max-w-2xl";
       return (
-        <div className={`max-w-2xl ${ALIGN_CLASS[alignment] ?? "mx-auto"}`}>
-          <Image src={url} alt={altText} width={1200} height={800} className="h-auto w-full rounded-md" unoptimized />
+        <div className={`${maxWidth} ${ALIGN_CLASS[alignment] ?? "mx-auto"}`}>
+          <Image src={url} alt={altText} width={1200} height={800} className={IMAGE_SHAPE_CLASS[shape]} unoptimized />
         </div>
       );
     }

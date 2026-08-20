@@ -6,6 +6,9 @@ export const imageBlockSchema = z.object({
   url: z.string(),
   altText: z.string(),
   alignment: z.enum(["left", "center", "right"]).default("center"),
+  // .default("none") means blocks saved before this field existed parse
+  // fine and just render as before (a plain rectangle).
+  shape: z.enum(["none", "rounded", "circle", "oval"]).default("none"),
 });
 export const linkBlockSchema = z.object({
   label: z.string(),

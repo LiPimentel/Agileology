@@ -50,7 +50,7 @@ export function emptyContent(type: BlockType): BlockValue {
     case "text":
       return { type, content: { html: "<p></p>" } };
     case "image":
-      return { type, content: { url: "", altText: "", alignment: "center" } };
+      return { type, content: { url: "", altText: "", alignment: "center", shape: "none" } };
     case "link":
       return { type, content: { label: "", href: "", internal: true, newTab: false } };
     case "video":
