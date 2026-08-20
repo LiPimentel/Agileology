@@ -43,5 +43,8 @@ next-env.d.ts
 
 /src/generated/prisma
 
-# user-uploaded media (created at runtime)
+# user-uploaded media (created at runtime; deliberately outside public/ --
+# see the comment on UPLOAD_DIR in src/lib/image.ts. Mount this as a Docker
+# volume so uploads survive rebuilds.)
+/uploads/
 /public/uploads/

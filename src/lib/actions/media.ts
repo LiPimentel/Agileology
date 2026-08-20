@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
-import { saveUploadedImage } from "@/lib/image";
+import { saveUploadedImage, UPLOAD_DIR } from "@/lib/image";
 import { sanitizePlainText } from "@/lib/sanitize";
 import { revalidatePath } from "next/cache";
 import { unlink } from "node:fs/promises";
@@ -62,7 +62,7 @@ export async function deleteMedia(mediaId: string) {
   if (!media) return;
 
   await prisma.media.delete({ where: { id: mediaId } });
-  await unlink(path.join(process.cwd(), "public", media.url)).catch(() => undefined);
+  await unlink(path.join(UPLOAD_DIR, path.basename(media.url))).catch(() => undefined);
   await logAudit({ adminId: admin.id, action: "delete_media", entityType: "Media", entityId: mediaId });
   revalidatePath("/admin/media");
 }
