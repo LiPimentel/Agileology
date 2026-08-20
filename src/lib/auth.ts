@@ -50,21 +50,36 @@ export async function destroySession() {
 export async function getCurrentAdmin() {
   const store = await cookies();
   const token = store.get(SESSION_COOKIE)?.value;
-  if (!token) return null;
+  if (!token) {
+    console.warn("[getCurrentAdmin] no session cookie present on this request");
+    return null;
+  }
 
   const session = await prisma.session.findUnique({
     where: { id: token },
     include: { admin: true },
   });
 
-  if (!session || session.expiresAt < new Date()) return null;
+  if (!session) {
+    console.warn(`[getCurrentAdmin] no session row in DB for cookie ${token.slice(0, 8)}…`);
+    return null;
+  }
+  if (session.expiresAt < new Date()) {
+    console.warn(
+      `[getCurrentAdmin] session ${token.slice(0, 8)}… expired: expiresAt=${session.expiresAt.toISOString()} now=${new Date().toISOString()}`,
+    );
+    return null;
+  }
 
   return session.admin;
 }
 
 export async function requireAdmin() {
   const admin = await getCurrentAdmin();
-  if (!admin) redirect("/admin/login");
+  if (!admin) {
+    console.warn("[requireAdmin] no valid admin session — redirecting to /admin/login");
+    redirect("/admin/login");
+  }
   return admin;
 }
 
@@ -149,7 +164,15 @@ export function verifyTwoFactorToken(base32Secret: string, token: string) {
     period: 30,
     secret: Secret.fromBase32(base32Secret),
   });
-  const delta = totp.validate({ token, window: 1 });
+  // window: 2 tolerates up to ~60s of clock skew between this server and the
+  // phone generating the code (each unit is one 30s TOTP step) — a real risk
+  // for a container whose VM clock can drift, e.g. Docker Desktop on macOS
+  // after the host sleeps. Still standard/secure (RFC 6238 recommends
+  // allowing skew); widened from 1 to 2 for that reason.
+  const delta = totp.validate({ token, window: 2 });
+  console.warn(
+    `[verifyTwoFactorToken] ${delta === null ? "REJECTED" : `accepted (delta=${delta})`} — server time now: ${new Date().toISOString()}`,
+  );
   return delta !== null;
 }
 

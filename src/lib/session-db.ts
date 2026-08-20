@@ -30,7 +30,16 @@ export async function touchSession(token: string) {
   const expiresAt = new Date(Date.now() + SESSION_MINUTES * 60_000);
   try {
     await prisma.session.update({ where: { id: token }, data: { expiresAt, lastSeenAt: new Date() } });
-  } catch {
+  } catch (err) {
+    // Never swallow this silently — a session that fails to slide (missing
+    // row vs. a real DB error look identical downstream otherwise) has
+    // bitten us before. Log the token prefix only (not the full session
+    // token) so this is traceable in `docker compose logs` without leaking
+    // a usable credential into the log.
+    console.error(
+      `[touchSession] failed to refresh session ${token.slice(0, 8)}…:`,
+      err instanceof Error ? err.message : err,
+    );
     return null;
   }
   return expiresAt;
