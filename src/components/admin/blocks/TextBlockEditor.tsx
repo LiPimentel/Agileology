@@ -14,11 +14,25 @@ const TOOLBAR: Array<{ label: string; command: string; value?: string }> = [
   { label: "Izq", command: "justifyLeft" },
   { label: "Centro", command: "justifyCenter" },
   { label: "Der", command: "justifyRight" },
+  { label: "Justificar", command: "justifyFull" },
+];
+
+const FONT_OPTIONS: Array<{ label: string; value: string }> = [
+  { label: "Predeterminada", value: "" },
+  { label: "Sans-serif", value: "Arial, Helvetica, sans-serif" },
+  { label: "Serif", value: "Georgia, 'Times New Roman', serif" },
+  { label: "Monoespaciada", value: "'Courier New', monospace" },
 ];
 
 export function TextBlockEditor({ html, onChange }: { html: string; onChange: (html: string) => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const initialized = useRef(false);
+  // Native <input type="color">/<select> steal focus from the
+  // contentEditable div the moment they're interacted with, which loses
+  // the text selection execCommand needs to know what to style. Save it
+  // right before that happens, restore it right before running the
+  // command.
+  const savedRange = useRef<Range | null>(null);
 
   // Uncontrolled on purpose: contentEditable owns the DOM after the first
   // paint. Re-applying `html` on every keystroke would fight the browser's
@@ -30,8 +44,38 @@ export function TextBlockEditor({ html, onChange }: { html: string; onChange: (h
     }
   }, [html]);
 
+  function saveSelection() {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0 && ref.current?.contains(sel.anchorNode)) {
+      savedRange.current = sel.getRangeAt(0).cloneRange();
+    }
+  }
+
+  function restoreSelection() {
+    if (!savedRange.current) return;
+    const sel = window.getSelection();
+    sel?.removeAllRanges();
+    sel?.addRange(savedRange.current);
+  }
+
+  // Makes execCommand('foreColor'/'fontName') emit inline style="..." on a
+  // <span> instead of legacy <font color/face> tags -- matches what the
+  // server-side sanitizer (src/lib/sanitize.ts) expects to keep.
+  function ensureStyleWithCSS() {
+    document.execCommand("styleWithCSS", false, "true");
+  }
+
   function exec(command: string, value?: string) {
     ref.current?.focus();
+    ensureStyleWithCSS();
+    document.execCommand(command, false, value);
+    if (ref.current) onChange(ref.current.innerHTML);
+  }
+
+  function execWithRestoredSelection(command: string, value?: string) {
+    ref.current?.focus();
+    restoreSelection();
+    ensureStyleWithCSS();
     document.execCommand(command, false, value);
     if (ref.current) onChange(ref.current.innerHTML);
   }
@@ -41,9 +85,20 @@ export function TextBlockEditor({ html, onChange }: { html: string; onChange: (h
     if (url) exec("createLink", url);
   }
 
+  // Paste as plain text: pasting from Word/Google Docs/another website
+  // otherwise carries that source's own inline styles (font, size, margins)
+  // into the block, fighting this block's styling and producing exactly
+  // the "pasted from elsewhere and it came out wrong" layout breakage.
+  function handlePaste(e: React.ClipboardEvent<HTMLDivElement>) {
+    e.preventDefault();
+    const text = e.clipboardData.getData("text/plain");
+    document.execCommand("insertText", false, text);
+    if (ref.current) onChange(ref.current.innerHTML);
+  }
+
   return (
     <div>
-      <div className="mb-2 flex flex-wrap gap-1 rounded-t-md border border-b-0 border-slate-300 bg-slate-50 p-1">
+      <div className="mb-2 flex flex-wrap items-center gap-1 rounded-t-md border border-b-0 border-slate-300 bg-slate-50 p-1">
         {TOOLBAR.map((t) => (
           <button
             key={t.label}
@@ -63,6 +118,39 @@ export function TextBlockEditor({ html, onChange }: { html: string; onChange: (h
         >
           Enlace
         </button>
+
+        <select
+          onMouseDown={saveSelection}
+          onChange={(e) => {
+            execWithRestoredSelection("fontName", e.target.value || "inherit");
+            e.target.value = "";
+          }}
+          defaultValue=""
+          className="rounded border border-slate-300 bg-white px-1.5 py-1 text-xs text-slate-700"
+          title="Tipo de letra"
+        >
+          <option value="" disabled>
+            Fuente
+          </option>
+          {FONT_OPTIONS.map((f) => (
+            <option key={f.label} value={f.value}>
+              {f.label}
+            </option>
+          ))}
+        </select>
+
+        <label
+          className="flex items-center gap-1 rounded px-1.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-200"
+          title="Color de texto"
+        >
+          Color
+          <input
+            type="color"
+            onMouseDown={saveSelection}
+            onChange={(e) => execWithRestoredSelection("foreColor", e.target.value)}
+            className="h-5 w-5 cursor-pointer border-0 p-0"
+          />
+        </label>
       </div>
       <div
         ref={ref}
@@ -70,6 +158,7 @@ export function TextBlockEditor({ html, onChange }: { html: string; onChange: (h
         suppressContentEditableWarning
         onBlur={(e) => onChange(e.currentTarget.innerHTML)}
         onInput={(e) => onChange(e.currentTarget.innerHTML)}
+        onPaste={handlePaste}
         className="prose prose-sm min-h-32 max-w-none rounded-b-md border border-slate-300 px-3 py-2 focus:border-violet-600 focus:outline-none focus:ring-1 focus:ring-violet-600"
       />
     </div>
