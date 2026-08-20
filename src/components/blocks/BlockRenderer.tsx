@@ -14,6 +14,9 @@ export type RenderableBlock = {
   position?: number;
   columnIndex?: number;
   columnWidth?: number;
+  sectionBgImageUrl?: string | null;
+  sectionBgColor?: string;
+  sectionBgOpacity?: number;
 };
 
 const ALIGN_CLASS: Record<string, string> = {

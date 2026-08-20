@@ -19,6 +19,9 @@ type SubmittedBlock = {
   position?: number;
   columnIndex?: number;
   columnWidth?: number;
+  sectionBgImageUrl?: string;
+  sectionBgColor?: string;
+  sectionBgOpacity?: number;
 };
 
 function parseBlocks(raw: string): SubmittedBlock[] {
@@ -36,6 +39,18 @@ function sanitizeColumnWidth(width: unknown) {
   const n = Number(width);
   if (!Number.isFinite(n)) return 100;
   return Math.min(100, Math.max(10, Math.round(n)));
+}
+
+function sanitizeOpacity(opacity: unknown) {
+  const n = Number(opacity);
+  if (!Number.isFinite(n)) return 0;
+  return Math.min(1, Math.max(0, n));
+}
+
+const HEX_COLOR = /^#[0-9a-fA-F]{3,8}$/;
+function sanitizeHexColor(color: unknown, fallback: string) {
+  const s = String(color ?? "");
+  return HEX_COLOR.test(s) ? s : fallback;
 }
 
 async function upsertPageContent(pageId: string, formData: FormData) {
@@ -77,6 +92,9 @@ async function upsertPageContent(pageId: string, formData: FormData) {
     position: Number.isFinite(b.position) ? Number(b.position) : i,
     columnIndex: Number.isFinite(b.columnIndex) ? Number(b.columnIndex) : 0,
     columnWidth: sanitizeColumnWidth(b.columnWidth),
+    sectionBgImageUrl: String(b.sectionBgImageUrl ?? "") || null,
+    sectionBgColor: sanitizeHexColor(b.sectionBgColor, "#000000"),
+    sectionBgOpacity: sanitizeOpacity(b.sectionBgOpacity),
   }));
 
   await prisma.$transaction(async (tx) => {
@@ -202,6 +220,9 @@ export async function duplicatePage(pageId: string) {
           position: b.position,
           columnIndex: b.columnIndex,
           columnWidth: b.columnWidth,
+          sectionBgImageUrl: b.sectionBgImageUrl,
+          sectionBgColor: b.sectionBgColor,
+          sectionBgOpacity: b.sectionBgOpacity,
         })),
       },
       background: source.background
@@ -234,18 +255,31 @@ export async function restorePageVersion(pageId: string, versionId: string) {
       await tx.contentBlock.createMany({
         data: snapshot.blocks.map(
           (
-            b: { type: string; content: object; position?: number; columnIndex?: number; columnWidth?: number },
+            b: {
+              type: string;
+              content: object;
+              position?: number;
+              columnIndex?: number;
+              columnWidth?: number;
+              sectionBgImageUrl?: string | null;
+              sectionBgColor?: string;
+              sectionBgOpacity?: number;
+            },
             i: number,
           ) => ({
             pageId,
             type: b.type,
             content: b.content,
-            // Older snapshots (published before sections existed) have no
-            // position/columnIndex/columnWidth -- fall back to one block
-            // per single-column section, i.e. today's flat layout.
+            // Older snapshots (published before sections/section
+            // backgrounds existed) have none of these -- fall back to one
+            // block per single-column, background-less section, i.e.
+            // today's flat layout.
             position: b.position ?? i,
             columnIndex: b.columnIndex ?? 0,
             columnWidth: b.columnWidth ?? 100,
+            sectionBgImageUrl: b.sectionBgImageUrl ?? null,
+            sectionBgColor: b.sectionBgColor ?? "#000000",
+            sectionBgOpacity: b.sectionBgOpacity ?? 0,
           }),
         ),
       });

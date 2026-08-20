@@ -42,8 +42,17 @@ export default async function PageEditorPage({ params }: { params: Promise<{ id:
           ? { imageUrl: page.background.imageUrl, overlayColor: page.background.overlayColor, overlayOpacity: page.background.overlayOpacity }
           : null,
         sections: groupBlocksIntoSections(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          page.blocks.map((b) => ({ id: b.id, type: b.type as any, content: b.content, position: b.position, columnWidth: b.columnWidth })),
+          page.blocks.map((b) => ({
+            id: b.id,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            type: b.type as any,
+            content: b.content,
+            position: b.position,
+            columnWidth: b.columnWidth,
+            sectionBgImageUrl: b.sectionBgImageUrl,
+            sectionBgColor: b.sectionBgColor,
+            sectionBgOpacity: b.sectionBgOpacity,
+          })),
         ),
         mapComponent: page.mapComponent ? { address: page.mapComponent.address } : null,
         contactFormComponent: page.contactFormComponent ? { enabledFields: page.contactFormComponent.enabledFields } : null,

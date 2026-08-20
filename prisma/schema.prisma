@@ -150,6 +150,18 @@ model ContentBlock {
   columnIndex Int       @default(0)
   columnWidth Int       @default(100)
 
+  // Per-SECTION background (pages only), duplicated identically across
+  // every block sharing this `position` -- there's no separate Section
+  // table, so this denormalizes cleanly onto the rows that already define
+  // the section. Every save rewrites all of a page's blocks from scratch
+  // (see upsertPageContent), so keeping these in sync across a section's
+  // rows is automatic, not something that can drift over time.
+  // opacity 0 = no visible overlay by default (section has no background
+  // unless explicitly set).
+  sectionBgImageUrl String?
+  sectionBgColor    String  @default("#000000")
+  sectionBgOpacity  Float   @default(0)
+
   @@index([pageId])
   @@index([postId])
 }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { MediaItem } from "@/components/admin/MediaGrid";
+import { BackgroundPicker, type BackgroundValue } from "@/components/admin/BackgroundPicker";
 import { TextBlockEditor } from "@/components/admin/blocks/TextBlockEditor";
 import { ImageBlockEditor } from "@/components/admin/blocks/ImageBlockEditor";
 import { LinkBlockEditor } from "@/components/admin/blocks/LinkBlockEditor";
@@ -29,6 +30,7 @@ export function SectionBlockEditor({
   pages: Array<{ slug: string; title: string }>;
 }) {
   const [sections, setSections] = useState<EditorSection[]>(initialSections);
+  const [openBgPickers, setOpenBgPickers] = useState<Record<string, boolean>>({});
 
   function addSection(columnCount: 1 | 2 | 3) {
     setSections((prev) => [...prev, newSection(columnCount)]);
@@ -87,6 +89,14 @@ export function SectionBlockEditor({
       ),
     );
   }
+  function setSectionBackground(sectionId: string, bg: BackgroundValue) {
+    setSections((prev) =>
+      prev.map((s) => (s.id !== sectionId ? s : { ...s, background: { imageUrl: bg.imageUrl, color: bg.color, opacity: bg.opacity } })),
+    );
+  }
+  function toggleSectionBgPicker(sectionId: string) {
+    setOpenBgPickers((prev) => ({ ...prev, [sectionId]: !prev[sectionId] }));
+  }
 
   return (
     <div className="space-y-4">
@@ -109,6 +119,30 @@ export function SectionBlockEditor({
                 Eliminar sección
               </button>
             </div>
+          </div>
+
+          <div className="mb-4">
+            <button
+              type="button"
+              onClick={() => toggleSectionBgPicker(section.id)}
+              className="rounded-md border border-slate-300 px-3 py-1.5 text-xs hover:bg-slate-50"
+            >
+              {openBgPickers[section.id] ? "Cerrar fondo de sección" : "Fondo de esta sección (color/imagen)"}
+              {(section.background.imageUrl || section.background.opacity > 0) && " •"}
+            </button>
+            {openBgPickers[section.id] && (
+              <div className="mt-2 rounded-md border border-slate-200 bg-slate-50 p-3">
+                <BackgroundPicker
+                  compact
+                  initialImageUrl={null}
+                  initialColor="#000000"
+                  initialOpacity={0}
+                  mediaLibrary={mediaLibrary}
+                  value={section.background}
+                  onChange={(bg) => setSectionBackground(section.id, bg)}
+                />
+              </div>
+            )}
           </div>
 
           {section.columns.length === 2 && (
