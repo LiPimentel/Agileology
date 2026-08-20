@@ -2,25 +2,49 @@
 
 import { useEffect, useRef } from "react";
 
-const TOOLBAR: Array<{ label: string; command: string; value?: string }> = [
-  { label: "B", command: "bold" },
-  { label: "I", command: "italic" },
-  { label: "U", command: "underline" },
-  { label: "H2", command: "formatBlock", value: "H2" },
-  { label: "H3", command: "formatBlock", value: "H3" },
-  { label: "P", command: "formatBlock", value: "P" },
-  { label: "• Lista", command: "insertUnorderedList" },
-  { label: "1. Lista", command: "insertOrderedList" },
-  { label: "Izq", command: "justifyLeft" },
-  { label: "Centro", command: "justifyCenter" },
-  { label: "Der", command: "justifyRight" },
-  { label: "Justificar", command: "justifyFull" },
+// Grouped with a visual divider between groups (the client's own feedback:
+// "agrúpalos, no sé por qué están separados" -- headings/format weren't
+// visually grouped together before).
+const TOOLBAR_GROUPS: Array<Array<{ label: string; command: string; value?: string }>> = [
+  [
+    { label: "B", command: "bold" },
+    { label: "I", command: "italic" },
+    { label: "U", command: "underline" },
+    { label: "S", command: "strikeThrough" },
+  ],
+  [
+    { label: "H1", command: "formatBlock", value: "H1" },
+    { label: "H2", command: "formatBlock", value: "H2" },
+    { label: "H3", command: "formatBlock", value: "H3" },
+    { label: "P", command: "formatBlock", value: "P" },
+  ],
+  [
+    { label: "• Lista", command: "insertUnorderedList" },
+    { label: "1. Lista", command: "insertOrderedList" },
+  ],
+  [
+    { label: "Izq", command: "justifyLeft" },
+    { label: "Centro", command: "justifyCenter" },
+    { label: "Der", command: "justifyRight" },
+    { label: "Justificar", command: "justifyFull" },
+  ],
 ];
 
+// Real, stable Google Fonts family names (see the <link> in app/layout.tsx
+// for why not next/font/google -- these values get saved into content).
 const FONT_OPTIONS: Array<{ label: string; value: string }> = [
   { label: "Predeterminada", value: "" },
-  { label: "Sans-serif", value: "Arial, Helvetica, sans-serif" },
-  { label: "Serif", value: "Georgia, 'Times New Roman', serif" },
+  { label: "Roboto", value: "Roboto, Arial, sans-serif" },
+  { label: "Open Sans", value: "'Open Sans', Arial, sans-serif" },
+  { label: "Montserrat", value: "Montserrat, Arial, sans-serif" },
+  { label: "Lato", value: "Lato, Arial, sans-serif" },
+  { label: "Poppins", value: "Poppins, Arial, sans-serif" },
+  { label: "Nunito", value: "Nunito, Arial, sans-serif" },
+  { label: "Raleway", value: "Raleway, Arial, sans-serif" },
+  { label: "Playfair Display", value: "'Playfair Display', Georgia, serif" },
+  { label: "Merriweather", value: "Merriweather, Georgia, serif" },
+  { label: "Oswald", value: "Oswald, Arial, sans-serif" },
+  { label: "Bebas Neue", value: "'Bebas Neue', Arial, sans-serif" },
   { label: "Monoespaciada", value: "'Courier New', monospace" },
 ];
 
@@ -98,59 +122,66 @@ export function TextBlockEditor({ html, onChange }: { html: string; onChange: (h
 
   return (
     <div>
-      <div className="mb-2 flex flex-wrap items-center gap-1 rounded-t-md border border-b-0 border-slate-300 bg-slate-50 p-1">
-        {TOOLBAR.map((t) => (
+      <div className="mb-2 flex flex-wrap items-center gap-2 rounded-t-md border border-b-0 border-slate-300 bg-slate-50 p-1">
+        {TOOLBAR_GROUPS.map((group, gi) => (
+          <div key={gi} className="flex gap-0.5 border-r border-slate-300 pr-2 last:border-r-0">
+            {group.map((t) => (
+              <button
+                key={t.label}
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => exec(t.command, t.value)}
+                className="rounded px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-200"
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        ))}
+
+        <div className="flex items-center gap-2">
           <button
-            key={t.label}
             type="button"
             onMouseDown={(e) => e.preventDefault()}
-            onClick={() => exec(t.command, t.value)}
+            onClick={addLink}
             className="rounded px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-200"
           >
-            {t.label}
+            Enlace
           </button>
-        ))}
-        <button
-          type="button"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={addLink}
-          className="rounded px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-200"
-        >
-          Enlace
-        </button>
 
-        <select
-          onMouseDown={saveSelection}
-          onChange={(e) => {
-            execWithRestoredSelection("fontName", e.target.value || "inherit");
-            e.target.value = "";
-          }}
-          defaultValue=""
-          className="rounded border border-slate-300 bg-white px-1.5 py-1 text-xs text-slate-700"
-          title="Tipo de letra"
-        >
-          <option value="" disabled>
-            Fuente
-          </option>
-          {FONT_OPTIONS.map((f) => (
-            <option key={f.label} value={f.value}>
-              {f.label}
-            </option>
-          ))}
-        </select>
-
-        <label
-          className="flex items-center gap-1 rounded px-1.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-200"
-          title="Color de texto"
-        >
-          Color
-          <input
-            type="color"
+          <select
             onMouseDown={saveSelection}
-            onChange={(e) => execWithRestoredSelection("foreColor", e.target.value)}
-            className="h-5 w-5 cursor-pointer border-0 p-0"
-          />
-        </label>
+            onChange={(e) => {
+              execWithRestoredSelection("fontName", e.target.value || "inherit");
+              e.target.value = "";
+            }}
+            defaultValue=""
+            className="rounded border border-slate-300 bg-white px-1.5 py-1 text-xs text-slate-700"
+            title="Tipo de letra"
+          >
+            <option value="" disabled>
+              Fuente
+            </option>
+            {FONT_OPTIONS.map((f) => (
+              <option key={f.label} value={f.value}>
+                {f.label}
+              </option>
+            ))}
+          </select>
+
+          <label
+            className="flex items-center gap-1 rounded px-1.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-200"
+            title="Color de texto"
+          >
+            Color
+            <input
+              type="color"
+              onMouseDown={saveSelection}
+              onChange={(e) => execWithRestoredSelection("foreColor", e.target.value)}
+              className="h-5 w-5 cursor-pointer border-0 p-0"
+            />
+          </label>
+        </div>
       </div>
       <div
         ref={ref}

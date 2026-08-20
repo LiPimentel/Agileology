@@ -19,5 +19,7 @@ export const IMAGE_SHAPE_CLASS: Record<ImageShape, string> = {
   none: "h-auto w-full rounded-md",
   rounded: "h-auto w-full rounded-2xl",
   circle: "aspect-square w-full rounded-full object-cover",
-  oval: "aspect-[4/3] w-full rounded-full object-cover",
+  // Vertical (portrait) oval, not horizontal -- taller than wide, matching
+  // the client's reference (a portrait photo in an oval frame).
+  oval: "aspect-[3/4] w-full rounded-full object-cover",
 };

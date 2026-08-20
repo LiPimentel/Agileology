@@ -13,6 +13,15 @@ export function sanitizeRichText(html: string) {
       a: ["href", "target", "rel"],
       span: ["style"],
       p: ["style"],
+      // Headings need `style` too -- Justificar (or any alignment) applied
+      // directly to an <h1>-<h4> was silently losing that style on save,
+      // since only <p>/<span>/<div> allowed it.
+      h1: ["style"],
+      h2: ["style"],
+      h3: ["style"],
+      h4: ["style"],
+      li: ["style"],
+      blockquote: ["style"],
       // contentEditable wraps content in a <div> for some formatBlock/
       // justify operations depending on the selection -- without it
       // allowed, that div (and any text-align it carried, e.g. Justificar)
@@ -30,6 +39,11 @@ export function sanitizeRichText(html: string) {
         "text-align": [/^left$|^right$|^center$|^justify$/],
         color: [/^#[0-9a-fA-F]{3,8}$/, /^rgb\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*\)$/],
         "font-family": [/^[a-zA-Z0-9\s,'"-]+$/],
+        // execCommand('strikeThrough') with styleWithCSS on emits
+        // text-decoration-line (rather than a plain <s> tag) -- without
+        // this allowed it was silently stripped on save.
+        "text-decoration": [/^(none|underline|overline|line-through)(\s+(none|underline|overline|line-through))*$/],
+        "text-decoration-line": [/^(none|underline|overline|line-through)(\s+(none|underline|overline|line-through))*$/],
       },
     },
     allowedSchemes: ["http", "https", "mailto", "tel"],
