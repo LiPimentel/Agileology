@@ -109,8 +109,21 @@ model MenuItem {
   newTab      Boolean @default(false)
   order       Int     @default(0)
   visible     Boolean @default(true)
+  // "header" (default, the nav rendered by Nav.tsx) or "footer" (a flat
+  // extra-links list rendered by Footer.tsx, e.g. static pages like Terms).
+  // Footer items never nest (see saveMenuItems) -- only header items can
+  // have children.
+  location    String  @default("header")
+  // Dropdown submenus: a top-level item's children. Only one level deep --
+  // enforced in saveMenuItems, not here -- a child can't itself have
+  // children. Deleting the parent deletes its submenu items with it
+  // (an orphaned submenu pointing at a deleted parent isn't useful).
+  parentId    String?
+  parent      MenuItem?  @relation("MenuItemChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  children    MenuItem[] @relation("MenuItemChildren")
 
   @@index([pageId])
+  @@index([parentId])
 }
 
 model PageVersion {
@@ -241,6 +254,14 @@ model CommunicationSettings {
   id                          String @id @default("singleton")
   chatDestinationEmail        String
   contactFormDestinationEmail String
+  // Configurable copy for the public chat widget (ChatWidget.tsx) --
+  // previously hardcoded in Spanish, no way to change it without a code
+  // change. Defaults match what was hardcoded, so existing sites don't
+  // change behavior until an admin actually edits these.
+  chatWidgetTitle          String @default("Un buen negocio")
+  chatWidgetButtonLabel    String @default("💬 ¡Vamos a chatear!")
+  chatWidgetPlaceholder    String @default("Escribe tu mensaje...")
+  chatWidgetSuccessMessage String @default("Gracias, te responderemos pronto.")
 }
 
 model SiteSettings {
@@ -255,6 +276,13 @@ model SiteSettings {
   twitterUrl            String?
   linkedinUrl           String?
   instagramUrl          String?
+  // Optional custom icon per network, uploaded from /admin/settings/site --
+  // when unset, the footer falls back to a built-in Facebook/X/LinkedIn/
+  // Instagram SVG icon instead of the old plain-text link.
+  facebookIconUrl       String?
+  twitterIconUrl        String?
+  linkedinIconUrl       String?
+  instagramIconUrl      String?
   phone                 String?
   whatsapp              String?
   cookieNoticeEnabled   Boolean @default(true)

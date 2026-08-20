@@ -40,6 +40,19 @@ export async function updateSiteSettings(_prev: SiteSettingsState, formData: For
     data.faviconUrl = saved.url;
   }
 
+  for (const [field, column] of [
+    ["facebookIcon", "facebookIconUrl"],
+    ["twitterIcon", "twitterIconUrl"],
+    ["linkedinIcon", "linkedinIconUrl"],
+    ["instagramIcon", "instagramIconUrl"],
+  ] as const) {
+    const file = formData.get(field);
+    if (file instanceof File && file.size > 0) {
+      const saved = await saveUploadedImage(file);
+      data[column] = saved.url;
+    }
+  }
+
   await prisma.siteSettings.upsert({
     where: { id: "singleton" },
     update: data,

@@ -13,6 +13,8 @@ type MenuItemDraft = {
   externalUrl: string;
   newTab: boolean;
   visible: boolean;
+  parentId: string | null;
+  location: "header" | "footer";
 };
 
 function generateId() {
@@ -31,14 +33,16 @@ export function MenuForm({
   const [state, formAction, pending] = useActionState(saveMenuItems, initialState);
   const [items, setItems] = useState<MenuItemDraft[]>(initialItems);
 
-  function addItem() {
+  function addItem(location: "header" | "footer" = "header") {
     setItems((prev) => [
       ...prev,
-      { id: generateId(), label: "", linkType: "page", pageId: pages[0]?.id ?? null, externalUrl: "", newTab: false, visible: true },
+      { id: generateId(), label: "", linkType: "page", pageId: pages[0]?.id ?? null, externalUrl: "", newTab: false, visible: true, parentId: null, location },
     ]);
   }
   function removeItem(id: string) {
-    setItems((prev) => prev.filter((i) => i.id !== id));
+    setItems((prev) =>
+      prev.filter((i) => i.id !== id).map((i) => (i.parentId === id ? { ...i, parentId: null } : i)),
+    );
   }
   function moveItem(id: string, dir: -1 | 1) {
     setItems((prev) => {
@@ -51,7 +55,20 @@ export function MenuForm({
     });
   }
   function update(id: string, patch: Partial<MenuItemDraft>) {
-    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
+    setItems((prev) =>
+      prev.map((i) => {
+        if (i.id !== id) {
+          // Un-nest any item whose parent just moved to the footer --
+          // footer links never nest, so a stranded submenu would be
+          // impossible to see/edit as anything but a top-level item.
+          if (patch.location === "footer" && i.parentId === id) return { ...i, parentId: null };
+          return i;
+        }
+        const next = { ...i, ...patch };
+        if (next.location === "footer") next.parentId = null;
+        return next;
+      }),
+    );
   }
 
   return (
@@ -61,12 +78,15 @@ export function MenuForm({
         name="itemsJson"
         value={JSON.stringify(
           items.map((i) => ({
+            id: i.id,
             label: i.label,
             linkType: i.linkType,
             pageId: i.linkType === "page" ? i.pageId : null,
             externalUrl: i.linkType === "url" ? i.externalUrl : null,
             newTab: i.newTab,
             visible: i.visible,
+            parentId: i.parentId,
+            location: i.location,
           })),
         )}
         readOnly
@@ -74,9 +94,15 @@ export function MenuForm({
 
       <div className="space-y-3">
         {items.map((item, idx) => (
-          <div key={item.id} className="rounded-lg border border-slate-200 bg-white p-4">
+          <div
+            key={item.id}
+            className={`rounded-lg border border-slate-200 bg-white p-4 ${item.parentId ? "ml-8 border-l-4 border-l-violet-300" : ""}`}
+          >
             <div className="mb-3 flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-500">Enlace {idx + 1}</span>
+              <span className="text-xs font-semibold text-slate-500">
+                {item.parentId ? "↳ " : ""}Enlace {idx + 1}
+                {item.location === "footer" && " · Pie de página"}
+              </span>
               <div className="flex gap-2 text-sm">
                 <button type="button" disabled={idx === 0} onClick={() => moveItem(item.id, -1)} className="text-slate-500 hover:text-violet-700 disabled:opacity-30">
                   ↑
@@ -111,6 +137,17 @@ export function MenuForm({
                   <option value="url">Enlace externo / URL</option>
                 </select>
               </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-500">Ubicación</label>
+                <select
+                  value={item.location}
+                  onChange={(e) => update(item.id, { location: e.target.value as "header" | "footer" })}
+                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900"
+                >
+                  <option value="header">Menú superior (header)</option>
+                  <option value="footer">Pie de página (footer)</option>
+                </select>
+              </div>
 
               {item.linkType === "page" ? (
                 <div className="col-span-2">
@@ -140,7 +177,7 @@ export function MenuForm({
               )}
             </div>
 
-            <div className="mt-3 flex gap-4 text-sm text-slate-700">
+            <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-slate-700">
               <label className="flex items-center gap-2">
                 <input type="checkbox" checked={item.newTab} onChange={(e) => update(item.id, { newTab: e.target.checked })} />
                 Abrir en nueva pestaña
@@ -149,18 +186,53 @@ export function MenuForm({
                 <input type="checkbox" checked={item.visible} onChange={(e) => update(item.id, { visible: e.target.checked })} />
                 Visible en el menú
               </label>
+              {/*
+                Dropdown submenus: only header items that are themselves
+                top-level (no parentId) can be chosen as a parent -- one
+                level of nesting only, and footer links never nest at all.
+              */}
+              {item.location === "header" &&
+                !items.some((i) => i.parentId === item.id) &&
+                items.filter((i) => i.id !== item.id && i.parentId === null && i.location === "header").length > 0 && (
+                <label className="flex items-center gap-2">
+                  Submenú de:
+                  <select
+                    value={item.parentId ?? ""}
+                    onChange={(e) => update(item.id, { parentId: e.target.value || null })}
+                    className="rounded-md border border-slate-300 px-2 py-1 text-sm text-slate-900"
+                  >
+                    <option value="">— Nivel superior —</option>
+                    {items
+                      .filter((i) => i.id !== item.id && i.parentId === null && i.location === "header")
+                      .map((i) => (
+                        <option key={i.id} value={i.id}>
+                          {i.label || "(sin texto)"}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+              )}
             </div>
           </div>
         ))}
       </div>
 
-      <button
-        type="button"
-        onClick={addItem}
-        className="rounded-md border border-dashed border-violet-300 px-3 py-1.5 text-sm text-violet-700 hover:border-violet-500 hover:bg-violet-50"
-      >
-        + Agregar enlace
-      </button>
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => addItem("header")}
+          className="rounded-md border border-dashed border-violet-300 px-3 py-1.5 text-sm text-violet-700 hover:border-violet-500 hover:bg-violet-50"
+        >
+          + Agregar enlace al menú
+        </button>
+        <button
+          type="button"
+          onClick={() => addItem("footer")}
+          className="rounded-md border border-dashed border-violet-300 px-3 py-1.5 text-sm text-violet-700 hover:border-violet-500 hover:bg-violet-50"
+        >
+          + Agregar enlace al pie de página
+        </button>
+      </div>
 
       {state.error && <p className="text-sm text-red-600">{state.error}</p>}
       {state.success && !state.error && <p className="text-sm text-green-700">Guardado.</p>}

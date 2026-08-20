@@ -9,7 +9,14 @@ export default async function CommunicationsSettingsPage() {
   return (
     <div>
       <h1 className="mb-6 text-2xl font-semibold text-slate-900">Comunicaciones</h1>
-      <CommunicationsForm chatEmail={settings.chatDestinationEmail} contactEmail={settings.contactFormDestinationEmail} />
+      <CommunicationsForm
+        chatEmail={settings.chatDestinationEmail}
+        contactEmail={settings.contactFormDestinationEmail}
+        chatWidgetTitle={settings.chatWidgetTitle}
+        chatWidgetButtonLabel={settings.chatWidgetButtonLabel}
+        chatWidgetPlaceholder={settings.chatWidgetPlaceholder}
+        chatWidgetSuccessMessage={settings.chatWidgetSuccessMessage}
+      />
     </div>
   );
 }

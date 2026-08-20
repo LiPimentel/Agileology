@@ -59,22 +59,38 @@ export function SiteSettingsForm({ settings }: { settings: SiteSettings }) {
           <label className="block text-sm font-medium text-slate-700">WhatsApp</label>
           <input name="whatsapp" defaultValue={settings.whatsapp ?? ""} className={inputClass} />
         </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700">Facebook URL</label>
-          <input name="facebookUrl" defaultValue={settings.facebookUrl ?? ""} className={inputClass} />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700">Twitter/X URL</label>
-          <input name="twitterUrl" defaultValue={settings.twitterUrl ?? ""} className={inputClass} />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700">LinkedIn URL</label>
-          <input name="linkedinUrl" defaultValue={settings.linkedinUrl ?? ""} className={inputClass} />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700">Instagram URL</label>
-          <input name="instagramUrl" defaultValue={settings.instagramUrl ?? ""} className={inputClass} />
-        </div>
+      </div>
+
+      {/*
+        Each network's URL + an optional custom icon upload. Without a
+        custom icon, the footer already shows a built-in Facebook/X/
+        LinkedIn/Instagram icon (see SocialIcons.tsx) -- this is only for a
+        client who wants their own icon style/brand instead of the default.
+      */}
+      <div className="grid grid-cols-2 gap-4">
+        {(
+          [
+            { urlName: "facebookUrl", iconName: "facebookIcon", label: "Facebook", current: settings.facebookIconUrl },
+            { urlName: "twitterUrl", iconName: "twitterIcon", label: "Twitter/X", current: settings.twitterIconUrl },
+            { urlName: "linkedinUrl", iconName: "linkedinIcon", label: "LinkedIn", current: settings.linkedinIconUrl },
+            { urlName: "instagramUrl", iconName: "instagramIcon", label: "Instagram", current: settings.instagramIconUrl },
+          ] as const
+        ).map((s) => (
+          <div key={s.urlName} className="space-y-2 rounded-md border border-slate-200 p-3">
+            <div>
+              <label className="block text-sm font-medium text-slate-700">{s.label} URL</label>
+              <input name={s.urlName} defaultValue={settings[s.urlName] ?? ""} className={inputClass} />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-500">Icono personalizado (opcional)</label>
+              {s.current && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={s.current} alt="" className="mb-1 h-6 w-6 object-contain" />
+              )}
+              <input type="file" name={s.iconName} accept="image/*" className="w-full text-xs" />
+            </div>
+          </div>
+        ))}
       </div>
       <label className="flex items-center gap-2 text-sm text-slate-700">
         <input type="checkbox" name="cookieNoticeEnabled" defaultChecked={settings.cookieNoticeEnabled} />

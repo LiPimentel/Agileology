@@ -12,7 +12,17 @@ export default async function MediaLibraryPage() {
     <div>
       <h1 className="mb-6 text-2xl font-semibold text-slate-900">Biblioteca de medios</h1>
       <div className="mb-8 rounded-lg border border-slate-200 bg-white p-4">
-        <MediaUploadForm />
+        {/*
+          MediaUploadForm no longer renders its own <form> (that was the fix
+          for it being nested inside a bigger form elsewhere -- see that
+          component). Here it's used standalone, so it needs an actual
+          enclosing <form> to submit through at all; the button's own
+          formAction (inside MediaUploadForm) still decides where it
+          actually goes, this one needs no action of its own.
+        */}
+        <form>
+          <MediaUploadForm />
+        </form>
       </div>
       <MediaGrid items={items} />
     </div>

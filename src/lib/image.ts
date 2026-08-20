@@ -13,7 +13,22 @@ import { randomUUID } from "node:crypto";
 const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"]);
 const MAX_BYTES = 10 * 1024 * 1024; // 10MB
 const MAX_WIDTH = 1920;
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
+
+// Deliberately OUTSIDE `public/` -- with `next start`, files written to
+// public/uploads after the build do get served fine, but the moment a
+// Docker rebuild replaces the container (exactly the deploy loop this
+// project uses: git pull -> docker compose build -> up -d), anything
+// written into the previous container's filesystem is gone, since it was
+// never part of the image or a mounted volume. Configurable via
+// UPLOADS_DIR so the docker-compose volume mount has one unambiguous
+// target; defaults to a project-relative "uploads" dir for local/non-
+// Docker dev. Serving is handled by src/app/uploads/[...path]/route.ts,
+// not Next's static /public pipeline (also sidesteps the standalone-
+// output "public/ is only a build-time snapshot" gotcha, if that mode
+// ever gets turned on for this project).
+export const UPLOAD_DIR = process.env.UPLOADS_DIR
+  ? path.resolve(process.env.UPLOADS_DIR)
+  : path.join(process.cwd(), "uploads");
 
 /**
  * Validates and processes an uploaded image file (RS-07, 7.10):
@@ -43,23 +58,29 @@ export async function saveUploadedImage(file: File) {
   const resized = image.resize({ width: MAX_WIDTH, withoutEnlargement: true });
 
   let outputBuffer: Buffer;
-  let ext: string;
-  let mimeType: string;
+  const ext = "webp";
+  const mimeType = "image/webp";
   if (isAnimated) {
     outputBuffer = await resized.webp({ quality: 80 }).toBuffer();
-    ext = "webp";
-    mimeType = "image/webp";
   } else {
     outputBuffer = await resized.webp({ quality: 82 }).toBuffer();
-    ext = "webp";
-    mimeType = "image/webp";
   }
 
   const outMeta = await sharp(outputBuffer).metadata();
   const filename = `${randomUUID()}.${ext}`;
 
   await mkdir(UPLOAD_DIR, { recursive: true });
-  await writeFile(path.join(UPLOAD_DIR, filename), outputBuffer);
+  const filePath = path.join(UPLOAD_DIR, filename);
+  await writeFile(filePath, outputBuffer);
+
+  // Written files should never be silently wrong/empty -- verify instead
+  // of trusting writeFile() not throwing (e.g. a volume mounted read-only
+  // or nearly full can behave unexpectedly across different filesystems).
+  const { stat } = await import("node:fs/promises");
+  const written = await stat(filePath).catch(() => null);
+  if (!written || written.size !== outputBuffer.length) {
+    throw new Error("La imagen se procesó pero no se pudo guardar en disco correctamente.");
+  }
 
   return {
     url: `/uploads/${filename}`,
