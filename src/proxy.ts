@@ -33,17 +33,23 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
+    // This is an *optimistic* refresh, not the authoritative auth check
+    // (Next.js's own guidance: Proxy "should not be used as a full session
+    // management or authorization solution" — see docs/01-app/01-getting-started/16-proxy.md).
+    // touchSession() does a real DB write on every admin request/action POST;
+    // if it fails for any reason (transient DB error, connection pool
+    // contention, etc.) that must NOT be treated as "session invalid" — doing
+    // so previously deleted a perfectly valid session cookie and 307-redirected
+    // in-flight Server Action POSTs (e.g. the 2FA-confirm submit) straight to
+    // /admin/login before the action ever ran. On failure here we just pass
+    // the request through unchanged; requireAdmin() (called by every admin
+    // page/action) does its own independent, accurate DB lookup and is the
+    // real authority on whether the session is valid.
     const expiresAt = await touchSession(token);
-    if (!expiresAt) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/admin/login";
-      const res = NextResponse.redirect(url);
-      res.cookies.delete(SESSION_COOKIE);
-      return res;
-    }
-
     const res = NextResponse.next();
-    res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions(expiresAt));
+    if (expiresAt) {
+      res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions(expiresAt));
+    }
     return res;
   }
 

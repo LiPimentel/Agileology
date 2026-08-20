@@ -4,7 +4,16 @@
 import { prisma } from "@/lib/prisma";
 
 export const SESSION_COOKIE = "agileology_session";
-export const SESSION_MINUTES = Number(process.env.SESSION_INACTIVITY_MINUTES ?? 30);
+
+// `??` only falls back on null/undefined, not on an empty string — an env
+// var present-but-empty (e.g. "SESSION_INACTIVITY_MINUTES=" in a .env file)
+// would otherwise silently yield Number("") === 0, expiring every session
+// almost immediately. Guard against that and against non-numeric garbage.
+function parseSessionMinutes(raw: string | undefined) {
+  const n = Number(raw);
+  return raw && Number.isFinite(n) && n > 0 ? n : 30;
+}
+export const SESSION_MINUTES = parseSessionMinutes(process.env.SESSION_INACTIVITY_MINUTES);
 
 export function sessionCookieOptions(expires: Date) {
   return {
