@@ -13,6 +13,7 @@ const NAV = [
   { href: "/admin/inbox", label: "Bandeja de entrada" },
   { href: "/admin/analytics", label: "Analítica" },
   { href: "/admin/settings/site", label: "Ajustes del sitio" },
+  { href: "/admin/settings/menu", label: "Menú del sitio" },
   { href: "/admin/settings/communications", label: "Comunicaciones" },
   { href: "/admin/settings/audit", label: "Auditoría" },
 ];

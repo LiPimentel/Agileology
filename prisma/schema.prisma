@@ -90,6 +90,27 @@ model Page {
   versions      PageVersion[]
   contactSubmissions ContactFormSubmission[]
   visitLogs     VisitLog[]
+  menuItems     MenuItem[]
+}
+
+// Replaces the old scheme of deriving the header nav purely from
+// Page.menuOrder/menuVisible/showInMenu (still present on Page, just no
+// longer read for nav -- left alone rather than risk a destructive column
+// drop). This is a real, explicit menu: an admin adds/removes/reorders
+// items directly, and an item can point at either an internal page or any
+// URL (external site, or an internal path with no Page row, like /blog).
+model MenuItem {
+  id          String  @id @default(cuid())
+  label       String
+  linkType    String // "page" | "url"
+  pageId      String?
+  page        Page?   @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  externalUrl String? // used when linkType = "url"; can be a relative path or an absolute external URL
+  newTab      Boolean @default(false)
+  order       Int     @default(0)
+  visible     Boolean @default(true)
+
+  @@index([pageId])
 }
 
 model PageVersion {

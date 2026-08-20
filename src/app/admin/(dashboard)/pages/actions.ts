@@ -66,9 +66,12 @@ async function upsertPageContent(pageId: string, formData: FormData) {
 
   const seoTitle = sanitizePlainText(String(formData.get("seoTitle") ?? "")) || null;
   const seoDescription = sanitizePlainText(String(formData.get("seoDescription") ?? "")) || null;
-  const menuOrder = Number(formData.get("menuOrder") ?? 0) || 0;
-  const showInMenu = formData.get("showInMenu") === "on";
-  const menuVisible = formData.get("menuVisible") === "on";
+  // menuOrder/showInMenu/menuVisible used to control the public nav; that's
+  // now handled explicitly via MenuItem (/admin/settings/menu) instead, and
+  // the page editor no longer submits these fields. Deliberately NOT read
+  // from formData here anymore -- doing so would silently reset them to
+  // false/0 on every save (the form fields are gone, so they'd always read
+  // as absent) for columns nothing reads anymore anyway.
 
   const overlayColor = String(formData.get("overlayColor") ?? "#3B0764");
   const overlayOpacity = Math.min(1, Math.max(0, Number(formData.get("overlayOpacity") ?? 0.5)));
@@ -100,7 +103,7 @@ async function upsertPageContent(pageId: string, formData: FormData) {
   await prisma.$transaction(async (tx) => {
     await tx.page.update({
       where: { id: pageId },
-      data: { title, slug, seoTitle, seoDescription, menuOrder, showInMenu, menuVisible },
+      data: { title, slug, seoTitle, seoDescription },
     });
 
     await tx.contentBlock.deleteMany({ where: { pageId } });
