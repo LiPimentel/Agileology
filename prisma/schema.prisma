@@ -254,6 +254,14 @@ model CommunicationSettings {
   id                          String @id @default("singleton")
   chatDestinationEmail        String
   contactFormDestinationEmail String
+  // Configurable copy for the public chat widget (ChatWidget.tsx) --
+  // previously hardcoded in Spanish, no way to change it without a code
+  // change. Defaults match what was hardcoded, so existing sites don't
+  // change behavior until an admin actually edits these.
+  chatWidgetTitle          String @default("Un buen negocio")
+  chatWidgetButtonLabel    String @default("💬 ¡Vamos a chatear!")
+  chatWidgetPlaceholder    String @default("Escribe tu mensaje...")
+  chatWidgetSuccessMessage String @default("Gracias, te responderemos pronto.")
 }
 
 model SiteSettings {
