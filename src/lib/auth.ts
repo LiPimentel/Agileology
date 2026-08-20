@@ -6,7 +6,7 @@ import bcrypt from "bcryptjs";
 import { TOTP, Secret } from "otpauth";
 import QRCode from "qrcode";
 import { prisma } from "@/lib/prisma";
-import { SESSION_COOKIE, SESSION_MINUTES, sessionCookieOptions } from "@/lib/session-db";
+import { SESSION_COOKIE, SESSION_MINUTES, COOKIE_SECURE, sessionCookieOptions } from "@/lib/session-db";
 
 export { SESSION_COOKIE, touchSession } from "@/lib/session-db";
 
@@ -192,7 +192,7 @@ export async function createPendingTwoFactor(adminId: string) {
   const store = await cookies();
   store.set(PENDING_2FA_COOKIE, value, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: COOKIE_SECURE,
     sameSite: "lax",
     path: "/",
     maxAge: PENDING_2FA_MINUTES * 60,

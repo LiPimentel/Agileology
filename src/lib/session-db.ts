@@ -5,6 +5,17 @@ import { prisma } from "@/lib/prisma";
 
 export const SESSION_COOKIE = "agileology_session";
 
+// `NODE_ENV === "production"` used to gate the cookie's `Secure` attribute,
+// but a production Docker build accessed over plain HTTP (Tailscale/LAN
+// without TLS in front of it — a normal setup while testing before a
+// reverse proxy/tunnel is in place) means browsers silently refuse to ever
+// send that cookie back, since `Secure` requires an HTTPS connection. That
+// looked exactly like a broken session: login succeeds, the page renders
+// once, then every subsequent request has no cookie at all.
+// Default to secure (safe for the real deployment); set COOKIE_SECURE=false
+// explicitly to disable it for local/plain-HTTP testing.
+export const COOKIE_SECURE = process.env.COOKIE_SECURE !== "false";
+
 // `??` only falls back on null/undefined, not on an empty string — an env
 // var present-but-empty (e.g. "SESSION_INACTIVITY_MINUTES=" in a .env file)
 // would otherwise silently yield Number("") === 0, expiring every session
@@ -18,7 +29,7 @@ export const SESSION_MINUTES = parseSessionMinutes(process.env.SESSION_INACTIVIT
 export function sessionCookieOptions(expires: Date) {
   return {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: COOKIE_SECURE,
     sameSite: "lax" as const,
     path: "/",
     expires,
