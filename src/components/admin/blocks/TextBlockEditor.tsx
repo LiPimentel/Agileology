@@ -3,6 +3,24 @@
 import { useEffect, useRef, useState } from "react";
 import { MediaGrid, type MediaItem } from "@/components/admin/MediaGrid";
 import { MediaUploadForm } from "@/components/admin/MediaUploadForm";
+import {
+  AlignCenterIcon,
+  AlignJustifyIcon,
+  AlignLeftIcon,
+  AlignRightIcon,
+  BoldIcon,
+  BulletListIcon,
+  H1Icon,
+  H2Icon,
+  H3Icon,
+  ImageIcon,
+  ItalicIcon,
+  LinkIcon,
+  NumberListIcon,
+  ParagraphIcon,
+  StrikethroughIcon,
+  UnderlineIcon,
+} from "./ToolbarIcons";
 
 // Alignment presets for an inline image (see insertImage/alignSelectedImage
 // below) -- float-wrapped left/right so text flows around it, or a
@@ -14,31 +32,34 @@ const IMAGE_ALIGN_STYLE: Record<"left" | "center" | "right", string> = {
   center: "display:block;max-width:80%;margin:1rem auto;",
 };
 
-// Grouped with a visual divider between groups (the client's own feedback:
-// "agrúpalos, no sé por qué están separados" -- headings/format weren't
-// visually grouped together before).
-const TOOLBAR_GROUPS: Array<Array<{ label: string; command: string; value?: string }>> = [
+// Grouped with a visual divider between groups, traditional icon-based
+// buttons (the client's own feedback: "usar los iconos tradicionales...
+// esa barra de formato de texto debe tener el formato tradicional con
+// iconos" -- text labels like "Izq"/"Centro"/"H1" weren't what she meant
+// by a familiar toolbar). `title` doubles as the tooltip and the
+// accessible name, since the visible content is now just an icon.
+const TOOLBAR_GROUPS: Array<Array<{ title: string; Icon: (p: { className?: string }) => React.ReactElement; command: string; value?: string }>> = [
   [
-    { label: "B", command: "bold" },
-    { label: "I", command: "italic" },
-    { label: "U", command: "underline" },
-    { label: "S", command: "strikeThrough" },
+    { title: "Negrita", Icon: BoldIcon, command: "bold" },
+    { title: "Cursiva", Icon: ItalicIcon, command: "italic" },
+    { title: "Subrayado", Icon: UnderlineIcon, command: "underline" },
+    { title: "Tachado", Icon: StrikethroughIcon, command: "strikeThrough" },
   ],
   [
-    { label: "H1", command: "formatBlock", value: "H1" },
-    { label: "H2", command: "formatBlock", value: "H2" },
-    { label: "H3", command: "formatBlock", value: "H3" },
-    { label: "P", command: "formatBlock", value: "P" },
+    { title: "Título 1", Icon: H1Icon, command: "formatBlock", value: "H1" },
+    { title: "Título 2", Icon: H2Icon, command: "formatBlock", value: "H2" },
+    { title: "Título 3", Icon: H3Icon, command: "formatBlock", value: "H3" },
+    { title: "Párrafo normal", Icon: ParagraphIcon, command: "formatBlock", value: "P" },
   ],
   [
-    { label: "• Lista", command: "insertUnorderedList" },
-    { label: "1. Lista", command: "insertOrderedList" },
+    { title: "Lista con viñetas", Icon: BulletListIcon, command: "insertUnorderedList" },
+    { title: "Lista numerada", Icon: NumberListIcon, command: "insertOrderedList" },
   ],
   [
-    { label: "Izq", command: "justifyLeft" },
-    { label: "Centro", command: "justifyCenter" },
-    { label: "Der", command: "justifyRight" },
-    { label: "Justificar", command: "justifyFull" },
+    { title: "Alinear a la izquierda", Icon: AlignLeftIcon, command: "justifyLeft" },
+    { title: "Centrar", Icon: AlignCenterIcon, command: "justifyCenter" },
+    { title: "Alinear a la derecha", Icon: AlignRightIcon, command: "justifyRight" },
+    { title: "Justificar", Icon: AlignJustifyIcon, command: "justifyFull" },
   ],
 ];
 
@@ -82,6 +103,14 @@ export function TextBlockEditor({
   // "Imagen: Izq/Centro/Der" buttons target a specific already-inserted
   // image instead of only being able to set alignment at insert time.
   const [selectedImg, setSelectedImg] = useState<HTMLImageElement | null>(null);
+  // Inline link popover instead of window.prompt() -- a modal prompt can
+  // lose/collapse the page's text selection in some browsers between
+  // opening it and confirming it, which was exactly the client's report
+  // ("intento poner un enlace en una palabra y no me lo permite"). This
+  // popover reuses the same saveSelection/restoreSelection pair already
+  // used for the color/font controls, so the selected word survives it.
+  const [linkPopoverOpen, setLinkPopoverOpen] = useState(false);
+  const [linkUrl, setLinkUrl] = useState("");
 
   // Uncontrolled on purpose: contentEditable owns the DOM after the first
   // paint. Re-applying `html` on every keystroke would fight the browser's
@@ -129,9 +158,16 @@ export function TextBlockEditor({
     if (ref.current) onChange(ref.current.innerHTML);
   }
 
-  function addLink() {
-    const url = window.prompt("URL del enlace:");
-    if (url) exec("createLink", url);
+  function openLinkPopover() {
+    saveSelection();
+    setLinkUrl("");
+    setLinkPopoverOpen(true);
+  }
+
+  function applyLink() {
+    const url = linkUrl.trim();
+    if (url) execWithRestoredSelection("createLink", url);
+    setLinkPopoverOpen(false);
   }
 
   // Paste as plain text: pasting from Word/Google Docs/another website
@@ -179,95 +215,137 @@ export function TextBlockEditor({
           <div key={gi} className="flex gap-0.5 border-r border-slate-300 pr-2 last:border-r-0">
             {group.map((t) => (
               <button
-                key={t.label}
+                key={t.title}
                 type="button"
+                title={t.title}
+                aria-label={t.title}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => exec(t.command, t.value)}
-                className="rounded px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-200"
+                className="rounded p-1.5 text-slate-700 hover:bg-slate-200"
               >
-                {t.label}
+                <t.Icon />
               </button>
             ))}
           </div>
         ))}
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={addLink}
-            className="rounded px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-200"
-          >
-            Enlace
-          </button>
+        <div className="flex items-center gap-2 border-r border-slate-300 pr-2">
+          <div className="relative">
+            <button
+              type="button"
+              title="Enlace"
+              aria-label="Enlace"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={openLinkPopover}
+              className="rounded p-1.5 text-slate-700 hover:bg-slate-200"
+            >
+              <LinkIcon />
+            </button>
+            {linkPopoverOpen && (
+              <div className="absolute left-0 top-full z-10 mt-1 flex w-64 gap-1 rounded-md border border-slate-300 bg-white p-2 shadow-lg">
+                <input
+                  autoFocus
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      applyLink();
+                    } else if (e.key === "Escape") {
+                      setLinkPopoverOpen(false);
+                    }
+                  }}
+                  placeholder="https://..."
+                  className="min-w-0 flex-1 rounded border border-slate-300 px-2 py-1 text-xs text-slate-900"
+                />
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={applyLink}
+                  className="rounded bg-violet-700 px-2 py-1 text-xs font-medium text-white hover:bg-violet-800"
+                >
+                  Aplicar
+                </button>
+              </div>
+            )}
+          </div>
 
           <button
             type="button"
+            title="Insertar imagen"
+            aria-label="Insertar imagen"
             onMouseDown={(e) => {
               e.preventDefault();
               saveSelection();
             }}
             onClick={() => setImagePickerOpen((v) => !v)}
-            className="rounded px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-200"
+            className="rounded p-1.5 text-slate-700 hover:bg-slate-200"
           >
-            + Imagen
+            <ImageIcon />
           </button>
-
-          {/*
-            Only shown once an already-inserted image is clicked -- lets
-            the user change where text wraps around it (or center it)
-            after the fact, not just at insert time.
-          */}
-          {selectedImg && (
-            <div className="flex items-center gap-1 rounded border border-violet-200 bg-violet-50 px-1.5 py-1">
-              <span className="text-xs text-violet-700">Imagen:</span>
-              {(["left", "center", "right"] as const).map((align) => (
-                <button
-                  key={align}
-                  type="button"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => alignSelectedImage(align)}
-                  className="rounded px-1.5 py-0.5 text-xs font-medium text-violet-700 hover:bg-violet-200"
-                >
-                  {align === "left" ? "Izq" : align === "center" ? "Centro" : "Der"}
-                </button>
-              ))}
-            </div>
-          )}
-
-          <select
-            onMouseDown={saveSelection}
-            onChange={(e) => {
-              execWithRestoredSelection("fontName", e.target.value || "inherit");
-              e.target.value = "";
-            }}
-            defaultValue=""
-            className="rounded border border-slate-300 bg-white px-1.5 py-1 text-xs text-slate-700"
-            title="Tipo de letra"
-          >
-            <option value="" disabled>
-              Fuente
-            </option>
-            {FONT_OPTIONS.map((f) => (
-              <option key={f.label} value={f.value}>
-                {f.label}
-              </option>
-            ))}
-          </select>
-
-          <label
-            className="flex items-center gap-1 rounded px-1.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-200"
-            title="Color de texto"
-          >
-            Color
-            <input
-              type="color"
-              onMouseDown={saveSelection}
-              onChange={(e) => execWithRestoredSelection("foreColor", e.target.value)}
-              className="h-5 w-5 cursor-pointer border-0 p-0"
-            />
-          </label>
         </div>
+
+        {/*
+          Only shown once an already-inserted image is clicked -- lets
+          the user change where text wraps around it (or center it)
+          after the fact, not just at insert time.
+        */}
+        {selectedImg && (
+          <div className="flex items-center gap-1 rounded border border-violet-200 bg-violet-50 px-1.5 py-1">
+            <span className="text-xs text-violet-700">Imagen:</span>
+            {(
+              [
+                { align: "left" as const, Icon: AlignLeftIcon, title: "Imagen a la izquierda" },
+                { align: "center" as const, Icon: AlignCenterIcon, title: "Imagen centrada" },
+                { align: "right" as const, Icon: AlignRightIcon, title: "Imagen a la derecha" },
+              ]
+            ).map(({ align, Icon, title }) => (
+              <button
+                key={align}
+                type="button"
+                title={title}
+                aria-label={title}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => alignSelectedImage(align)}
+                className="rounded p-1 text-violet-700 hover:bg-violet-200"
+              >
+                <Icon />
+              </button>
+            ))}
+          </div>
+        )}
+
+        <select
+          onMouseDown={saveSelection}
+          onChange={(e) => {
+            execWithRestoredSelection("fontName", e.target.value || "inherit");
+            e.target.value = "";
+          }}
+          defaultValue=""
+          className="rounded border border-slate-300 bg-white px-1.5 py-1 text-xs text-slate-700"
+          title="Tipo de letra"
+        >
+          <option value="" disabled>
+            Fuente
+          </option>
+          {FONT_OPTIONS.map((f) => (
+            <option key={f.label} value={f.value}>
+              {f.label}
+            </option>
+          ))}
+        </select>
+
+        <label
+          className="flex items-center gap-1 rounded px-1.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-200"
+          title="Color de texto"
+        >
+          <input
+            type="color"
+            onMouseDown={saveSelection}
+            onChange={(e) => execWithRestoredSelection("foreColor", e.target.value)}
+            className="h-5 w-5 cursor-pointer border-0 p-0"
+          />
+        </label>
       </div>
       {imagePickerOpen && (
         <div className="mb-2 rounded-md border border-slate-200 bg-slate-50 p-3">
