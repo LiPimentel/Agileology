@@ -12,7 +12,14 @@ import { slugify } from "@/lib/slugify";
 
 export type PageFormState = { error?: string; pageId?: string; savedAt?: number };
 
-type SubmittedBlock = { id: string; type: "text" | "image" | "link" | "video"; content: unknown };
+type SubmittedBlock = {
+  id: string;
+  type: "text" | "image" | "link" | "video";
+  content: unknown;
+  position?: number;
+  columnIndex?: number;
+  columnWidth?: number;
+};
 
 function parseBlocks(raw: string): SubmittedBlock[] {
   try {
@@ -22,6 +29,13 @@ function parseBlocks(raw: string): SubmittedBlock[] {
   } catch {
     return [];
   }
+}
+
+/** Clamp a client-submitted column width to a sane range (defensive -- this is only ever layout, not sensitive data). */
+function sanitizeColumnWidth(width: unknown) {
+  const n = Number(width);
+  if (!Number.isFinite(n)) return 100;
+  return Math.min(100, Math.max(10, Math.round(n)));
 }
 
 async function upsertPageContent(pageId: string, formData: FormData) {
@@ -52,10 +66,17 @@ async function upsertPageContent(pageId: string, formData: FormData) {
   const contactFields = formData.getAll("contactFields").map(String);
 
   const blocksRaw = parseBlocks(String(formData.get("blocksJson") ?? "[]"));
+  // Sections editor sends position (shared by every block/column in one
+  // section = one row) and columnIndex/columnWidth (this block's slot and
+  // width within that row) directly -- fall back to a linear index for
+  // anything malformed/missing so a bad payload still saves sensibly rather
+  // than throwing.
   const blocks = blocksRaw.map((b, i) => ({
     type: b.type,
     content: sanitizeBlockContent(b.type, b.content) as object,
-    position: i,
+    position: Number.isFinite(b.position) ? Number(b.position) : i,
+    columnIndex: Number.isFinite(b.columnIndex) ? Number(b.columnIndex) : 0,
+    columnWidth: sanitizeColumnWidth(b.columnWidth),
   }));
 
   await prisma.$transaction(async (tx) => {
@@ -174,7 +195,15 @@ export async function duplicatePage(pageId: string) {
       seoTitle: source.seoTitle,
       seoDescription: source.seoDescription,
       showInMenu: false,
-      blocks: { create: source.blocks.map((b) => ({ type: b.type, content: b.content as object, position: b.position })) },
+      blocks: {
+        create: source.blocks.map((b) => ({
+          type: b.type,
+          content: b.content as object,
+          position: b.position,
+          columnIndex: b.columnIndex,
+          columnWidth: b.columnWidth,
+        })),
+      },
       background: source.background
         ? { create: { imageUrl: source.background.imageUrl, overlayColor: source.background.overlayColor, overlayOpacity: source.background.overlayOpacity } }
         : { create: {} },
@@ -203,12 +232,22 @@ export async function restorePageVersion(pageId: string, versionId: string) {
     await tx.contentBlock.deleteMany({ where: { pageId } });
     if (snapshot.blocks?.length) {
       await tx.contentBlock.createMany({
-        data: snapshot.blocks.map((b: { type: string; content: object }, i: number) => ({
-          pageId,
-          type: b.type,
-          content: b.content,
-          position: i,
-        })),
+        data: snapshot.blocks.map(
+          (
+            b: { type: string; content: object; position?: number; columnIndex?: number; columnWidth?: number },
+            i: number,
+          ) => ({
+            pageId,
+            type: b.type,
+            content: b.content,
+            // Older snapshots (published before sections existed) have no
+            // position/columnIndex/columnWidth -- fall back to one block
+            // per single-column section, i.e. today's flat layout.
+            position: b.position ?? i,
+            columnIndex: b.columnIndex ?? 0,
+            columnWidth: b.columnWidth ?? 100,
+          }),
+        ),
       });
     }
     await tx.background.upsert({
