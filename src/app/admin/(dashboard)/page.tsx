@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { daysAgo } from "@/lib/date";
 
 export const metadata = { title: "Dashboard — Backoffice" };
 
@@ -9,7 +10,7 @@ export default async function AdminDashboardPage() {
     prisma.post.count(),
     prisma.chatMessage.count({ where: { status: "new" } }),
     prisma.contactFormSubmission.count({ where: { status: "new" } }),
-    prisma.visitLog.count({ where: { timestamp: { gte: new Date(Date.now() - 7 * 86_400_000) } } }),
+    prisma.visitLog.count({ where: { timestamp: { gte: daysAgo(7) } } }),
   ]);
 
   const cards = [

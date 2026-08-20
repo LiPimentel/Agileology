@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, generateTwoFactorSecret, buildOtpauthUrl, twoFactorQrDataUrl } from "@/lib/auth";
 import { ConfirmForm } from "./ConfirmForm";
@@ -13,9 +14,9 @@ export default async function SetupTwoFactorPage() {
     return (
       <div className="mx-auto max-w-md py-16 text-center">
         <h1 className="text-xl font-semibold text-slate-900">La verificación en dos pasos ya está activa</h1>
-        <a href="/admin" className="mt-4 inline-block text-violet-700 underline">
+        <Link href="/admin" className="mt-4 inline-block text-violet-700 underline">
           Ir al backoffice
-        </a>
+        </Link>
       </div>
     );
   }

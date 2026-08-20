@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { LoginForm } from "./LoginForm";
 
 export const metadata = { title: "Backoffice login — Agileology Wave" };
@@ -10,9 +11,9 @@ export default function AdminLoginPage() {
         <h1 className="mb-1 text-xl font-semibold text-slate-900">Backoffice</h1>
         <p className="mb-6 text-sm text-slate-500">Agileology Wave</p>
         <LoginForm />
-        <a href="/admin/login/forgot-password" className="mt-4 block text-center text-sm text-violet-700 underline">
+        <Link href="/admin/login/forgot-password" className="mt-4 block text-center text-sm text-violet-700 underline">
           ¿Olvidaste tu contraseña?
-        </a>
+        </Link>
       </div>
     </div>
   );

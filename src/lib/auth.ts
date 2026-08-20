@@ -6,9 +6,10 @@ import bcrypt from "bcryptjs";
 import { TOTP, Secret } from "otpauth";
 import QRCode from "qrcode";
 import { prisma } from "@/lib/prisma";
+import { SESSION_COOKIE, SESSION_MINUTES, sessionCookieOptions } from "@/lib/session-db";
 
-export const SESSION_COOKIE = "agileology_session";
-const SESSION_MINUTES = Number(process.env.SESSION_INACTIVITY_MINUTES ?? 30);
+export { SESSION_COOKIE, touchSession } from "@/lib/session-db";
+
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_MINUTES = 15;
 const TOTP_ISSUER = "Agileology Wave";
@@ -19,16 +20,6 @@ export async function hashPassword(password: string) {
 
 export async function verifyPassword(password: string, hash: string) {
   return bcrypt.compare(password, hash);
-}
-
-function sessionCookieOptions(expires: Date) {
-  return {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax" as const,
-    path: "/",
-    expires,
-  };
 }
 
 export async function createSession(adminId: string) {
@@ -50,10 +41,11 @@ export async function destroySession() {
 }
 
 /**
- * Full session verification: looks up the session server-side, enforces the
- * inactivity timeout (RF-03), and slides the expiry forward on activity.
- * The optimistic cookie-presence check lives in proxy.ts; this is the real
- * authorization check and must be called by every admin page/action.
+ * Full session verification: looks up the session server-side and enforces
+ * the inactivity timeout (RF-03). Read-only (no cookie mutation, which is
+ * illegal during a Server Component render) — the sliding-expiry refresh
+ * happens in proxy.ts via touchSession(). This must be called by every
+ * admin page/action; proxy.ts only does an optimistic cookie-presence check.
  */
 export async function getCurrentAdmin() {
   const store = await cookies();
@@ -65,18 +57,7 @@ export async function getCurrentAdmin() {
     include: { admin: true },
   });
 
-  if (!session || session.expiresAt < new Date()) {
-    if (session) await prisma.session.delete({ where: { id: token } }).catch(() => undefined);
-    store.delete(SESSION_COOKIE);
-    return null;
-  }
-
-  const expiresAt = new Date(Date.now() + SESSION_MINUTES * 60_000);
-  await prisma.session.update({
-    where: { id: token },
-    data: { expiresAt, lastSeenAt: new Date() },
-  });
-  store.set(SESSION_COOKIE, token, sessionCookieOptions(expiresAt));
+  if (!session || session.expiresAt < new Date()) return null;
 
   return session.admin;
 }
