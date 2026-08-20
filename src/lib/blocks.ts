@@ -24,7 +24,20 @@ export const linkBlockSchema = z.object({
   internal: z.boolean(),
   newTab: z.boolean(),
 });
-export const videoBlockSchema = z.object({ url: z.string() });
+export const videoBlockSchema = z.object({
+  url: z.string(),
+  alignment: z.enum(["left", "center", "right"]).default("center"),
+  // Same shape vocabulary as images (see imageShape.ts) -- circle/oval crop
+  // the embed's iframe container into that frame. There's no pan/zoom for
+  // video the way images have it: an embedded YouTube/Vimeo iframe doesn't
+  // expose its internal video position to reposition (cross-origin), only
+  // the container it sits in can be shaped/sized.
+  shape: z.enum(["none", "rounded", "circle", "oval"]).default("none"),
+  // Percentage of the column's width -- lets a video be shown smaller than
+  // full width, matching the client's ask for an "ajustable size" video
+  // component.
+  width: z.number().min(20).max(100).default(100),
+});
 
 export type EditorBlock =
   | { id: string; type: "text"; content: z.infer<typeof textBlockSchema> }

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { parseVideoEmbed } from "@/lib/video";
-import { IMAGE_SHAPE_WRAPPER_CLASS, IMAGE_SHAPE_IMG_CLASS, isCroppableShape, type ImageShape } from "@/lib/imageShape";
+import { IMAGE_SHAPE_WRAPPER_CLASS, IMAGE_SHAPE_IMG_CLASS, VIDEO_SHAPE_WRAPPER_CLASS, isCroppableShape, type ImageShape } from "@/lib/imageShape";
 
 export type RenderableBlock = {
   id?: string;
@@ -92,17 +92,22 @@ export function BlockRenderer({ block }: { block: RenderableBlock }) {
       const url = String(block.content.url ?? "");
       const embed = parseVideoEmbed(url);
       if (!embed) return null;
+      const alignment = String(block.content.alignment ?? "center");
+      const shape = (block.content.shape as ImageShape | undefined) ?? "none";
+      const width = Number(block.content.width ?? 100);
       return (
-        <div className="aspect-video max-w-3xl overflow-hidden rounded-md">
-          {/* RS-08: sandboxed iframe with restricted permissions for externally-provided embed URLs */}
-          <iframe
-            src={embed.embedUrl}
-            className="h-full w-full"
-            sandbox="allow-scripts allow-same-origin allow-presentation"
-            allow="encrypted-media; picture-in-picture"
-            referrerPolicy="strict-origin-when-cross-origin"
-            title="Video embebido"
-          />
+        <div className={`max-w-3xl ${ALIGN_CLASS[alignment] ?? "mx-auto"}`} style={{ width: `${width}%` }}>
+          <div className={VIDEO_SHAPE_WRAPPER_CLASS[shape]}>
+            {/* RS-08: sandboxed iframe with restricted permissions for externally-provided embed URLs */}
+            <iframe
+              src={embed.embedUrl}
+              className="h-full w-full"
+              sandbox="allow-scripts allow-same-origin allow-presentation"
+              allow="encrypted-media; picture-in-picture"
+              referrerPolicy="strict-origin-when-cross-origin"
+              title="Video embebido"
+            />
+          </div>
         </div>
       );
     }

@@ -7,6 +7,7 @@
 // the first time this lived inside SectionBlockEditor.tsx.
 import type { ImageBlockValue } from "@/components/admin/blocks/ImageBlockEditor";
 import type { LinkBlockValue } from "@/components/admin/blocks/LinkBlockEditor";
+import type { VideoBlockValue } from "@/components/admin/blocks/VideoBlockEditor";
 
 // Pages only (posts keep the simpler, single-column BlockEditor -- blog
 // posts have their own format per the client's explicit call).
@@ -29,7 +30,7 @@ export type BlockValue =
   | { type: "text"; content: { html: string } }
   | { type: "image"; content: ImageBlockValue }
   | { type: "link"; content: LinkBlockValue }
-  | { type: "video"; content: { url: string } };
+  | { type: "video"; content: VideoBlockValue };
 
 export type EditorColumn = { id: string; width: number; block: BlockValue | null };
 export type SectionBackground = { imageUrl: string; color: string; opacity: number };
@@ -54,7 +55,7 @@ export function emptyContent(type: BlockType): BlockValue {
     case "link":
       return { type, content: { label: "", href: "", internal: true, newTab: false } };
     case "video":
-      return { type, content: { url: "" } };
+      return { type, content: { url: "", alignment: "center", shape: "none", width: 100 } };
   }
 }
 

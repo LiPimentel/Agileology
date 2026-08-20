@@ -32,6 +32,17 @@ export const IMAGE_SHAPE_IMG_CLASS: Record<ImageShape, string> = {
   oval: "h-full w-full object-cover",
 };
 
+// Same shape vocabulary, but for video embeds (VideoBlockEditor /
+// BlockRenderer's video case) -- unlike images, "none"/"rounded" still
+// need an explicit aspect-video (an iframe has no natural aspect ratio to
+// fall back on the way an <img> does).
+export const VIDEO_SHAPE_WRAPPER_CLASS: Record<ImageShape, string> = {
+  none: "aspect-video w-full overflow-hidden rounded-md",
+  rounded: "aspect-video w-full overflow-hidden rounded-2xl",
+  circle: "aspect-square w-full overflow-hidden rounded-full",
+  oval: "aspect-[3/4] w-full overflow-hidden rounded-full",
+};
+
 // Only shapes with a forced aspect ratio actually crop the source image,
 // so only these support manual pan (focalX/focalY) + zoom -- "none"/
 // "rounded" show the whole image at its natural ratio, nothing to pan.

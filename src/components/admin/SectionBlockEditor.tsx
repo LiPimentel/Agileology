@@ -206,7 +206,7 @@ export function SectionBlockEditor({
               <LinkBlockEditor value={col.block.content} onChange={(v) => updateColumnContent(section.id, col.id, v)} pages={pages} />
             )}
             {col.block.type === "video" && (
-              <VideoBlockEditor url={col.block.content.url} onChange={(url) => updateColumnContent(section.id, col.id, { url })} />
+              <VideoBlockEditor value={col.block.content} onChange={(v) => updateColumnContent(section.id, col.id, v)} />
             )}
           </div>
         )}

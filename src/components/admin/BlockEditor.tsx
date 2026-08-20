@@ -5,13 +5,13 @@ import type { MediaItem } from "@/components/admin/MediaGrid";
 import { TextBlockEditor } from "@/components/admin/blocks/TextBlockEditor";
 import { ImageBlockEditor, type ImageBlockValue } from "@/components/admin/blocks/ImageBlockEditor";
 import { LinkBlockEditor, type LinkBlockValue } from "@/components/admin/blocks/LinkBlockEditor";
-import { VideoBlockEditor } from "@/components/admin/blocks/VideoBlockEditor";
+import { VideoBlockEditor, type VideoBlockValue } from "@/components/admin/blocks/VideoBlockEditor";
 
 export type EditorBlock =
   | { id: string; type: "text"; content: { html: string } }
   | { id: string; type: "image"; content: ImageBlockValue }
   | { id: string; type: "link"; content: LinkBlockValue }
-  | { id: string; type: "video"; content: { url: string } };
+  | { id: string; type: "video"; content: VideoBlockValue };
 
 const BLOCK_LABELS: Record<EditorBlock["type"], string> = {
   text: "Texto",
@@ -42,7 +42,7 @@ function emptyBlock(type: EditorBlock["type"]): EditorBlock {
     case "link":
       return { id, type, content: { label: "", href: "", internal: true, newTab: false } };
     case "video":
-      return { id, type, content: { url: "" } };
+      return { id, type, content: { url: "", alignment: "center", shape: "none", width: 100 } };
   }
 }
 
@@ -106,7 +106,7 @@ export function BlockEditor({
             <LinkBlockEditor value={block.content} onChange={(v) => update(block.id, v)} pages={pages} />
           )}
           {block.type === "video" && (
-            <VideoBlockEditor url={block.content.url} onChange={(url) => update(block.id, { url })} />
+            <VideoBlockEditor value={block.content} onChange={(v) => update(block.id, v)} />
           )}
         </div>
       ))}
