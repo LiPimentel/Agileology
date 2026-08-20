@@ -139,7 +139,16 @@ model ContentBlock {
   post     Post?     @relation(fields: [postId], references: [id], onDelete: Cascade)
   type     BlockType
   content  Json
-  position Int       @default(0)
+  // `position` identifies the section/row on the page -- multiple blocks
+  // can share the same position, meaning they render side by side as
+  // columns in one section. `columnIndex` orders them left-to-right within
+  // that section, `columnWidth` is that column's width as a percentage.
+  // Defaults (columnIndex 0, columnWidth 100) mean "not in a multi-column
+  // section" -- every existing row and every post block (posts stay
+  // single-column) is unaffected by this.
+  position    Int       @default(0)
+  columnIndex Int       @default(0)
+  columnWidth Int       @default(100)
 
   @@index([pageId])
   @@index([postId])

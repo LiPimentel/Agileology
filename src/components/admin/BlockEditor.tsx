@@ -20,8 +20,20 @@ const BLOCK_LABELS: Record<EditorBlock["type"], string> = {
   video: "Video",
 };
 
+// crypto.randomUUID() only exists in a "secure context" (HTTPS or
+// localhost) -- browsers omit it entirely over plain HTTP (e.g. accessed
+// over Tailscale/LAN before a reverse proxy adds TLS). Every "+ Texto /
+// Imagen / Enlace / Video" button here calls emptyBlock(), so on plain
+// HTTP that threw an uncaught TypeError on every single one of them,
+// crashing the editor to the browser's generic error screen. This doesn't
+// need cryptographic randomness -- it's only a client-side React key /
+// block identifier -- so use a plain generator that works everywhere.
+function generateBlockId() {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 function emptyBlock(type: EditorBlock["type"]): EditorBlock {
-  const id = crypto.randomUUID();
+  const id = generateBlockId();
   switch (type) {
     case "text":
       return { id, type, content: { html: "<p></p>" } };

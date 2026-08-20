@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "ContentBlock" ADD COLUMN     "columnIndex" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "columnWidth" INTEGER NOT NULL DEFAULT 100;

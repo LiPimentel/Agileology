@@ -4,7 +4,7 @@ import { useActionState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { savePage, type PageFormState } from "../actions";
 import { BackgroundPicker } from "@/components/admin/BackgroundPicker";
-import { BlockEditor, type EditorBlock } from "@/components/admin/BlockEditor";
+import { SectionBlockEditor, type EditorSection } from "@/components/admin/SectionBlockEditor";
 import type { MediaItem } from "@/components/admin/MediaGrid";
 
 const initialState: PageFormState = {};
@@ -23,7 +23,7 @@ export type PageEditorData = {
   menuVisible: boolean;
   isSystem: boolean;
   background: { imageUrl: string | null; overlayColor: string; overlayOpacity: number } | null;
-  blocks: EditorBlock[];
+  sections: EditorSection[];
   mapComponent: { address: string } | null;
   contactFormComponent: { enabledFields: string[] } | null;
 };
@@ -103,7 +103,7 @@ export function PageEditorForm({
 
       <section>
         <h2 className="mb-3 text-lg font-semibold text-slate-900">Contenido</h2>
-        <BlockEditor initialBlocks={page.blocks} mediaLibrary={mediaLibrary} pages={pages} />
+        <SectionBlockEditor initialSections={page.sections} mediaLibrary={mediaLibrary} pages={pages} />
       </section>
 
       <section className="rounded-lg border border-slate-200 bg-white p-5">

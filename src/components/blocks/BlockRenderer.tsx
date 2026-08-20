@@ -6,6 +6,14 @@ export type RenderableBlock = {
   id?: string;
   type: "text" | "image" | "link" | "video";
   content: Record<string, unknown>;
+  // Section/column layout (pages only -- see PageRenderer, which groups
+  // blocks sharing the same `position` into one row and lays them out
+  // side by side by `columnIndex`/`columnWidth`). Optional and unused by
+  // this component itself, and absent entirely on blog posts and on
+  // snapshots published before sections existed.
+  position?: number;
+  columnIndex?: number;
+  columnWidth?: number;
 };
 
 const ALIGN_CLASS: Record<string, string> = {

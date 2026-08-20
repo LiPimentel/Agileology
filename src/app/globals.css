@@ -12,12 +12,17 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/*
+ * No dark-mode override here on purpose. This is leftover create-next-app
+ * boilerplate; nothing in this app (public site or admin backoffice) is
+ * designed with a dark theme in mind -- every component sets its own
+ * explicit bg-white/text-slate-* etc. via Tailwind classes, EXCEPT plain
+ * <input>/<textarea>/<select> elements, which never set their own text
+ * color and so inherited `--foreground` from here. On a device/browser set
+ * to dark mode that flipped to a near-white (#ededed) color, rendering
+ * form field text as near-invisible pale gray on the white input
+ * background across the entire admin backoffice.
+ */
 
 body {
   background: var(--background);

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { groupBlocksIntoSections } from "@/lib/sections";
 import { PageEditorForm } from "./PageEditorForm";
 
 export const metadata = { title: "Editar página — Backoffice" };
@@ -12,7 +13,7 @@ export default async function PageEditorPage({ params }: { params: Promise<{ id:
     prisma.page.findUnique({
       where: { id },
       include: {
-        blocks: { orderBy: { position: "asc" } },
+        blocks: { orderBy: [{ position: "asc" }, { columnIndex: "asc" }] },
         background: true,
         mapComponent: true,
         contactFormComponent: true,
@@ -40,8 +41,10 @@ export default async function PageEditorPage({ params }: { params: Promise<{ id:
         background: page.background
           ? { imageUrl: page.background.imageUrl, overlayColor: page.background.overlayColor, overlayOpacity: page.background.overlayOpacity }
           : null,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        blocks: page.blocks.map((b) => ({ id: b.id, type: b.type, content: b.content as any })),
+        sections: groupBlocksIntoSections(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          page.blocks.map((b) => ({ id: b.id, type: b.type as any, content: b.content, position: b.position, columnWidth: b.columnWidth })),
+        ),
         mapComponent: page.mapComponent ? { address: page.mapComponent.address } : null,
         contactFormComponent: page.contactFormComponent ? { enabledFields: page.contactFormComponent.enabledFields } : null,
       }}
