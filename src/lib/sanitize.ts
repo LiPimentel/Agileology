@@ -7,10 +7,15 @@ export function sanitizeRichText(html: string) {
     allowedTags: [
       "p", "br", "strong", "b", "em", "i", "u", "s",
       "h1", "h2", "h3", "h4",
-      "ul", "ol", "li", "blockquote", "a", "span", "font", "div",
+      "ul", "ol", "li", "blockquote", "a", "span", "font", "div", "img",
     ],
     allowedAttributes: {
       a: ["href", "target", "rel"],
+      // Inline images within blog/page text (TextBlockEditor's "+ Imagen"
+      // button) -- no event-handler attributes are allowed here (onerror
+      // etc.), only src/alt/style, so this can't be used for XSS the way a
+      // bare img allowlist sometimes can.
+      img: ["src", "alt", "style"],
       span: ["style"],
       p: ["style"],
       // Headings need `style` too -- Justificar (or any alignment) applied
@@ -44,6 +49,23 @@ export function sanitizeRichText(html: string) {
         // this allowed it was silently stripped on save.
         "text-decoration": [/^(none|underline|overline|line-through)(\s+(none|underline|overline|line-through))*$/],
         "text-decoration-line": [/^(none|underline|overline|line-through)(\s+(none|underline|overline|line-through))*$/],
+        // Inline image alignment (float-wrapped left/right, or centered
+        // block) -- set directly on the <img> by TextBlockEditor's
+        // alignment buttons, see insertImage()/alignSelectedImage() there.
+        float: [/^(left|right|none)$/],
+        display: [/^(block|inline|inline-block)$/],
+        margin: [/^[\d.]+(px|rem|em)?(\s+(auto|[\d.]+(px|rem|em)?)){0,3}$/, /^auto$/],
+        // The browser re-serializes a shorthand margin set via
+        // setAttribute("style", ...) into these longhand properties when
+        // the DOM is read back for saving (e.g. "margin:0 1rem 1rem 0"
+        // becomes "margin-right:1rem;margin-bottom:1rem") -- without these
+        // allowed too, that spacing was silently stripped on save even
+        // though the shorthand form above was allowed.
+        "margin-top": [/^([\d.]+(px|rem|em)|auto)$/],
+        "margin-right": [/^([\d.]+(px|rem|em)|auto)$/],
+        "margin-bottom": [/^([\d.]+(px|rem|em)|auto)$/],
+        "margin-left": [/^([\d.]+(px|rem|em)|auto)$/],
+        "max-width": [/^\d{1,3}%$/, /^[\d.]+(px|rem|em)$/],
       },
     },
     allowedSchemes: ["http", "https", "mailto", "tel"],

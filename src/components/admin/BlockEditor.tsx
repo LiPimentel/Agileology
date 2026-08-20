@@ -97,7 +97,7 @@ export function BlockEditor({
             </div>
           </div>
           {block.type === "text" && (
-            <TextBlockEditor html={block.content.html} onChange={(html) => update(block.id, { html })} />
+            <TextBlockEditor html={block.content.html} onChange={(html) => update(block.id, { html })} mediaLibrary={mediaLibrary} />
           )}
           {block.type === "image" && (
             <ImageBlockEditor value={block.content} onChange={(v) => update(block.id, v)} mediaLibrary={mediaLibrary} />

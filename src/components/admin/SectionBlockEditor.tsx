@@ -197,7 +197,7 @@ export function SectionBlockEditor({
               </button>
             </div>
             {col.block.type === "text" && (
-              <TextBlockEditor html={col.block.content.html} onChange={(html) => updateColumnContent(section.id, col.id, { html })} />
+              <TextBlockEditor html={col.block.content.html} onChange={(html) => updateColumnContent(section.id, col.id, { html })} mediaLibrary={mediaLibrary} />
             )}
             {col.block.type === "image" && (
               <ImageBlockEditor value={col.block.content} onChange={(v) => updateColumnContent(section.id, col.id, v)} mediaLibrary={mediaLibrary} />
