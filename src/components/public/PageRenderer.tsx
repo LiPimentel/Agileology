@@ -57,25 +57,44 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
       </BackgroundOverlay>
 
       <div className="mx-auto max-w-3xl space-y-8 px-6 py-12">
-        {groupIntoSections(page.blocks).map((section, i) =>
-          section.length <= 1 ? (
-            // Single-column section: no flex row needed, matches the
-            // pre-sections layout exactly.
-            <BlockRenderer key={section[0]?.id ?? i} block={section[0]} />
-          ) : (
-            <div key={section[0]?.id ?? i} className="flex flex-col gap-6 sm:flex-row">
-              {section.map((block, j) => (
-                <div
-                  key={block.id ?? j}
-                  className="min-w-0"
-                  style={{ flexBasis: `${block.columnWidth ?? Math.round(100 / section.length)}%` }}
-                >
-                  <BlockRenderer block={block} />
-                </div>
-              ))}
-            </div>
-          ),
-        )}
+        {groupIntoSections(page.blocks).map((section, i) => {
+          const first = section[0];
+          const row =
+            section.length <= 1 ? (
+              // Single-column section: no flex row needed, matches the
+              // pre-sections layout exactly.
+              <BlockRenderer key={first?.id ?? i} block={first} />
+            ) : (
+              <div key={first?.id ?? i} className="flex flex-col gap-6 sm:flex-row">
+                {section.map((block, j) => (
+                  <div
+                    key={block.id ?? j}
+                    className="min-w-0"
+                    style={{ flexBasis: `${block.columnWidth ?? Math.round(100 / section.length)}%` }}
+                  >
+                    <BlockRenderer block={block} />
+                  </div>
+                ))}
+              </div>
+            );
+
+          // A section's own background (separate from the page's overall
+          // one) -- same imageUrl/color/opacity fields duplicated across
+          // every block in this section (see ContentBlock schema comment).
+          const hasSectionBg = Boolean(first?.sectionBgImageUrl) || (first?.sectionBgOpacity ?? 0) > 0;
+          if (!hasSectionBg) return row;
+
+          return (
+            <BackgroundOverlay
+              key={`bg-${first?.id ?? i}`}
+              imageUrl={first?.sectionBgImageUrl}
+              overlayColor={first?.sectionBgColor}
+              overlayOpacity={first?.sectionBgOpacity}
+            >
+              <div className="rounded-md p-6">{row}</div>
+            </BackgroundOverlay>
+          );
+        })}
 
         {page.mapComponent && (
           <div>

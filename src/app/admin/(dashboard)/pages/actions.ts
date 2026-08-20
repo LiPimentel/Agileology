@@ -19,6 +19,9 @@ type SubmittedBlock = {
   position?: number;
   columnIndex?: number;
   columnWidth?: number;
+  sectionBgImageUrl?: string;
+  sectionBgColor?: string;
+  sectionBgOpacity?: number;
 };
 
 function parseBlocks(raw: string): SubmittedBlock[] {
@@ -38,6 +41,18 @@ function sanitizeColumnWidth(width: unknown) {
   return Math.min(100, Math.max(10, Math.round(n)));
 }
 
+function sanitizeOpacity(opacity: unknown) {
+  const n = Number(opacity);
+  if (!Number.isFinite(n)) return 0;
+  return Math.min(1, Math.max(0, n));
+}
+
+const HEX_COLOR = /^#[0-9a-fA-F]{3,8}$/;
+function sanitizeHexColor(color: unknown, fallback: string) {
+  const s = String(color ?? "");
+  return HEX_COLOR.test(s) ? s : fallback;
+}
+
 async function upsertPageContent(pageId: string, formData: FormData) {
   const title = sanitizePlainText(String(formData.get("title") ?? "")).slice(0, 200);
   const slug = slugify(String(formData.get("slug") ?? "") || title);
@@ -51,9 +66,12 @@ async function upsertPageContent(pageId: string, formData: FormData) {
 
   const seoTitle = sanitizePlainText(String(formData.get("seoTitle") ?? "")) || null;
   const seoDescription = sanitizePlainText(String(formData.get("seoDescription") ?? "")) || null;
-  const menuOrder = Number(formData.get("menuOrder") ?? 0) || 0;
-  const showInMenu = formData.get("showInMenu") === "on";
-  const menuVisible = formData.get("menuVisible") === "on";
+  // menuOrder/showInMenu/menuVisible used to control the public nav; that's
+  // now handled explicitly via MenuItem (/admin/settings/menu) instead, and
+  // the page editor no longer submits these fields. Deliberately NOT read
+  // from formData here anymore -- doing so would silently reset them to
+  // false/0 on every save (the form fields are gone, so they'd always read
+  // as absent) for columns nothing reads anymore anyway.
 
   const overlayColor = String(formData.get("overlayColor") ?? "#3B0764");
   const overlayOpacity = Math.min(1, Math.max(0, Number(formData.get("overlayOpacity") ?? 0.5)));
@@ -77,12 +95,15 @@ async function upsertPageContent(pageId: string, formData: FormData) {
     position: Number.isFinite(b.position) ? Number(b.position) : i,
     columnIndex: Number.isFinite(b.columnIndex) ? Number(b.columnIndex) : 0,
     columnWidth: sanitizeColumnWidth(b.columnWidth),
+    sectionBgImageUrl: String(b.sectionBgImageUrl ?? "") || null,
+    sectionBgColor: sanitizeHexColor(b.sectionBgColor, "#000000"),
+    sectionBgOpacity: sanitizeOpacity(b.sectionBgOpacity),
   }));
 
   await prisma.$transaction(async (tx) => {
     await tx.page.update({
       where: { id: pageId },
-      data: { title, slug, seoTitle, seoDescription, menuOrder, showInMenu, menuVisible },
+      data: { title, slug, seoTitle, seoDescription },
     });
 
     await tx.contentBlock.deleteMany({ where: { pageId } });
@@ -202,6 +223,9 @@ export async function duplicatePage(pageId: string) {
           position: b.position,
           columnIndex: b.columnIndex,
           columnWidth: b.columnWidth,
+          sectionBgImageUrl: b.sectionBgImageUrl,
+          sectionBgColor: b.sectionBgColor,
+          sectionBgOpacity: b.sectionBgOpacity,
         })),
       },
       background: source.background
@@ -234,18 +258,31 @@ export async function restorePageVersion(pageId: string, versionId: string) {
       await tx.contentBlock.createMany({
         data: snapshot.blocks.map(
           (
-            b: { type: string; content: object; position?: number; columnIndex?: number; columnWidth?: number },
+            b: {
+              type: string;
+              content: object;
+              position?: number;
+              columnIndex?: number;
+              columnWidth?: number;
+              sectionBgImageUrl?: string | null;
+              sectionBgColor?: string;
+              sectionBgOpacity?: number;
+            },
             i: number,
           ) => ({
             pageId,
             type: b.type,
             content: b.content,
-            // Older snapshots (published before sections existed) have no
-            // position/columnIndex/columnWidth -- fall back to one block
-            // per single-column section, i.e. today's flat layout.
+            // Older snapshots (published before sections/section
+            // backgrounds existed) have none of these -- fall back to one
+            // block per single-column, background-less section, i.e.
+            // today's flat layout.
             position: b.position ?? i,
             columnIndex: b.columnIndex ?? 0,
             columnWidth: b.columnWidth ?? 100,
+            sectionBgImageUrl: b.sectionBgImageUrl ?? null,
+            sectionBgColor: b.sectionBgColor ?? "#000000",
+            sectionBgOpacity: b.sectionBgOpacity ?? 0,
           }),
         ),
       });

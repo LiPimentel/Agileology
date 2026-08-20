@@ -73,23 +73,18 @@ export function PageEditorForm({
           <label className="block text-sm font-medium text-slate-700">Título SEO</label>
           <input name="seoTitle" defaultValue={page.seoTitle ?? ""} className={inputClass} />
         </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700">Orden en menú</label>
-          <input type="number" name="menuOrder" defaultValue={page.menuOrder} className={inputClass} />
-        </div>
         <div className="col-span-2">
           <label className="block text-sm font-medium text-slate-700">Meta descripción SEO</label>
           <textarea name="seoDescription" defaultValue={page.seoDescription ?? ""} rows={2} className={inputClass} />
         </div>
-        <label className="flex items-center gap-2 text-sm text-slate-700">
-          <input type="checkbox" name="showInMenu" defaultChecked={page.showInMenu} />
-          Mostrar en el menú principal
-        </label>
-        <label className="flex items-center gap-2 text-sm text-slate-700">
-          <input type="checkbox" name="menuVisible" defaultChecked={page.menuVisible} />
-          Visible (desmarcar para ocultar sin eliminar)
-        </label>
       </section>
+      <p className="-mt-4 text-xs text-slate-500">
+        ¿Quieres que esta página aparezca en el menú? Se administra desde{" "}
+        <Link href="/admin/settings/menu" className="text-violet-700 underline">
+          Menú del sitio
+        </Link>
+        .
+      </p>
 
       <section className="rounded-lg border border-slate-200 bg-white p-5">
         <h2 className="mb-3 text-lg font-semibold text-slate-900">Fondo y superposición</h2>

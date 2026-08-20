@@ -38,7 +38,7 @@ function emptyBlock(type: EditorBlock["type"]): EditorBlock {
     case "text":
       return { id, type, content: { html: "<p></p>" } };
     case "image":
-      return { id, type, content: { url: "", altText: "", alignment: "center" } };
+      return { id, type, content: { url: "", altText: "", alignment: "center", shape: "none" } };
     case "link":
       return { id, type, content: { label: "", href: "", internal: true, newTab: false } };
     case "video":

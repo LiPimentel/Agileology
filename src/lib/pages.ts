@@ -25,6 +25,9 @@ export async function buildPageSnapshot(pageId: string): Promise<PageRenderData 
       position: b.position,
       columnIndex: b.columnIndex,
       columnWidth: b.columnWidth,
+      sectionBgImageUrl: b.sectionBgImageUrl,
+      sectionBgColor: b.sectionBgColor,
+      sectionBgOpacity: b.sectionBgOpacity,
     })),
     background: page.background
       ? { imageUrl: page.background.imageUrl, overlayColor: page.background.overlayColor, overlayOpacity: page.background.overlayOpacity }
