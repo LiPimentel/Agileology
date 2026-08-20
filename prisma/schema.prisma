@@ -109,8 +109,16 @@ model MenuItem {
   newTab      Boolean @default(false)
   order       Int     @default(0)
   visible     Boolean @default(true)
+  // Dropdown submenus: a top-level item's children. Only one level deep --
+  // enforced in saveMenuItems, not here -- a child can't itself have
+  // children. Deleting the parent deletes its submenu items with it
+  // (an orphaned submenu pointing at a deleted parent isn't useful).
+  parentId    String?
+  parent      MenuItem?  @relation("MenuItemChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  children    MenuItem[] @relation("MenuItemChildren")
 
   @@index([pageId])
+  @@index([parentId])
 }
 
 model PageVersion {

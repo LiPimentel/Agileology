@@ -1,26 +1,6 @@
 import Link from "next/link";
-import { getMenuItems, getSiteSettings, type NavLink } from "@/lib/settings";
-
-function NavLinkItem({ link }: { link: NavLink }) {
-  const isExternal = /^https?:\/\//i.test(link.href);
-  if (isExternal) {
-    return (
-      <a
-        href={link.href}
-        target={link.newTab ? "_blank" : undefined}
-        rel={link.newTab ? "noopener noreferrer" : undefined}
-        className="hover:text-white"
-      >
-        {link.label}
-      </a>
-    );
-  }
-  return (
-    <Link href={link.href} target={link.newTab ? "_blank" : undefined} className="hover:text-white">
-      {link.label}
-    </Link>
-  );
-}
+import { getMenuItems, getSiteSettings } from "@/lib/settings";
+import { NavItem } from "./NavItem";
 
 export async function Nav() {
   const [links, settings] = await Promise.all([getMenuItems(), getSiteSettings()]);
@@ -38,9 +18,7 @@ export async function Nav() {
         </Link>
         <ul className="flex items-center gap-6 text-sm text-white/90">
           {links.map((l, i) => (
-            <li key={`${l.href}-${i}`}>
-              <NavLinkItem link={l} />
-            </li>
+            <NavItem key={`${l.href}-${i}`} link={l} />
           ))}
         </ul>
       </nav>

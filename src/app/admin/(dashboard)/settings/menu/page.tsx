@@ -26,6 +26,7 @@ export default async function MenuSettingsPage() {
           externalUrl: i.externalUrl ?? "",
           newTab: i.newTab,
           visible: i.visible,
+          parentId: i.parentId,
         }))}
         pages={pages}
       />
