@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getFooterLinks, getSiteSettings } from "@/lib/settings";
 import { FacebookIcon, InstagramIcon, LinkedinIcon, TwitterIcon } from "./SocialIcons";
+import { TrackedLink } from "./TrackedLink";
 
 const SOCIAL: Array<{
   urlKey: "facebookUrl" | "twitterUrl" | "linkedinUrl" | "instagramUrl";
@@ -24,19 +25,20 @@ export async function Footer() {
         {(settings.phone || settings.whatsapp) && (
           <div className="flex gap-4">
             {settings.phone && (
-              <a href={`tel:${settings.phone}`} className="hover:text-violet-800">
+              <TrackedLink href={`tel:${settings.phone}`} label="phone" internal={false} className="hover:text-violet-800">
                 📞 {settings.phone}
-              </a>
+              </TrackedLink>
             )}
             {settings.whatsapp && (
-              <a
+              <TrackedLink
                 href={`https://wa.me/${settings.whatsapp.replace(/[^0-9]/g, "")}`}
-                target="_blank"
-                rel="noopener noreferrer"
+                label="whatsapp"
+                internal={false}
+                newTab
                 className="hover:text-violet-800"
               >
                 WhatsApp
-              </a>
+              </TrackedLink>
             )}
           </div>
         )}
@@ -45,11 +47,12 @@ export async function Footer() {
             {socialLinks.map((s) => {
               const customIcon = settings[s.iconKey];
               return (
-                <a
+                <TrackedLink
                   key={s.urlKey}
                   href={settings[s.urlKey] as string}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  label={`social:${s.urlKey.replace("Url", "")}`}
+                  internal={false}
+                  newTab
                   className="text-slate-500 hover:text-violet-800"
                 >
                   {customIcon ? (
@@ -59,7 +62,7 @@ export async function Footer() {
                     <s.Icon />
                   )}
                   <span className="sr-only">{s.label}</span>
-                </a>
+                </TrackedLink>
               );
             })}
           </div>

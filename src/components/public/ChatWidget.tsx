@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { submitChatMessage, type ChatFormState } from "@/lib/actions/chat";
+import { trackClick } from "@/lib/track-click";
 
 const initialState: ChatFormState = {};
 
@@ -74,7 +75,12 @@ export function ChatWidget({
       )}
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          setOpen((v) => {
+            if (!v) trackClick("chat_widget");
+            return !v;
+          });
+        }}
         className="flex items-center gap-2 rounded-full bg-violet-700 px-5 py-3 font-medium text-white shadow-lg hover:bg-violet-800"
       >
         {buttonLabel}

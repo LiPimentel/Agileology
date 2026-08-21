@@ -28,6 +28,7 @@ export type PageEditorData = {
     overlayOpacity: number;
     bannerImageUrl: string | null;
     showBanner: boolean;
+    showTitle: boolean;
   } | null;
   sections: EditorSection[];
 };
@@ -45,6 +46,7 @@ export function PageEditorForm({
   const formRef = useRef<HTMLFormElement>(null);
   const draftButtonRef = useRef<HTMLButtonElement>(null);
   const [showBanner, setShowBanner] = useState(page.background?.showBanner ?? true);
+  const [showTitle, setShowTitle] = useState(page.background?.showTitle ?? true);
 
   // Autosave draft periodically (7.14) so unsaved edits survive an accidental tab close.
   useEffect(() => {
@@ -92,22 +94,50 @@ export function PageEditorForm({
       </p>
 
       <section className="rounded-lg border border-slate-200 bg-white p-5">
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-semibold text-slate-900">Encabezado con título</h2>
-          <label className="flex items-center gap-2 text-sm text-slate-700">
-            <input
-              type="checkbox"
-              name="showBanner"
-              checked={showBanner}
-              onChange={(e) => setShowBanner(e.target.checked)}
-            />
-            Mostrarlo en esta página
-          </label>
+          <div className="flex flex-wrap items-center gap-4">
+            <label className="flex items-center gap-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                name="showBanner"
+                checked={showBanner}
+                onChange={(e) => setShowBanner(e.target.checked)}
+              />
+              Mostrarlo en esta página
+            </label>
+            {/*
+              Independent of showBanner above -- "habrán secciones o partes
+              donde no quiero que se vea el nombre de la página": keep the
+              background image/logo but skip repeating the title as text
+              over it. Only meaningful while the banner itself is shown, so
+              disabled (not hidden -- the choice still gets saved) otherwise.
+            */}
+            {/*
+              Deliberately NOT `disabled` -- a disabled checkbox is excluded
+              from FormData entirely on submit, which would silently save
+              showTitle as false the moment the banner is off, even if it
+              was checked, and leave it out of sync once the banner comes
+              back on. pointer-events-none + dimming gets the same "not
+              interactive right now" look without that data-loss bug.
+            */}
+            <label
+              className={`flex items-center gap-2 text-sm text-slate-700 ${showBanner ? "" : "pointer-events-none opacity-50"}`}
+            >
+              <input type="checkbox" name="showTitle" checked={showTitle} onChange={(e) => setShowTitle(e.target.checked)} />
+              Mostrar el nombre de la página
+            </label>
+          </div>
         </div>
         {!showBanner && (
           <p className="mb-3 text-sm text-slate-500">
             Esta página no tendrá el bloque fijo de título/fondo -- empieza directo con las secciones de abajo (útil si la
             primera sección ya es un video, un slideshow, etc.). Las opciones de abajo quedan guardadas por si lo reactivas.
+          </p>
+        )}
+        {showBanner && !showTitle && (
+          <p className="mb-3 text-sm text-slate-500">
+            El fondo/logo de esta página se mostrará, pero sin el texto del nombre encima.
           </p>
         )}
         {/*

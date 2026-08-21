@@ -81,6 +81,7 @@ async function upsertPageContent(pageId: string, formData: FormData) {
   const backgroundImageUrl = String(formData.get("backgroundImageUrl") ?? "") || null;
   const bannerImageUrl = String(formData.get("bannerImageUrl") ?? "") || null;
   const showBanner = formData.get("showBanner") === "on";
+  const showTitle = formData.get("showTitle") === "on";
 
   // Map/contact form used to be separate page-level singletons (own
   // formData fields, own DB tables) -- they're regular blocks now (see
@@ -119,8 +120,8 @@ async function upsertPageContent(pageId: string, formData: FormData) {
 
     await tx.background.upsert({
       where: { pageId },
-      update: { overlayColor, overlayOpacity, imageUrl: backgroundImageUrl, bannerImageUrl, showBanner },
-      create: { pageId, overlayColor, overlayOpacity, imageUrl: backgroundImageUrl, bannerImageUrl, showBanner },
+      update: { overlayColor, overlayOpacity, imageUrl: backgroundImageUrl, bannerImageUrl, showBanner, showTitle },
+      create: { pageId, overlayColor, overlayOpacity, imageUrl: backgroundImageUrl, bannerImageUrl, showBanner, showTitle },
     });
   });
 
@@ -225,6 +226,7 @@ export async function duplicatePage(pageId: string) {
               overlayOpacity: source.background.overlayOpacity,
               bannerImageUrl: source.background.bannerImageUrl,
               showBanner: source.background.showBanner,
+              showTitle: source.background.showTitle,
             },
           }
         : { create: {} },
@@ -294,6 +296,7 @@ export async function restorePageVersion(pageId: string, versionId: string) {
         overlayOpacity: snapshot.background?.overlayOpacity ?? 0.5,
         bannerImageUrl: snapshot.background?.bannerImageUrl ?? null,
         showBanner: snapshot.background?.showBanner ?? true,
+        showTitle: snapshot.background?.showTitle ?? true,
       },
       create: {
         pageId,
@@ -302,6 +305,7 @@ export async function restorePageVersion(pageId: string, versionId: string) {
         overlayOpacity: snapshot.background?.overlayOpacity ?? 0.5,
         bannerImageUrl: snapshot.background?.bannerImageUrl ?? null,
         showBanner: snapshot.background?.showBanner ?? true,
+        showTitle: snapshot.background?.showTitle ?? true,
       },
     });
   });
