@@ -1,7 +1,15 @@
 import Link from "next/link";
 import Image from "next/image";
 import { parseVideoEmbed } from "@/lib/video";
-import { IMAGE_SHAPE_WRAPPER_CLASS, IMAGE_SHAPE_IMG_CLASS, VIDEO_SHAPE_WRAPPER_CLASS, isCroppableShape, type ImageShape } from "@/lib/imageShape";
+import {
+  IMAGE_SHAPE_WRAPPER_CLASS,
+  IMAGE_SHAPE_IMG_CLASS,
+  VIDEO_SHAPE_WRAPPER_CLASS,
+  isCroppableShape,
+  imageMaxWidthClass,
+  ALIGN_CLASS,
+  type ImageShape,
+} from "@/lib/imageShape";
 import { MapEmbed } from "@/components/public/MapEmbed";
 import { ContactForm } from "@/components/public/ContactForm";
 
@@ -23,12 +31,6 @@ export type RenderableBlock = {
   sectionBgOpacity?: number;
   sectionBgVideoUrl?: string | null;
   sectionBgGradientEnd?: string | null;
-};
-
-const ALIGN_CLASS: Record<string, string> = {
-  left: "mr-auto",
-  center: "mx-auto",
-  right: "ml-auto",
 };
 
 export function BlockRenderer({ block, pageId }: { block: RenderableBlock; pageId?: string }) {
@@ -56,7 +58,7 @@ export function BlockRenderer({ block, pageId }: { block: RenderableBlock; pageI
       // circle reads as oversized; none/rounded keep the original rectangle
       // sizing unchanged. The "Tamaño" slider (width%) then scales down
       // from there, same pattern video blocks already use.
-      const maxWidth = shape === "circle" || shape === "oval" ? "max-w-xs" : "max-w-2xl";
+      const maxWidth = imageMaxWidthClass(shape);
       const croppable = isCroppableShape(shape);
       const img = (
         <Image

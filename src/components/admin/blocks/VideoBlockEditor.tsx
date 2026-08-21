@@ -1,7 +1,7 @@
 "use client";
 
 import { parseVideoEmbed } from "@/lib/video";
-import { IMAGE_SHAPE_LABELS, VIDEO_SHAPE_WRAPPER_CLASS, type ImageShape } from "@/lib/imageShape";
+import { ALIGN_CLASS, IMAGE_SHAPE_LABELS, VIDEO_SHAPE_WRAPPER_CLASS, type ImageShape } from "@/lib/imageShape";
 
 export type VideoBlockValue = {
   url: string;
@@ -27,7 +27,11 @@ export function VideoBlockEditor({ value, onChange }: { value: VideoBlockValue; 
       </div>
       {value.url && !embed && <p className="text-sm text-amber-600">No se reconoce como enlace de YouTube o Vimeo.</p>}
       {embed && (
-        <div className="max-w-md" style={{ width: `${value.width}%` }}>
+        // max-w-3xl/ALIGN_CLASS match BlockRenderer's video case exactly --
+        // was capped at max-w-md (28rem) here regardless of alignment, so
+        // the editor preview undersold how big a wide video actually
+        // publishes at.
+        <div className={`max-w-3xl ${ALIGN_CLASS[value.alignment] ?? "mx-auto"}`} style={{ width: `${value.width}%` }}>
           {/*
             circle/oval crop the embed's iframe container into that frame --
             there's no pan/zoom for video the way images have it, an

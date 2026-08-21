@@ -5,9 +5,11 @@ import Image from "next/image";
 import { MediaGrid, type MediaItem } from "@/components/admin/MediaGrid";
 import { MediaUploadForm } from "@/components/admin/MediaUploadForm";
 import {
+  ALIGN_CLASS,
   IMAGE_SHAPE_IMG_CLASS,
   IMAGE_SHAPE_LABELS,
   IMAGE_SHAPE_WRAPPER_CLASS,
+  imageMaxWidthClass,
   isCroppableShape,
   type ImageShape,
 } from "@/lib/imageShape";
@@ -34,6 +36,13 @@ function clamp(n: number, min: number, max: number) {
  * a slider drives zoom. Only shown for shapes that actually crop the image
  * (see CROPPABLE_SHAPES) -- none/rounded show the whole image, nothing to
  * pan.
+ *
+ * Sized and aligned with the exact same classes BlockRenderer uses for the
+ * public page (imageMaxWidthClass/ALIGN_CLASS/width%) instead of a fixed
+ * small box -- "quiero ver el componente real mientras edito, no un
+ * recuadro chiquito aparte". The drag math below reads the box's actual
+ * size on every move, so it stays accurate at whatever size that ends up
+ * being.
  */
 function ImageShapeAdjuster({
   shape,
@@ -42,6 +51,8 @@ function ImageShapeAdjuster({
   focalX,
   focalY,
   zoom,
+  width,
+  alignment,
   onChange,
 }: {
   shape: ImageShape;
@@ -50,6 +61,8 @@ function ImageShapeAdjuster({
   focalX: number;
   focalY: number;
   zoom: number;
+  width: number;
+  alignment: ImageBlockValue["alignment"];
   onChange: (patch: { focalX?: number; focalY?: number; zoom?: number }) => void;
 }) {
   const boxRef = useRef<HTMLDivElement>(null);
@@ -80,43 +93,43 @@ function ImageShapeAdjuster({
     e.currentTarget.releasePointerCapture(e.pointerId);
   }
 
+  const maxWidthClass = imageMaxWidthClass(shape);
+
   return (
     <div>
       <div
-        ref={boxRef}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerLeave={handlePointerUp}
-        // IMAGE_SHAPE_WRAPPER_CLASS (circle/oval) includes its own `w-full`
-        // -- as a Tailwind class it can win the cascade over a `w-[200px]`
-        // class placed earlier in this same string (Tailwind orders
-        // generated CSS by its own rules, not by className order), silently
-        // stretching this preview box to the full editor width instead of
-        // the intended small 200px square. An inline style always wins
-        // regardless of stylesheet order, so the preview -- and therefore
-        // drag sensitivity, which is computed from this box's real size --
-        // stays a predictable 200px.
-        style={{ width: 200, maxWidth: "100%" }}
-        className={`relative cursor-move touch-none border border-slate-300 ${IMAGE_SHAPE_WRAPPER_CLASS[shape]}`}
+        className={`${maxWidthClass} ${ALIGN_CLASS[alignment] ?? "mx-auto"}`}
+        // Real published width (the "Tamaño" slider below) -- same style
+        // BlockRenderer applies, so a smaller/larger setting is visible
+        // right here instead of only after publishing.
+        style={{ width: `${width}%` }}
       >
-        <Image
-          src={url}
-          alt={altText}
-          fill
-          draggable={false}
-          className={`select-none ${IMAGE_SHAPE_IMG_CLASS[shape]}`}
-          style={{
-            objectPosition: `${focalX}% ${focalY}%`,
-            transform: `scale(${zoom})`,
-            // Anchor the zoom on the point currently focused instead of the
-            // box's center (the default) -- otherwise moving the zoom
-            // slider re-centers from the middle of the frame regardless of
-            // where the photo was panned to, producing a big visual jump
-            // ("desface") independent of anything the user dragged.
-            transformOrigin: `${focalX}% ${focalY}%`,
-          }}
-        />
+        <div
+          ref={boxRef}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerLeave={handlePointerUp}
+          className={`relative w-full cursor-move touch-none border border-slate-300 ${IMAGE_SHAPE_WRAPPER_CLASS[shape]}`}
+        >
+          <Image
+            src={url}
+            alt={altText}
+            fill
+            draggable={false}
+            className={`select-none ${IMAGE_SHAPE_IMG_CLASS[shape]}`}
+            style={{
+              objectPosition: `${focalX}% ${focalY}%`,
+              transform: `scale(${zoom})`,
+              // Anchor the zoom on the point currently focused instead of the
+              // box's center (the default) -- otherwise moving the zoom
+              // slider re-centers from the middle of the frame regardless of
+              // where the photo was panned to, producing a big visual jump
+              // ("desface") independent of anything the user dragged.
+              transformOrigin: `${focalX}% ${focalY}%`,
+            }}
+          />
+        </div>
       </div>
       <div className="mt-1 flex items-center justify-between">
         <p className="text-xs text-slate-500">Arrastra la imagen para ajustarla dentro de la forma.</p>
@@ -128,7 +141,7 @@ function ImageShapeAdjuster({
           Centrar
         </button>
       </div>
-      <label className="mt-2 block w-[200px] max-w-full text-xs font-medium text-slate-700">
+      <label className="mt-2 block w-52 max-w-full text-xs font-medium text-slate-700">
         Zoom ({zoom.toFixed(1)}x)
         <input
           type="range"
@@ -172,16 +185,21 @@ export function ImageBlockEditor({
             focalX={focalX}
             focalY={focalY}
             zoom={zoom}
+            width={width}
+            alignment={value.alignment}
             onChange={(patch) => onChange({ ...value, ...patch })}
           />
         ) : (
-          <div className="max-w-[200px]">
+          // Same maxWidth/width%/alignment classes BlockRenderer applies
+          // publicly -- was hard-capped at 200px before, so a wide "Tamaño"
+          // or a rectangle shape never showed its real size while editing.
+          <div className={`${imageMaxWidthClass(shape)} ${ALIGN_CLASS[value.alignment] ?? "mx-auto"}`} style={{ width: `${width}%` }}>
             <Image
               src={value.url}
               alt={value.altText}
-              width={400}
-              height={300}
-              className={`border border-slate-200 ${IMAGE_SHAPE_IMG_CLASS[shape]}`}
+              width={800}
+              height={600}
+              className={`w-full border border-slate-200 ${IMAGE_SHAPE_IMG_CLASS[shape]}`}
             />
           </div>
         )
