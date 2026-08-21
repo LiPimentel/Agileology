@@ -5,6 +5,7 @@ import type { MediaItem } from "@/components/admin/MediaGrid";
 import { AddBlockMenu } from "@/components/admin/AddBlockMenu";
 import { BackgroundPicker, type BackgroundValue } from "@/components/admin/BackgroundPicker";
 import { BackgroundOverlay } from "@/components/public/BackgroundOverlay";
+import { BlockRenderer } from "@/components/blocks/BlockRenderer";
 import { TextBlockEditor } from "@/components/admin/blocks/TextBlockEditor";
 import { ImageBlockEditor } from "@/components/admin/blocks/ImageBlockEditor";
 import { LinkBlockEditor } from "@/components/admin/blocks/LinkBlockEditor";
@@ -36,6 +37,57 @@ const BLOCK_TYPE_OPTIONS = (Object.keys(BLOCK_LABELS) as BlockType[]).map((type)
 
 function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, n));
+}
+
+/** Whether BlockRenderer would actually draw something for this block, or just return null (no url/href/address yet). */
+function hasContent(block: BlockValue): boolean {
+  switch (block.type) {
+    case "text":
+      return Boolean(block.content.html?.replace(/<[^>]+>/g, "").trim());
+    case "image":
+      return Boolean(block.content.url);
+    case "link":
+      return Boolean(block.content.href);
+    case "video":
+      return Boolean(block.content.url);
+    case "map":
+      return Boolean(block.content.address);
+    case "contactForm":
+      return true;
+  }
+}
+
+/**
+ * The clean, unselected look of a block: exactly what the public page
+ * renders (reusing BlockRenderer itself, not a hand-kept-in-sync copy of
+ * it), so what you see on this canvas before clicking anything already IS
+ * the real page -- "quiero ver la página real y hacer clic directo sobre
+ * el componente para editarlo ahí mismo, en vez de un panel aparte".
+ *
+ * contactForm is the one exception: BlockRenderer's version is a real,
+ * submittable form (it needs a pageId to attribute submissions) -- letting
+ * an admin accidentally fire a real "test" submission from inside the
+ * editor would pollute their actual inbox, so this shows a static card
+ * instead of the live form.
+ */
+function BlockPreview({ block }: { block: BlockValue }) {
+  if (block.type === "contactForm") {
+    const fields = block.content.enabledFields ?? [];
+    return (
+      <div className="rounded-md border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
+        📋 Formulario de contacto ({fields.length ? fields.join(", ") : "sin campos"}) — vista previa desactivada aquí
+        para no generar envíos de prueba.
+      </div>
+    );
+  }
+  if (!hasContent(block)) {
+    return (
+      <div className="rounded-md border border-dashed border-slate-300 p-6 text-center text-sm italic text-slate-400">
+        {BLOCK_LABELS[block.type]} vacío — clic para configurar
+      </div>
+    );
+  }
+  return <BlockRenderer block={{ type: block.type, content: block.content }} />;
 }
 
 /**
@@ -104,6 +156,11 @@ export function SectionBlockEditor({
 }) {
   const [sections, setSections] = useState<EditorSection[]>(initialSections);
   const [openBgPickers, setOpenBgPickers] = useState<Record<string, boolean>>({});
+  // Only one block editable at a time, canvas-wide -- clicking a different
+  // block (or blank canvas space) closes whatever was open, matching a
+  // normal "select one thing" editor instead of a stack of always-open
+  // panels.
+  const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
 
   function addSection(columnCount: 1 | 2 | 3) {
     setSections((prev) => [...prev, newSection(columnCount)]);
@@ -121,8 +178,14 @@ export function SectionBlockEditor({
       return next;
     });
   }
-  /** Adds a block to a column's stack instead of replacing it -- a column can hold any number of blocks now. */
+  /**
+   * Adds a block to a column's stack instead of replacing it -- a column
+   * can hold any number of blocks. Selects the new block immediately so
+   * "+ Agregar componente" click leads straight into editing it, instead
+   * of adding it collapsed and making the admin click it again to open it.
+   */
   function addBlockToColumn(sectionId: string, columnId: string, type: BlockType) {
+    const id = generateId();
     setSections((prev) =>
       prev.map((s) =>
         s.id !== sectionId
@@ -130,11 +193,12 @@ export function SectionBlockEditor({
           : {
               ...s,
               columns: s.columns.map((c) =>
-                c.id === columnId ? { ...c, blocks: [...c.blocks, { id: generateId(), block: emptyContent(type) }] } : c,
+                c.id === columnId ? { ...c, blocks: [...c.blocks, { id, block: emptyContent(type) }] } : c,
               ),
             },
       ),
     );
+    setSelectedBlockId(id);
   }
   function removeBlockFromColumn(sectionId: string, columnId: string, blockId: string) {
     setSections((prev) =>
@@ -144,6 +208,7 @@ export function SectionBlockEditor({
           : { ...s, columns: s.columns.map((c) => (c.id === columnId ? { ...c, blocks: c.blocks.filter((b) => b.id !== blockId) } : c)) },
       ),
     );
+    setSelectedBlockId((prev) => (prev === blockId ? null : prev));
   }
   function moveBlockInColumn(sectionId: string, columnId: string, blockId: string, dir: -1 | 1) {
     setSections((prev) =>
@@ -214,11 +279,105 @@ export function SectionBlockEditor({
     setOpenBgPickers((prev) => ({ ...prev, [sectionId]: !prev[sectionId] }));
   }
 
+  function renderBlockEditor(sectionId: string, columnId: string, item: EditorColumn["blocks"][number]) {
+    const onChange = (v: unknown) => updateBlockContent(sectionId, columnId, item.id, v);
+    switch (item.block.type) {
+      case "text":
+        return <TextBlockEditor html={item.block.content.html} onChange={(html) => onChange({ html })} mediaLibrary={mediaLibrary} />;
+      case "image":
+        return <ImageBlockEditor value={item.block.content} onChange={onChange} mediaLibrary={mediaLibrary} />;
+      case "link":
+        return <LinkBlockEditor value={item.block.content} onChange={onChange} pages={pages} />;
+      case "video":
+        return <VideoBlockEditor value={item.block.content} onChange={onChange} />;
+      case "map":
+        return <MapBlockEditor value={item.block.content} onChange={onChange} />;
+      case "contactForm":
+        return <ContactFormBlockEditor value={item.block.content} onChange={onChange} />;
+    }
+  }
+
+  /**
+   * One block in a column: a clean, click-to-select preview (the real
+   * public render, via BlockPreview) when not selected, or the block's
+   * usual editor -- with a compact attached toolbar (mover/quitar/listo)
+   * instead of always-visible chrome -- when it is.
+   */
+  function renderBlockCanvas(section: EditorSection, col: EditorColumn, item: EditorColumn["blocks"][number], bi: number) {
+    const selected = selectedBlockId === item.id;
+
+    if (!selected) {
+      return (
+        <div
+          key={item.id}
+          role="button"
+          tabIndex={0}
+          onClickCapture={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setSelectedBlockId(item.id);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setSelectedBlockId(item.id);
+            }
+          }}
+          className="group relative cursor-pointer rounded-md outline outline-2 outline-transparent transition hover:outline-violet-300"
+        >
+          <BlockPreview block={item.block} />
+          <span className="pointer-events-none absolute -top-2.5 right-2 hidden rounded bg-violet-600 px-1.5 py-0.5 text-[10px] font-medium text-white shadow group-hover:inline-block">
+            {BLOCK_LABELS[item.block.type]} · clic para editar
+          </span>
+        </div>
+      );
+    }
+
+    return (
+      <div key={item.id} onClick={(e) => e.stopPropagation()} className="rounded-md ring-2 ring-violet-500">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-t-[4px] bg-violet-700 px-2 py-1 text-xs text-white">
+          <span className="font-medium">{BLOCK_LABELS[item.block.type]}</span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={bi === 0}
+              onClick={() => moveBlockInColumn(section.id, col.id, item.id, -1)}
+              className="hover:text-violet-200 disabled:opacity-40"
+              title="Mover arriba"
+            >
+              ↑
+            </button>
+            <button
+              type="button"
+              disabled={bi === col.blocks.length - 1}
+              onClick={() => moveBlockInColumn(section.id, col.id, item.id, 1)}
+              className="hover:text-violet-200 disabled:opacity-40"
+              title="Mover abajo"
+            >
+              ↓
+            </button>
+            <button type="button" onClick={() => removeBlockFromColumn(section.id, col.id, item.id)} className="hover:text-red-200">
+              Quitar
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedBlockId(null)}
+              className="rounded bg-white/20 px-2 py-0.5 font-medium hover:bg-white/30"
+            >
+              Listo ✓
+            </button>
+          </div>
+        </div>
+        <div className="rounded-b-md border border-t-0 border-violet-200 bg-white p-3">{renderBlockEditor(section.id, col.id, item)}</div>
+      </div>
+    );
+  }
+
   function renderColumn(section: EditorSection, col: EditorColumn, showWidthInput: boolean) {
     return (
-      <div key={col.id} className="min-w-0 rounded-md border border-dashed border-slate-200 p-3">
+      <div key={col.id} className="min-w-0 space-y-2">
         {showWidthInput && (
-          <div className="mb-2">
+          <div>
             <label className="block text-xs font-medium text-slate-500">Ancho (%)</label>
             <input
               type="number"
@@ -231,66 +390,24 @@ export function SectionBlockEditor({
           </div>
         )}
         <div className="space-y-3">
-          {col.blocks.map((item, bi) => (
-            <div key={item.id} className={bi > 0 ? "border-t border-dashed border-slate-200 pt-3" : undefined}>
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500">{BLOCK_LABELS[item.block.type]}</span>
-                <div className="flex items-center gap-2 text-xs">
-                  <button
-                    type="button"
-                    disabled={bi === 0}
-                    onClick={() => moveBlockInColumn(section.id, col.id, item.id, -1)}
-                    className="text-slate-500 hover:text-violet-700 disabled:opacity-30"
-                    title="Mover arriba"
-                  >
-                    ↑
-                  </button>
-                  <button
-                    type="button"
-                    disabled={bi === col.blocks.length - 1}
-                    onClick={() => moveBlockInColumn(section.id, col.id, item.id, 1)}
-                    className="text-slate-500 hover:text-violet-700 disabled:opacity-30"
-                    title="Mover abajo"
-                  >
-                    ↓
-                  </button>
-                  <button type="button" onClick={() => removeBlockFromColumn(section.id, col.id, item.id)} className="text-red-600 hover:underline">
-                    Quitar
-                  </button>
-                </div>
-              </div>
-              {item.block.type === "text" && (
-                <TextBlockEditor html={item.block.content.html} onChange={(html) => updateBlockContent(section.id, col.id, item.id, { html })} mediaLibrary={mediaLibrary} />
-              )}
-              {item.block.type === "image" && (
-                <ImageBlockEditor value={item.block.content} onChange={(v) => updateBlockContent(section.id, col.id, item.id, v)} mediaLibrary={mediaLibrary} />
-              )}
-              {item.block.type === "link" && (
-                <LinkBlockEditor value={item.block.content} onChange={(v) => updateBlockContent(section.id, col.id, item.id, v)} pages={pages} />
-              )}
-              {item.block.type === "video" && (
-                <VideoBlockEditor value={item.block.content} onChange={(v) => updateBlockContent(section.id, col.id, item.id, v)} />
-              )}
-              {item.block.type === "map" && (
-                <MapBlockEditor value={item.block.content} onChange={(v) => updateBlockContent(section.id, col.id, item.id, v)} />
-              )}
-              {item.block.type === "contactForm" && (
-                <ContactFormBlockEditor value={item.block.content} onChange={(v) => updateBlockContent(section.id, col.id, item.id, v)} />
-              )}
-            </div>
-          ))}
-          <AddBlockMenu
-            options={BLOCK_TYPE_OPTIONS}
-            onSelect={(type) => addBlockToColumn(section.id, col.id, type)}
-            label={col.blocks.length === 0 ? "+ Agregar componente" : "+ Agregar otro componente"}
-          />
+          {col.blocks.map((item, bi) => renderBlockCanvas(section, col, item, bi))}
+          <div onClick={(e) => e.stopPropagation()}>
+            <AddBlockMenu
+              options={BLOCK_TYPE_OPTIONS}
+              onSelect={(type) => addBlockToColumn(section.id, col.id, type)}
+              label={col.blocks.length === 0 ? "+ Agregar componente" : "+ Agregar otro componente"}
+            />
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
+    // Clicking any blank canvas area (not on a block's own click handler,
+    // which stops propagation) closes whatever block is currently open --
+    // the "clic afuera para cerrar" half of click-to-select.
+    <div className="space-y-4" onClick={() => setSelectedBlockId(null)}>
       <input type="hidden" name="blocksJson" value={JSON.stringify(serializeSections(sections))} readOnly />
 
       {sections.map((section, i) => {
@@ -316,50 +433,49 @@ export function SectionBlockEditor({
           );
 
         return (
-          <div key={section.id} className="rounded-lg border border-slate-200 bg-white p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <span className="text-sm font-semibold text-slate-500">
+          <div key={section.id} className="group/section relative rounded-lg border border-slate-200 bg-white p-4">
+            {/*
+              Section-level chrome (move/remove/background/column widths):
+              a compact badge that only appears on hover of the section,
+              mirroring how Wix itself only shows a section's name/controls
+              on hover (see the "Sección: Sobre mí" badge in the reference
+              screenshot) instead of a permanent header bar competing with
+              the actual content underneath.
+            */}
+            <div className="pointer-events-none absolute -top-3 right-3 z-10 hidden items-center gap-2 rounded-md bg-slate-800 px-2 py-1 text-xs text-white shadow-lg group-hover/section:flex">
+              <span className="pointer-events-auto font-medium">
                 Sección {i + 1} · {section.columns.length === 1 ? "1 columna" : `${section.columns.length} columnas`}
               </span>
-              <div className="flex gap-2 text-sm">
-                <button type="button" disabled={i === 0} onClick={() => moveSection(section.id, -1)} className="text-slate-500 hover:text-violet-700 disabled:opacity-30">
-                  ↑
-                </button>
-                <button type="button" disabled={i === sections.length - 1} onClick={() => moveSection(section.id, 1)} className="text-slate-500 hover:text-violet-700 disabled:opacity-30">
-                  ↓
-                </button>
-                <button type="button" onClick={() => removeSection(section.id)} className="text-red-600 hover:underline">
-                  Eliminar sección
-                </button>
-              </div>
+              <button type="button" disabled={i === 0} onClick={() => moveSection(section.id, -1)} className="pointer-events-auto hover:text-violet-300 disabled:opacity-30">
+                ↑
+              </button>
+              <button type="button" disabled={i === sections.length - 1} onClick={() => moveSection(section.id, 1)} className="pointer-events-auto hover:text-violet-300 disabled:opacity-30">
+                ↓
+              </button>
+              <button type="button" onClick={() => toggleSectionBgPicker(section.id)} className="pointer-events-auto hover:text-violet-300">
+                Fondo{hasBg && " •"}
+              </button>
+              <button type="button" onClick={() => removeSection(section.id)} className="pointer-events-auto hover:text-red-300">
+                Eliminar
+              </button>
             </div>
 
-            <div className="mb-4">
-              <button
-                type="button"
-                onClick={() => toggleSectionBgPicker(section.id)}
-                className="rounded-md border border-slate-300 px-3 py-1.5 text-xs hover:bg-slate-50"
-              >
-                {openBgPickers[section.id] ? "Cerrar fondo de sección" : "Fondo de esta sección (color/imagen/video)"}
-                {hasBg && " •"}
-              </button>
-              {openBgPickers[section.id] && (
-                <div className="mt-2 rounded-md border border-slate-200 bg-slate-50 p-3">
-                  <BackgroundPicker
-                    compact
-                    initialImageUrl={null}
-                    initialColor="#000000"
-                    initialOpacity={0}
-                    mediaLibrary={mediaLibrary}
-                    value={section.background}
-                    onChange={(bg) => setSectionBackground(section.id, bg)}
-                  />
-                </div>
-              )}
-            </div>
+            {openBgPickers[section.id] && (
+              <div className="relative z-10 mb-4 rounded-md border border-slate-200 bg-slate-50 p-3" onClick={(e) => e.stopPropagation()}>
+                <BackgroundPicker
+                  compact
+                  initialImageUrl={null}
+                  initialColor="#000000"
+                  initialOpacity={0}
+                  mediaLibrary={mediaLibrary}
+                  value={section.background}
+                  onChange={(bg) => setSectionBackground(section.id, bg)}
+                />
+              </div>
+            )}
 
             {section.columns.length === 2 && (
-              <div className="mb-4">
+              <div className="mb-4" onClick={(e) => e.stopPropagation()}>
                 <label className="block text-xs font-medium text-slate-500">
                   Ancho de columnas ({section.columns[0].width}% / {section.columns[1].width}%) -- también puedes arrastrar el separador de abajo
                 </label>
@@ -400,7 +516,7 @@ export function SectionBlockEditor({
         );
       })}
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
         <button
           type="button"
           onClick={() => addSection(1)}
