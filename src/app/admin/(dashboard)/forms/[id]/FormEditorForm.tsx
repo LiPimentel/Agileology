@@ -15,7 +15,14 @@ type FieldDraft = {
   fieldType: string;
   required: boolean;
   placeholder: string;
-  options: string[];
+  // Raw text of the "Opciones" input, kept separate from the parsed
+  // options array -- a controlled input that re-splits/trims/filters on
+  // every keystroke drops a comma the instant you type it (nothing to its
+  // right yet, so it gets filtered out as an empty trailing option, and
+  // the input's value is re-derived from that filtered array on the next
+  // render -- the comma visually never "sticks"). Parsing only happens
+  // when the fieldsJson hidden input is serialized, not on every change.
+  optionsInput: string;
 };
 
 function generateId() {
@@ -24,16 +31,22 @@ function generateId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function parseOptions(raw: string): string[] {
+  return raw.split(",").map((o) => o.trim()).filter(Boolean);
+}
+
 export function FormEditorForm({
   form,
 }: {
-  form: { id: string; name: string; destinationEmail: string; successMessage: string; fields: FieldDraft[] };
+  form: { id: string; name: string; destinationEmail: string; successMessage: string; fields: Array<Omit<FieldDraft, "optionsInput"> & { options: string[] }> };
 }) {
   const [state, formAction, pending] = useActionState(saveForm, initialState);
-  const [fields, setFields] = useState<FieldDraft[]>(form.fields);
+  const [fields, setFields] = useState<FieldDraft[]>(
+    form.fields.map(({ options, ...f }) => ({ ...f, optionsInput: options.join(", ") })),
+  );
 
   function addField() {
-    setFields((prev) => [...prev, { id: generateId(), label: "", fieldType: "text", required: false, placeholder: "", options: [] }]);
+    setFields((prev) => [...prev, { id: generateId(), label: "", fieldType: "text", required: false, placeholder: "", optionsInput: "" }]);
   }
   function removeField(id: string) {
     setFields((prev) => prev.filter((f) => f.id !== id));
@@ -55,7 +68,12 @@ export function FormEditorForm({
   return (
     <form action={formAction} className="max-w-2xl space-y-6 pb-16">
       <input type="hidden" name="formId" value={form.id} />
-      <input type="hidden" name="fieldsJson" value={JSON.stringify(fields)} readOnly />
+      <input
+        type="hidden"
+        name="fieldsJson"
+        value={JSON.stringify(fields.map(({ optionsInput, ...f }) => ({ ...f, options: parseOptions(optionsInput) })))}
+        readOnly
+      />
 
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">{form.name || "Formulario"}</h1>
@@ -154,8 +172,8 @@ export function FormEditorForm({
                   <div>
                     <label className="block text-xs font-medium text-slate-500 dark:text-slate-400">Opciones (separadas por coma)</label>
                     <input
-                      value={field.options.join(", ")}
-                      onChange={(e) => update(field.id, { options: e.target.value.split(",").map((o) => o.trim()).filter(Boolean) })}
+                      value={field.optionsInput}
+                      onChange={(e) => update(field.id, { optionsInput: e.target.value })}
                       placeholder="Opción 1, Opción 2, Opción 3"
                       className={inputClass}
                     />

@@ -376,7 +376,14 @@ export function TextBlockEditor({
         // (not prose-sm, which under-sizes headings vs. how they'll
         // actually look live) -- so what you type here is what the page
         // will actually look like, not a smaller/plainer approximation.
-        className="prose prose-slate min-h-32 max-w-none prose-headings:text-slate-900 prose-a:text-violet-700 rounded-b-md border border-slate-300 px-3 py-2 focus:border-violet-600 focus:outline-none focus:ring-1 focus:ring-violet-600"
+        // bg-white/text-slate-900 are explicit (not just "no dark:
+        // override") on purpose -- this box has no background of its own
+        // otherwise, so once its ANCESTOR wrapper went dark (the selected-
+        // block chrome around it), it silently inherited that dark
+        // background while the text color stayed dark too, making
+        // whatever you typed unreadable. Pinning both keeps this the one
+        // deliberately-light "paper" surface in an otherwise dark editor.
+        className="prose prose-slate min-h-32 max-w-none bg-white text-slate-900 prose-headings:text-slate-900 prose-a:text-violet-700 rounded-b-md border border-slate-300 px-3 py-2 focus:border-violet-600 focus:outline-none focus:ring-1 focus:ring-violet-600"
       />
     </div>
   );
