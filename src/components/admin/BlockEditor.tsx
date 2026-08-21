@@ -83,17 +83,27 @@ export function BlockEditor({
     <div className="space-y-4">
       <input type="hidden" name="blocksJson" value={JSON.stringify(blocks)} readOnly />
       {blocks.map((block, i) => (
-        <div key={block.id} className="rounded-lg border border-slate-200 bg-white p-4">
+        <div key={block.id} className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
           <div className="mb-3 flex items-center justify-between">
-            <span className="text-sm font-semibold text-slate-500">{BLOCK_LABELS[block.type]}</span>
+            <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">{BLOCK_LABELS[block.type]}</span>
             <div className="flex gap-2 text-sm">
-              <button type="button" disabled={i === 0} onClick={() => move(block.id, -1)} className="text-slate-500 hover:text-violet-700 disabled:opacity-30">
+              <button
+                type="button"
+                disabled={i === 0}
+                onClick={() => move(block.id, -1)}
+                className="text-slate-500 hover:text-violet-700 disabled:opacity-30 dark:text-slate-400 dark:hover:text-sky-400"
+              >
                 ↑
               </button>
-              <button type="button" disabled={i === blocks.length - 1} onClick={() => move(block.id, 1)} className="text-slate-500 hover:text-violet-700 disabled:opacity-30">
+              <button
+                type="button"
+                disabled={i === blocks.length - 1}
+                onClick={() => move(block.id, 1)}
+                className="text-slate-500 hover:text-violet-700 disabled:opacity-30 dark:text-slate-400 dark:hover:text-sky-400"
+              >
                 ↓
               </button>
-              <button type="button" onClick={() => remove(block.id)} className="text-red-600 hover:underline">
+              <button type="button" onClick={() => remove(block.id)} className="text-red-600 hover:underline dark:text-red-400">
                 Eliminar
               </button>
             </div>

@@ -14,14 +14,14 @@ export function LinkBlockEditor({
   return (
     <div className="space-y-3">
       <div>
-        <label className="block text-sm font-medium text-slate-700">Texto del botón</label>
+        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Texto del botón</label>
         <input
           value={value.label}
           onChange={(e) => onChange({ ...value, label: e.target.value })}
-          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
         />
       </div>
-      <label className="flex items-center gap-2 text-sm text-slate-700">
+      <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
         <input
           type="checkbox"
           checked={value.internal}
@@ -33,7 +33,7 @@ export function LinkBlockEditor({
         <select
           value={value.href}
           onChange={(e) => onChange({ ...value, href: e.target.value })}
-          className="w-full rounded-md border border-slate-300 px-3 py-2"
+          className="w-full rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
         >
           <option value="">Selecciona una página</option>
           {pages.map((p) => (
@@ -47,10 +47,10 @@ export function LinkBlockEditor({
           value={value.href}
           onChange={(e) => onChange({ ...value, href: e.target.value })}
           placeholder="https://..."
-          className="w-full rounded-md border border-slate-300 px-3 py-2"
+          className="w-full rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
         />
       )}
-      <label className="flex items-center gap-2 text-sm text-slate-700">
+      <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
         <input type="checkbox" checked={value.newTab} onChange={(e) => onChange({ ...value, newTab: e.target.checked })} />
         Abrir en nueva pestaña
       </label>

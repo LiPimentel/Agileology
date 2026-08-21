@@ -10,7 +10,7 @@ import type { MediaItem } from "@/components/admin/MediaGrid";
 
 const initialState: PageFormState = {};
 const inputClass =
-  "mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-violet-600 focus:outline-none focus:ring-1 focus:ring-violet-600";
+  "mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-violet-600 focus:outline-none focus:ring-1 focus:ring-violet-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-sky-500 dark:focus:ring-sky-500";
 
 export type PageEditorData = {
   id: string;
@@ -69,12 +69,12 @@ export function PageEditorForm({
         field (name-less <select>): purely a navigation shortcut, so it
         can't accidentally get submitted as part of savePage.
       */}
-      <label className="flex items-center gap-2 text-sm text-slate-600">
+      <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
         Página:
         <select
           value={page.id}
           onChange={(e) => router.push(`/admin/pages/${e.target.value}`)}
-          className="rounded-md border border-slate-300 bg-white px-2 py-1 font-medium text-slate-900"
+          className="rounded-md border border-slate-300 bg-white px-2 py-1 font-medium text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
         >
           {pages.map((p) => (
             <option key={p.id} value={p.id}>
@@ -85,43 +85,45 @@ export function PageEditorForm({
       </label>
 
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-slate-900">{page.title || "Nueva página"}</h1>
-        <span className={`rounded-full px-3 py-1 text-xs font-medium ${page.status === "published" ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800"}`}>
+        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">{page.title || "Nueva página"}</h1>
+        <span
+          className={`rounded-full px-3 py-1 text-xs font-medium ${page.status === "published" ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300" : "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"}`}
+        >
           {page.status === "published" ? "Publicada" : "Borrador"}
         </span>
       </div>
 
-      <section className="grid grid-cols-2 gap-4 rounded-lg border border-slate-200 bg-white p-5">
+      <section className="grid grid-cols-2 gap-4 rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
         <div>
-          <label className="block text-sm font-medium text-slate-700">Título</label>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Título</label>
           <input name="title" defaultValue={page.title} required className={inputClass} />
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700">Slug (URL)</label>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Slug (URL)</label>
           <input name="slug" defaultValue={page.slug} disabled={page.isSystem} className={inputClass} />
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700">Título SEO</label>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Título SEO</label>
           <input name="seoTitle" defaultValue={page.seoTitle ?? ""} className={inputClass} />
         </div>
         <div className="col-span-2">
-          <label className="block text-sm font-medium text-slate-700">Meta descripción SEO</label>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Meta descripción SEO</label>
           <textarea name="seoDescription" defaultValue={page.seoDescription ?? ""} rows={2} className={inputClass} />
         </div>
       </section>
-      <p className="-mt-4 text-xs text-slate-500">
+      <p className="-mt-4 text-xs text-slate-500 dark:text-slate-400">
         ¿Quieres que esta página aparezca en el menú? Se administra desde{" "}
-        <Link href="/admin/settings/menu" className="text-violet-700 underline">
+        <Link href="/admin/settings/menu" className="text-violet-700 underline dark:text-sky-400">
           Menú del sitio
         </Link>
         .
       </p>
 
-      <section className="rounded-lg border border-slate-200 bg-white p-5">
+      <section className="rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold text-slate-900">Encabezado con título</h2>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Encabezado con título</h2>
           <div className="flex flex-wrap items-center gap-4">
-            <label className="flex items-center gap-2 text-sm text-slate-700">
+            <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
               <input
                 type="checkbox"
                 name="showBanner"
@@ -146,7 +148,7 @@ export function PageEditorForm({
               interactive right now" look without that data-loss bug.
             */}
             <label
-              className={`flex items-center gap-2 text-sm text-slate-700 ${showBanner ? "" : "pointer-events-none opacity-50"}`}
+              className={`flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 ${showBanner ? "" : "pointer-events-none opacity-50"}`}
             >
               <input type="checkbox" name="showTitle" checked={showTitle} onChange={(e) => setShowTitle(e.target.checked)} />
               Mostrar el nombre de la página
@@ -154,13 +156,13 @@ export function PageEditorForm({
           </div>
         </div>
         {!showBanner && (
-          <p className="mb-3 text-sm text-slate-500">
+          <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">
             Esta página no tendrá el bloque fijo de título/fondo -- empieza directo con las secciones de abajo (útil si la
             primera sección ya es un video, un slideshow, etc.). Las opciones de abajo quedan guardadas por si lo reactivas.
           </p>
         )}
         {showBanner && !showTitle && (
-          <p className="mb-3 text-sm text-slate-500">
+          <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">
             El fondo/logo de esta página se mostrará, pero sin el texto del nombre encima.
           </p>
         )}
@@ -181,24 +183,24 @@ export function PageEditorForm({
       </section>
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-slate-900">Contenido</h2>
-        <p className="mb-3 text-xs text-slate-500">
+        <h2 className="mb-3 text-lg font-semibold text-slate-900 dark:text-slate-100">Contenido</h2>
+        <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">
           Agrega el mapa o el formulario de contacto como un componente más, en la sección donde los quieras.
         </p>
         <SectionBlockEditor initialSections={page.sections} mediaLibrary={mediaLibrary} pages={pages} />
       </section>
 
-      {state.error && <p className="text-sm text-red-600">{state.error}</p>}
-      {state.savedAt && !state.error && <p className="text-sm text-green-700">Guardado.</p>}
+      {state.error && <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p>}
+      {state.savedAt && !state.error && <p className="text-sm text-green-700 dark:text-green-400">Guardado.</p>}
 
-      <div className="sticky bottom-0 flex gap-3 border-t border-slate-200 bg-slate-50/95 p-4 backdrop-blur">
+      <div className="sticky bottom-0 flex gap-3 border-t border-slate-200 bg-slate-50/95 p-4 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
         <button
           ref={draftButtonRef}
           type="submit"
           name="intent"
           value="draft"
           disabled={pending}
-          className="rounded-md border border-violet-700 px-5 py-2 font-medium text-violet-700 hover:bg-violet-50 disabled:opacity-60"
+          className="rounded-md border border-violet-700 px-5 py-2 font-medium text-violet-700 hover:bg-violet-50 disabled:opacity-60 dark:border-violet-500 dark:text-violet-300 dark:hover:bg-slate-800"
         >
           {pending ? "Guardando..." : "Guardar borrador"}
         </button>
@@ -207,20 +209,20 @@ export function PageEditorForm({
           name="intent"
           value="publish"
           disabled={pending}
-          className="rounded-md bg-violet-700 px-5 py-2 font-medium text-white hover:bg-violet-800 disabled:opacity-60"
+          className="rounded-md bg-violet-700 px-5 py-2 font-medium text-white hover:bg-violet-800 disabled:opacity-60 dark:bg-violet-600 dark:hover:bg-violet-500"
         >
           Guardar y publicar
         </button>
         <Link
           href={`/admin/pages/${page.id}/versions`}
-          className="ml-auto rounded-md border border-slate-300 px-5 py-2 font-medium text-slate-700 hover:bg-white"
+          className="ml-auto rounded-md border border-slate-300 px-5 py-2 font-medium text-slate-700 hover:bg-white dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
         >
           Historial
         </Link>
         <Link
           href={`/admin/pages/${page.id}/preview`}
           target="_blank"
-          className="rounded-md border border-slate-300 px-5 py-2 font-medium text-slate-700 hover:bg-white"
+          className="rounded-md border border-slate-300 px-5 py-2 font-medium text-slate-700 hover:bg-white dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
         >
           Vista previa
         </Link>

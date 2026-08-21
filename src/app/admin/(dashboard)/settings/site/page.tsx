@@ -14,7 +14,7 @@ export default async function SiteSettingsPage() {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-semibold text-slate-900">Ajustes del sitio</h1>
+      <h1 className="mb-6 text-2xl font-semibold text-slate-900 dark:text-slate-100">Ajustes del sitio</h1>
       <SiteSettingsForm settings={settings} siteUrl={siteUrl} />
     </div>
   );

@@ -18,15 +18,15 @@ export function VideoBlockEditor({ value, onChange }: { value: VideoBlockValue; 
   return (
     <div className="space-y-3">
       <div>
-        <label className="block text-sm font-medium text-slate-700">URL de YouTube o Vimeo</label>
+        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">URL de YouTube o Vimeo</label>
         <input
           value={value.url}
           onChange={(e) => onChange({ ...value, url: e.target.value })}
           placeholder="https://www.youtube.com/watch?v=..."
-          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
         />
       </div>
-      {value.url && !embed && <p className="text-sm text-amber-600">No se reconoce como enlace de YouTube o Vimeo.</p>}
+      {value.url && !embed && <p className="text-sm text-amber-600 dark:text-amber-400">No se reconoce como enlace de YouTube o Vimeo.</p>}
       {embed && (
         // max-w-3xl/ALIGN_CLASS match BlockRenderer's video case exactly --
         // was capped at max-w-md (28rem) here regardless of alignment, so
@@ -58,11 +58,11 @@ export function VideoBlockEditor({ value, onChange }: { value: VideoBlockValue; 
       )}
       <div className="flex flex-wrap gap-4">
         <div>
-          <label className="block text-sm font-medium text-slate-700">Alineación</label>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Alineación</label>
           <select
             value={value.alignment}
             onChange={(e) => onChange({ ...value, alignment: e.target.value as VideoBlockValue["alignment"] })}
-            className="mt-1 rounded-md border border-slate-300 px-3 py-2"
+            className="mt-1 rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
           >
             <option value="left">Izquierda</option>
             <option value="center">Centro</option>
@@ -70,11 +70,11 @@ export function VideoBlockEditor({ value, onChange }: { value: VideoBlockValue; 
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700">Forma</label>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Forma</label>
           <select
             value={shape}
             onChange={(e) => onChange({ ...value, shape: e.target.value as ImageShape })}
-            className="mt-1 rounded-md border border-slate-300 px-3 py-2"
+            className="mt-1 rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
           >
             {(Object.keys(IMAGE_SHAPE_LABELS) as ImageShape[]).map((s) => (
               <option key={s} value={s}>
@@ -84,7 +84,7 @@ export function VideoBlockEditor({ value, onChange }: { value: VideoBlockValue; 
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700">Tamaño ({value.width}%)</label>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Tamaño ({value.width}%)</label>
           <input
             type="range"
             min={20}

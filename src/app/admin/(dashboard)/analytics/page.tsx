@@ -8,18 +8,18 @@ const RANGES: Record<string, number> = { "7d": 7, "30d": 30, "90d": 90 };
 
 /** Simple horizontal bar chart -- deliberately plain CSS (no charting library) to keep this dependency-free, same approach the trend chart already used. */
 function BarList({ rows, max }: { rows: Array<{ label: string; count: number }>; max: number }) {
-  if (rows.length === 0) return <p className="py-2 text-sm text-slate-500">Sin datos todavía.</p>;
+  if (rows.length === 0) return <p className="py-2 text-sm text-slate-500 dark:text-slate-400">Sin datos todavía.</p>;
   return (
     <div className="space-y-2">
       {rows.map((row) => (
         <div key={row.label} className="flex items-center gap-3 text-sm">
-          <span className="w-40 shrink-0 truncate text-slate-700" title={row.label}>
+          <span className="w-40 shrink-0 truncate text-slate-700 dark:text-slate-300" title={row.label}>
             {row.label}
           </span>
-          <div className="h-3 flex-1 overflow-hidden rounded-full bg-slate-100">
-            <div className="h-full rounded-full bg-violet-600" style={{ width: `${max > 0 ? (row.count / max) * 100 : 0}%` }} />
+          <div className="h-3 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+            <div className="h-full rounded-full bg-violet-600 dark:bg-sky-500" style={{ width: `${max > 0 ? (row.count / max) * 100 : 0}%` }} />
           </div>
-          <span className="w-10 shrink-0 text-right font-medium text-slate-900">{row.count}</span>
+          <span className="w-10 shrink-0 text-right font-medium text-slate-900 dark:text-slate-100">{row.count}</span>
         </div>
       ))}
     </div>
@@ -104,20 +104,20 @@ export default async function AnalyticsPage({
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-slate-900">Analítica</h1>
+        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">Analítica</h1>
         <div className="flex flex-wrap items-center gap-2 text-sm">
           {Object.keys(RANGES).map((r) => (
             <a
               key={r}
               href={`/admin/analytics?range=${r}`}
-              className={`rounded-md px-3 py-1.5 ${(range ?? "7d") === r ? "bg-violet-700 text-white" : "border border-slate-300 text-slate-700 hover:bg-white"}`}
+              className={`rounded-md px-3 py-1.5 ${(range ?? "7d") === r ? "bg-violet-700 text-white dark:bg-violet-600" : "border border-slate-300 text-slate-700 hover:bg-white dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"}`}
             >
               {r === "7d" ? "7 días" : r === "30d" ? "30 días" : "90 días"}
             </a>
           ))}
           <a
             href={`/admin/analytics/export${rangeQuery}`}
-            className="rounded-md border border-slate-300 px-3 py-1.5 font-medium text-slate-700 hover:bg-slate-50"
+            className="rounded-md border border-slate-300 px-3 py-1.5 font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             ⬇ Descargar CSV
           </a>
@@ -125,39 +125,39 @@ export default async function AnalyticsPage({
       </div>
 
       <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="rounded-lg border border-slate-200 bg-white p-5">
-          <p className="text-sm text-slate-500">Visitas al sitio</p>
-          <p className="text-4xl font-semibold text-violet-800">{totalViews}</p>
+        <div className="rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+          <p className="text-sm text-slate-500 dark:text-slate-400">Visitas al sitio</p>
+          <p className="text-4xl font-semibold text-violet-800 dark:text-sky-400">{totalViews}</p>
         </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-5">
-          <p className="text-sm text-slate-500">Clics dentro del sitio</p>
-          <p className="text-4xl font-semibold text-violet-800">{totalClicks}</p>
-          <p className="mt-1 text-xs text-slate-400">Chat, WhatsApp, teléfono, redes sociales, botones de enlace.</p>
+        <div className="rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+          <p className="text-sm text-slate-500 dark:text-slate-400">Clics dentro del sitio</p>
+          <p className="text-4xl font-semibold text-violet-800 dark:text-sky-400">{totalClicks}</p>
+          <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">Chat, WhatsApp, teléfono, redes sociales, botones de enlace.</p>
         </div>
       </div>
 
       <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="rounded-lg border border-slate-200 bg-white p-5">
-          <h2 className="mb-4 text-lg font-semibold text-slate-900">Tendencia de visitas</h2>
-          <DayTrend trend={viewsTrend} colorClass="bg-violet-600" />
+        <div className="rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+          <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-slate-100">Tendencia de visitas</h2>
+          <DayTrend trend={viewsTrend} colorClass="bg-violet-600 dark:bg-sky-500" />
         </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-5">
-          <h2 className="mb-4 text-lg font-semibold text-slate-900">Tendencia de clics</h2>
+        <div className="rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+          <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-slate-100">Tendencia de clics</h2>
           <DayTrend trend={clicksTrend} colorClass="bg-amber-500" />
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="rounded-lg border border-slate-200 bg-white p-5">
-          <h2 className="mb-4 text-lg font-semibold text-slate-900">Páginas más visitadas</h2>
+        <div className="rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+          <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-slate-100">Páginas más visitadas</h2>
           <BarList rows={pathRows} max={Math.max(1, ...pathRows.map((r) => r.count))} />
         </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-5">
-          <h2 className="mb-4 text-lg font-semibold text-slate-900">Blogs más visitados</h2>
+        <div className="rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+          <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-slate-100">Blogs más visitados</h2>
           <BarList rows={blogRows} max={Math.max(1, ...blogRows.map((r) => r.count))} />
         </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-5 sm:col-span-2">
-          <h2 className="mb-4 text-lg font-semibold text-slate-900">Clics más frecuentes</h2>
+        <div className="rounded-lg border border-slate-200 bg-white p-5 sm:col-span-2 dark:border-slate-800 dark:bg-slate-900">
+          <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-slate-100">Clics más frecuentes</h2>
           <BarList rows={labelRows} max={Math.max(1, ...labelRows.map((r) => r.count))} />
         </div>
       </div>

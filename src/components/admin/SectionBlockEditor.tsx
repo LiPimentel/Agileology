@@ -76,7 +76,7 @@ function BlockPreview({ block }: { block: BlockValue }) {
   if (block.type === "contactForm") {
     const fields = block.content.enabledFields ?? [];
     return (
-      <div className="rounded-md border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
+      <div className="rounded-md border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
         📋 Formulario de contacto ({fields.length ? fields.join(", ") : "sin campos"}) — vista previa desactivada aquí
         para no generar envíos de prueba.
       </div>
@@ -84,7 +84,7 @@ function BlockPreview({ block }: { block: BlockValue }) {
   }
   if (!hasContent(block)) {
     return (
-      <div className="rounded-md border border-dashed border-slate-300 p-6 text-center text-sm italic text-slate-400">
+      <div className="rounded-md border border-dashed border-slate-300 p-6 text-center text-sm italic text-slate-400 dark:border-slate-700 dark:text-slate-500">
         {BLOCK_LABELS[block.type]} vacío — clic para configurar
       </div>
     );
@@ -241,7 +241,7 @@ function FreeBlockBox({
 
   return (
     <div onClick={(e) => e.stopPropagation()} className="absolute overflow-visible rounded-md" style={{ ...boxStyle, zIndex: 9999 }}>
-      <div className="flex h-full w-full flex-col overflow-auto rounded-md bg-white ring-2 ring-violet-500">{children}</div>
+      <div className="flex h-full w-full flex-col overflow-auto rounded-md bg-white ring-2 ring-violet-500 dark:bg-slate-900">{children}</div>
       <div
         onPointerDown={handleGripDown}
         onPointerMove={handleGripMove}
@@ -301,7 +301,7 @@ function FreeCanvas({
   return (
     <div
       ref={canvasRef}
-      className="relative w-full overflow-visible rounded-md border border-dashed border-slate-300 bg-slate-50"
+      className="relative w-full overflow-visible rounded-md border border-dashed border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-800"
       style={{ height: `${freeHeight}px` }}
     >
       {children(canvasRef)}
@@ -632,7 +632,7 @@ export function SectionBlockEditor({
             </button>
           </div>
         </div>
-        <div className="rounded-b-md border border-t-0 border-violet-200 bg-white p-3">{renderBlockEditor(section.id, col.id, item)}</div>
+        <div className="rounded-b-md border border-t-0 border-violet-200 bg-white p-3 dark:border-violet-800 dark:bg-slate-900">{renderBlockEditor(section.id, col.id, item)}</div>
       </div>
     );
   }
@@ -642,14 +642,14 @@ export function SectionBlockEditor({
       <div key={col.id} className="min-w-0 space-y-2">
         {showWidthInput && (
           <div>
-            <label className="block text-xs font-medium text-slate-500">Ancho (%)</label>
+            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400">Ancho (%)</label>
             <input
               type="number"
               min={10}
               max={80}
               value={col.width}
               onChange={(e) => setColumnWidth(section.id, col.id, Number(e.target.value) || 0)}
-              className="mt-1 w-20 rounded-md border border-slate-300 px-2 py-1 text-sm text-slate-900"
+              className="mt-1 w-20 rounded-md border border-slate-300 px-2 py-1 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
             />
           </div>
         )}
@@ -778,7 +778,7 @@ export function SectionBlockEditor({
           );
 
         return (
-          <div key={section.id} className="group/section relative rounded-lg border border-slate-200 bg-white p-4">
+          <div key={section.id} className="group/section relative rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
             {/*
               Section-level chrome (move/remove/background/column widths):
               a compact badge that only appears on hover of the section,
@@ -837,7 +837,7 @@ export function SectionBlockEditor({
             </div>
 
             {openBgPickers[section.id] && (
-              <div className="relative z-10 mb-4 rounded-md border border-slate-200 bg-slate-50 p-3" onClick={(e) => e.stopPropagation()}>
+              <div className="relative z-10 mb-4 rounded-md border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800" onClick={(e) => e.stopPropagation()}>
                 <BackgroundPicker
                   compact
                   initialImageUrl={null}
@@ -852,7 +852,7 @@ export function SectionBlockEditor({
 
             {section.columns.length === 2 && (
               <div className="mb-4" onClick={(e) => e.stopPropagation()}>
-                <label className="block text-xs font-medium text-slate-500">
+                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400">
                   Ancho de columnas ({section.columns[0].width}% / {section.columns[1].width}%) -- también puedes arrastrar el separador de abajo
                 </label>
                 <input
@@ -896,21 +896,21 @@ export function SectionBlockEditor({
         <button
           type="button"
           onClick={() => addSection(1)}
-          className="rounded-md border border-dashed border-violet-300 px-3 py-1.5 text-sm text-violet-700 hover:border-violet-500 hover:bg-violet-50"
+          className="rounded-md border border-dashed border-violet-300 px-3 py-1.5 text-sm text-violet-700 hover:border-violet-500 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-300 dark:hover:border-sky-500 dark:hover:bg-slate-800"
         >
           + Sección (1 componente)
         </button>
         <button
           type="button"
           onClick={() => addSection(2)}
-          className="rounded-md border border-dashed border-violet-300 px-3 py-1.5 text-sm text-violet-700 hover:border-violet-500 hover:bg-violet-50"
+          className="rounded-md border border-dashed border-violet-300 px-3 py-1.5 text-sm text-violet-700 hover:border-violet-500 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-300 dark:hover:border-sky-500 dark:hover:bg-slate-800"
         >
           + Sección (2 componentes)
         </button>
         <button
           type="button"
           onClick={() => addSection(3)}
-          className="rounded-md border border-dashed border-violet-300 px-3 py-1.5 text-sm text-violet-700 hover:border-violet-500 hover:bg-violet-50"
+          className="rounded-md border border-dashed border-violet-300 px-3 py-1.5 text-sm text-violet-700 hover:border-violet-500 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-300 dark:hover:border-sky-500 dark:hover:bg-slate-800"
         >
           + Sección (3 componentes)
         </button>

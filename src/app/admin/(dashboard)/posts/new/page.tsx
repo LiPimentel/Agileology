@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export default function NewPostPage() {
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-semibold text-slate-900">Nuevo post</h1>
+      <h1 className="mb-6 text-2xl font-semibold text-slate-900 dark:text-slate-100">Nuevo post</h1>
       <NewPostForm />
     </div>
   );

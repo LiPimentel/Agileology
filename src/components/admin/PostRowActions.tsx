@@ -15,7 +15,7 @@ export function PostRowActions({ postId }: { postId: string }) {
           startTransition(() => deletePost(postId));
         }
       }}
-      className="text-sm text-red-600 hover:underline"
+      className="text-sm text-red-600 hover:underline dark:text-red-400"
     >
       Eliminar
     </button>

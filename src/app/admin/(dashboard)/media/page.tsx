@@ -10,8 +10,8 @@ export default async function MediaLibraryPage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-semibold text-slate-900">Biblioteca de medios</h1>
-      <div className="mb-8 rounded-lg border border-slate-200 bg-white p-4">
+      <h1 className="mb-6 text-2xl font-semibold text-slate-900 dark:text-slate-100">Biblioteca de medios</h1>
+      <div className="mb-8 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
         {/*
           MediaUploadForm no longer renders its own <form> (that was the fix
           for it being nested inside a bigger form elsewhere -- see that

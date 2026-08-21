@@ -50,24 +50,31 @@ export function MediaUploadForm({
   return (
     <div className="flex flex-wrap items-end gap-3">
       <div>
-        <label className="block text-sm font-medium text-slate-700">Archivo</label>
-        <input ref={fileInputRef} type="file" name={`file-${fieldId}`} accept={accept} required className="mt-1 text-sm" />
+        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Archivo</label>
+        <input
+          ref={fileInputRef}
+          type="file"
+          name={`file-${fieldId}`}
+          accept={accept}
+          required
+          className="mt-1 text-sm dark:text-slate-300"
+        />
       </div>
       <div>
-        <label className="block text-sm font-medium text-slate-700">Texto alternativo</label>
+        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Texto alternativo</label>
         <input
           ref={altInputRef}
           name={`altText-${fieldId}`}
-          className="mt-1 rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900"
+          className="mt-1 rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
           placeholder="Describe la imagen"
         />
       </div>
-      {state.error && <p className="text-sm text-red-600">{state.error}</p>}
+      {state.error && <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p>}
       <button
         type="submit"
         formAction={formAction}
         disabled={pending}
-        className="rounded-md bg-violet-700 px-4 py-2 text-sm font-medium text-white hover:bg-violet-800 disabled:opacity-60"
+        className="rounded-md bg-violet-700 px-4 py-2 text-sm font-medium text-white hover:bg-violet-800 disabled:opacity-60 dark:bg-violet-600 dark:hover:bg-violet-500"
       >
         {pending ? "Subiendo..." : label}
       </button>

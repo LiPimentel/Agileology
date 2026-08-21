@@ -8,7 +8,7 @@ export default async function CommunicationsSettingsPage() {
   const settings = await getCommunicationSettings();
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-semibold text-slate-900">Comunicaciones</h1>
+      <h1 className="mb-6 text-2xl font-semibold text-slate-900 dark:text-slate-100">Comunicaciones</h1>
       <CommunicationsForm
         chatEmail={settings.chatDestinationEmail}
         contactEmail={settings.contactFormDestinationEmail}

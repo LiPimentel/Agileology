@@ -22,8 +22,8 @@ export function ContactFormBlockEditor({
 
   return (
     <div className="space-y-2">
-      <p className="text-sm font-medium text-slate-700">Campos del formulario</p>
-      <div className="flex gap-4 text-sm text-slate-700">
+      <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Campos del formulario</p>
+      <div className="flex gap-4 text-sm text-slate-700 dark:text-slate-300">
         {FIELDS.map((f) => (
           <label key={f.key} className="flex items-center gap-1">
             <input type="checkbox" checked={value.enabledFields.includes(f.key)} onChange={() => toggle(f.key)} />
@@ -31,7 +31,7 @@ export function ContactFormBlockEditor({
           </label>
         ))}
       </div>
-      <p className="text-xs text-slate-500">Los envíos llegan al correo configurado en Comunicaciones.</p>
+      <p className="text-xs text-slate-500 dark:text-slate-400">Los envíos llegan al correo configurado en Comunicaciones.</p>
     </div>
   );
 }
