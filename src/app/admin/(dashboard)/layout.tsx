@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
+import { getSiteSettings } from "@/lib/settings";
 import { logout } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -19,14 +20,20 @@ const NAV = [
 ];
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const admin = await requireAdmin();
+  const [admin, settings] = await Promise.all([requireAdmin(), getSiteSettings()]);
   if (!admin.twoFactorEnabled) redirect("/admin/setup-2fa");
 
   return (
     <div className="flex min-h-screen bg-slate-50">
       <aside className="w-60 shrink-0 border-r border-slate-200 bg-white">
         <div className="border-b border-slate-200 px-4 py-4">
-          <p className="font-semibold text-violet-800">Agileology Wave</p>
+          {/* Real uploaded logo (Ajustes del sitio → Logo) when set. */}
+          {settings.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={settings.logoUrl} alt={settings.siteTitle} className="h-8 w-auto" />
+          ) : (
+            <p className="font-semibold text-violet-800">{settings.siteTitle}</p>
+          )}
           <p className="text-xs text-slate-500">Backoffice</p>
         </div>
         <nav className="flex flex-col gap-1 p-3">
