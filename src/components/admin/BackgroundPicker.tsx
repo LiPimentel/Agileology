@@ -100,7 +100,7 @@ export function BackgroundPicker({
       )}
 
       <div
-        className={`relative flex items-center justify-center overflow-hidden rounded-md border border-slate-200 bg-cover bg-center ${compact ? "h-20" : "h-32"}`}
+        className={`relative flex items-center justify-center overflow-hidden rounded-md border border-slate-200 bg-cover bg-center dark:border-slate-700 ${compact ? "h-20" : "h-32"}`}
         style={imageUrl ? { backgroundImage: `url(${imageUrl})` } : undefined}
       >
         {videoUrl && (
@@ -119,7 +119,7 @@ export function BackgroundPicker({
       </div>
 
       {compact && (
-        <div className="flex gap-1 rounded-md bg-slate-100 p-1 text-sm">
+        <div className="flex gap-1 rounded-md bg-slate-100 p-1 text-sm dark:bg-slate-800">
           {(
             [
               { key: "color" as const, label: "Color" },
@@ -132,7 +132,9 @@ export function BackgroundPicker({
               type="button"
               onClick={() => setTab(t.key)}
               className={`flex-1 rounded px-3 py-1.5 font-medium ${
-                tab === t.key ? "bg-white text-violet-700 shadow-sm" : "text-slate-600 hover:text-slate-900"
+                tab === t.key
+                  ? "bg-white text-violet-700 shadow-sm dark:bg-slate-700 dark:text-sky-300"
+                  : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
               }`}
             >
               {t.label}
@@ -146,17 +148,17 @@ export function BackgroundPicker({
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700">{isGradient ? "Color inicial" : "Color de superposición"}</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">{isGradient ? "Color inicial" : "Color de superposición"}</label>
               <input type="color" value={color} onChange={(e) => set({ color: e.target.value })} className="mt-1 h-9 w-16" />
             </div>
             {isGradient && (
               <div>
-                <label className="block text-sm font-medium text-slate-700">Color final</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Color final</label>
                 <input type="color" value={gradientEnd} onChange={(e) => set({ gradientEnd: e.target.value })} className="mt-1 h-9 w-16" />
               </div>
             )}
             <div>
-              <label className="block text-sm font-medium text-slate-700">Transparencia ({Math.round(opacity * 100)}%)</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Transparencia ({Math.round(opacity * 100)}%)</label>
               <input
                 type="range"
                 min={0}
@@ -170,7 +172,7 @@ export function BackgroundPicker({
           </div>
           {/* Degradado (gradient) -- only meaningful for a section's own background, matches the client's reference screenshot ("Selector de color" with a two-stop gradient bar). */}
           {compact && (
-            <label className="flex items-center gap-2 text-sm text-slate-700">
+            <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
               <input
                 type="checkbox"
                 checked={isGradient}
@@ -185,19 +187,19 @@ export function BackgroundPicker({
       {(!compact || tab === "image") && (
         <div className="space-y-2">
           {imageUrl && (
-            <button type="button" onClick={() => set({ imageUrl: "" })} className="block text-sm text-red-600 hover:underline">
+            <button type="button" onClick={() => set({ imageUrl: "" })} className="block text-sm text-red-600 hover:underline dark:text-red-400">
               Quitar imagen de fondo
             </button>
           )}
           <button
             type="button"
             onClick={() => setPickerOpen((v) => !v)}
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             {pickerOpen ? "Cerrar biblioteca" : "Elegir imagen de fondo"}
           </button>
           {pickerOpen && (
-            <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+            <div className="rounded-md border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">
               <MediaUploadForm onUploaded={(m) => pickImage(m.url)} />
               <div className="mt-3">
                 <MediaGrid items={IMAGE_ITEMS(mediaLibrary)} onSelect={(m) => pickImage(m.url)} />
@@ -209,21 +211,21 @@ export function BackgroundPicker({
 
       {compact && tab === "video" && (
         <div className="space-y-2">
-          <p className="text-xs text-slate-500">Video corto en bucle (MP4/WebM, máx. 25MB) -- se reproduce silenciado automáticamente.</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Video corto en bucle (MP4/WebM, máx. 25MB) -- se reproduce silenciado automáticamente.</p>
           {videoUrl && (
-            <button type="button" onClick={() => set({ videoUrl: "" })} className="block text-sm text-red-600 hover:underline">
+            <button type="button" onClick={() => set({ videoUrl: "" })} className="block text-sm text-red-600 hover:underline dark:text-red-400">
               Quitar video de fondo
             </button>
           )}
           <button
             type="button"
             onClick={() => setPickerOpen((v) => !v)}
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             {pickerOpen ? "Cerrar biblioteca" : "Elegir video de fondo"}
           </button>
           {pickerOpen && (
-            <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+            <div className="rounded-md border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">
               <MediaUploadForm onUploaded={(m) => pickVideo(m.url)} accept="video/mp4,video/webm" label="Subir video" />
               <div className="mt-3">
                 <MediaGrid items={VIDEO_ITEMS(mediaLibrary)} onSelect={(m) => pickVideo(m.url)} />
@@ -241,23 +243,23 @@ export function BackgroundPicker({
         background has no title/banner to put this in front of.
       */}
       {!controlled && (
-        <div className="border-t border-slate-200 pt-3">
-          <p className="text-sm font-medium text-slate-700">Imagen del encabezado (logo u otra imagen, opcional)</p>
-          <p className="mb-2 text-xs text-slate-500">Se muestra sobre el fondo, junto al título de la página.</p>
+        <div className="border-t border-slate-200 pt-3 dark:border-slate-700">
+          <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Imagen del encabezado (logo u otra imagen, opcional)</p>
+          <p className="mb-2 text-xs text-slate-500 dark:text-slate-400">Se muestra sobre el fondo, junto al título de la página.</p>
           {bannerImageUrl && (
-            <button type="button" onClick={() => setBannerImageUrl("")} className="mb-2 block text-sm text-red-600 hover:underline">
+            <button type="button" onClick={() => setBannerImageUrl("")} className="mb-2 block text-sm text-red-600 hover:underline dark:text-red-400">
               Quitar imagen del encabezado
             </button>
           )}
           <button
             type="button"
             onClick={() => setBannerPickerOpen((v) => !v)}
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             {bannerPickerOpen ? "Cerrar biblioteca" : "Elegir imagen del encabezado"}
           </button>
           {bannerPickerOpen && (
-            <div className="mt-2 rounded-md border border-slate-200 bg-slate-50 p-3">
+            <div className="mt-2 rounded-md border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">
               <MediaUploadForm onUploaded={(m) => { setBannerImageUrl(m.url); setBannerPickerOpen(false); }} />
               <div className="mt-3">
                 <MediaGrid items={IMAGE_ITEMS(mediaLibrary)} onSelect={(m) => { setBannerImageUrl(m.url); setBannerPickerOpen(false); }} />

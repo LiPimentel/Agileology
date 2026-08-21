@@ -210,9 +210,9 @@ export function TextBlockEditor({
 
   return (
     <div>
-      <div className="mb-2 flex flex-wrap items-center gap-2 rounded-t-md border border-b-0 border-slate-300 bg-slate-50 p-1">
+      <div className="mb-2 flex flex-wrap items-center gap-2 rounded-t-md border border-b-0 border-slate-300 bg-slate-50 p-1 dark:border-slate-700 dark:bg-slate-800">
         {TOOLBAR_GROUPS.map((group, gi) => (
-          <div key={gi} className="flex gap-0.5 border-r border-slate-300 pr-2 last:border-r-0">
+          <div key={gi} className="flex gap-0.5 border-r border-slate-300 pr-2 last:border-r-0 dark:border-slate-700">
             {group.map((t) => (
               <button
                 key={t.title}
@@ -221,7 +221,7 @@ export function TextBlockEditor({
                 aria-label={t.title}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => exec(t.command, t.value)}
-                className="rounded p-1.5 text-slate-700 hover:bg-slate-200"
+                className="rounded p-1.5 text-slate-700 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700"
               >
                 <t.Icon />
               </button>
@@ -229,7 +229,7 @@ export function TextBlockEditor({
           </div>
         ))}
 
-        <div className="flex items-center gap-2 border-r border-slate-300 pr-2">
+        <div className="flex items-center gap-2 border-r border-slate-300 pr-2 dark:border-slate-700">
           <div className="relative">
             <button
               type="button"
@@ -237,12 +237,12 @@ export function TextBlockEditor({
               aria-label="Enlace"
               onMouseDown={(e) => e.preventDefault()}
               onClick={openLinkPopover}
-              className="rounded p-1.5 text-slate-700 hover:bg-slate-200"
+              className="rounded p-1.5 text-slate-700 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700"
             >
               <LinkIcon />
             </button>
             {linkPopoverOpen && (
-              <div className="absolute left-0 top-full z-10 mt-1 flex w-64 gap-1 rounded-md border border-slate-300 bg-white p-2 shadow-lg">
+              <div className="absolute left-0 top-full z-10 mt-1 flex w-64 gap-1 rounded-md border border-slate-300 bg-white p-2 shadow-lg dark:border-slate-700 dark:bg-slate-800">
                 <input
                   autoFocus
                   value={linkUrl}
@@ -256,13 +256,13 @@ export function TextBlockEditor({
                     }
                   }}
                   placeholder="https://..."
-                  className="min-w-0 flex-1 rounded border border-slate-300 px-2 py-1 text-xs text-slate-900"
+                  className="min-w-0 flex-1 rounded border border-slate-300 px-2 py-1 text-xs text-slate-900 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
                 />
                 <button
                   type="button"
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={applyLink}
-                  className="rounded bg-violet-700 px-2 py-1 text-xs font-medium text-white hover:bg-violet-800"
+                  className="rounded bg-violet-700 px-2 py-1 text-xs font-medium text-white hover:bg-violet-800 dark:bg-violet-600 dark:hover:bg-violet-500"
                 >
                   Aplicar
                 </button>
@@ -279,7 +279,7 @@ export function TextBlockEditor({
               saveSelection();
             }}
             onClick={() => setImagePickerOpen((v) => !v)}
-            className="rounded p-1.5 text-slate-700 hover:bg-slate-200"
+            className="rounded p-1.5 text-slate-700 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700"
           >
             <ImageIcon />
           </button>
@@ -291,8 +291,8 @@ export function TextBlockEditor({
           after the fact, not just at insert time.
         */}
         {selectedImg && (
-          <div className="flex items-center gap-1 rounded border border-violet-200 bg-violet-50 px-1.5 py-1">
-            <span className="text-xs text-violet-700">Imagen:</span>
+          <div className="flex items-center gap-1 rounded border border-violet-200 bg-violet-50 px-1.5 py-1 dark:border-violet-800 dark:bg-violet-950">
+            <span className="text-xs text-violet-700 dark:text-violet-300">Imagen:</span>
             {(
               [
                 { align: "left" as const, Icon: AlignLeftIcon, title: "Imagen a la izquierda" },
@@ -307,7 +307,7 @@ export function TextBlockEditor({
                 aria-label={title}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => alignSelectedImage(align)}
-                className="rounded p-1 text-violet-700 hover:bg-violet-200"
+                className="rounded p-1 text-violet-700 hover:bg-violet-200 dark:text-violet-300 dark:hover:bg-violet-900"
               >
                 <Icon />
               </button>
@@ -322,7 +322,7 @@ export function TextBlockEditor({
             e.target.value = "";
           }}
           defaultValue=""
-          className="rounded border border-slate-300 bg-white px-1.5 py-1 text-xs text-slate-700"
+          className="rounded border border-slate-300 bg-white px-1.5 py-1 text-xs text-slate-700 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
           title="Tipo de letra"
         >
           <option value="" disabled>
@@ -336,7 +336,7 @@ export function TextBlockEditor({
         </select>
 
         <label
-          className="flex items-center gap-1 rounded px-1.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-200"
+          className="flex items-center gap-1 rounded px-1.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700"
           title="Color de texto"
         >
           <input
@@ -348,13 +348,22 @@ export function TextBlockEditor({
         </label>
       </div>
       {imagePickerOpen && (
-        <div className="mb-2 rounded-md border border-slate-200 bg-slate-50 p-3">
+        <div className="mb-2 rounded-md border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">
           <MediaUploadForm onUploaded={(m) => insertImage(m.url)} />
           <div className="mt-3">
             <MediaGrid items={mediaLibrary} onSelect={(m) => insertImage(m.url)} />
           </div>
         </div>
       )}
+      {/*
+        Deliberately NOT dark-themed, even inside dark mode -- this canvas
+        IS the public page's own light background (see the comment on
+        `className` below: "lo que escribes aquí es exactamente cómo se ve
+        la página real"). The public site stays light-only by her own
+        scope choice, so flipping this box dark would make it stop
+        matching what actually publishes -- like a document editor keeping
+        the "paper" white while its own chrome goes dark.
+      */}
       <div
         ref={ref}
         contentEditable

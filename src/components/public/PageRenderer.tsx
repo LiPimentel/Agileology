@@ -67,6 +67,21 @@ function groupIntoColumns(section: RenderableBlock[]) {
   return columns;
 }
 
+/**
+ * Free-mode blocks still carry their own width%/alignment (image/video
+ * blocks always have these, even ones added in a grid section before being
+ * switched to free) -- but in a free section the BOX itself (from
+ * freeWidth/freeHeight) already defines the block's size, so the block's
+ * own internal width/alignment would just double up with it. Force those
+ * back to "fill the box" (100%/center) for rendering here only -- the
+ * stored values on the block itself are untouched, so switching a section
+ * back to grid mode doesn't lose whatever was configured before.
+ */
+function forFreeBox(block: RenderableBlock): RenderableBlock {
+  if (block.type !== "image" && block.type !== "video") return block;
+  return { ...block, content: { ...block.content, width: 100, alignment: "center" } };
+}
+
 export function PageRenderer({ page }: { page: PageRenderData }) {
   // "eso no puede estar fijo como obligatorio en cada página" -- this
   // banner used to render unconditionally on every page (even with no
@@ -119,9 +134,32 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
       <div className="mx-auto max-w-3xl space-y-8 px-6 py-12">
         {groupIntoSections(page.blocks).map((section, i) => {
           const first = section[0];
+          const isFree = first?.sectionLayoutMode === "free";
           const columns = groupIntoColumns(section);
-          const row =
-            columns.length <= 1 ? (
+          const row = isFree ? (
+            // Free ("Wix-style") canvas: every block is its own absolutely
+            // positioned box (percentages of this canvas, see
+            // sections.ts's comment on why percentages and not pixels) --
+            // no columns at all. Opt-in per section; every other section
+            // on the page renders through the grid path below, unchanged.
+            <div key={first?.id ?? i} className="relative w-full" style={{ height: `${first?.sectionFreeHeight ?? 400}px` }}>
+              {section.map((block, j) => (
+                <div
+                  key={block.id ?? j}
+                  className="absolute overflow-hidden [&_iframe]:h-full [&_iframe]:w-full [&_img]:h-full [&_img]:w-full [&_img]:object-cover"
+                  style={{
+                    left: `${block.freeX ?? 10}%`,
+                    top: `${block.freeY ?? 10}%`,
+                    width: `${block.freeWidth ?? 30}%`,
+                    height: `${block.freeHeight ?? 30}%`,
+                    zIndex: block.freeZIndex ?? 0,
+                  }}
+                >
+                  <BlockRenderer block={forFreeBox(block)} pageId={page.id} />
+                </div>
+              ))}
+            </div>
+          ) : columns.length <= 1 ? (
               // Single-column section: no flex row needed, matches the
               // pre-sections layout exactly. Multiple blocks stacked in
               // that one column still stack vertically.

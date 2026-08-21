@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getPublishedPageBySlug } from "@/lib/pages";
 import { getSiteSettings } from "@/lib/settings";
+import { resolveCustomFormBlocks } from "@/lib/forms";
 import { PageRenderer } from "@/components/public/PageRenderer";
 
 export const dynamic = "force-dynamic";
@@ -25,5 +26,6 @@ export default async function GenericPage({ params }: { params: Promise<{ slug: 
   const { slug } = await params;
   const page = await getPublishedPageBySlug(slug);
   if (!page) notFound();
-  return <PageRenderer page={page.snapshot} />;
+  const blocks = await resolveCustomFormBlocks(page.snapshot.blocks);
+  return <PageRenderer page={{ ...page.snapshot, blocks }} />;
 }

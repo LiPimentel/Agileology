@@ -35,7 +35,7 @@ export function AddBlockMenu<T extends string>({
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="flex items-center gap-1 rounded-md border border-dashed border-violet-300 px-3 py-1.5 text-sm text-violet-700 hover:border-violet-500 hover:bg-violet-50"
+        className="flex items-center gap-1 rounded-md border border-dashed border-violet-300 px-3 py-1.5 text-sm text-violet-700 hover:border-violet-500 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-300 dark:hover:border-sky-500 dark:hover:bg-slate-800"
       >
         {label}
         <svg width="10" height="6" viewBox="0 0 10 6" className={`transition-transform ${open ? "rotate-180" : ""}`}>
@@ -43,7 +43,7 @@ export function AddBlockMenu<T extends string>({
         </svg>
       </button>
       {open && (
-        <div className="absolute left-0 top-full z-10 mt-1 w-52 rounded-md border border-slate-200 bg-white py-1 shadow-lg">
+        <div className="absolute left-0 top-full z-10 mt-1 w-52 rounded-md border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-800">
           {options.map((o) => (
             <button
               key={o.type}
@@ -52,7 +52,7 @@ export function AddBlockMenu<T extends string>({
                 onSelect(o.type);
                 setOpen(false);
               }}
-              className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100"
+              className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700"
             >
               {o.label}
             </button>

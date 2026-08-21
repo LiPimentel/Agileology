@@ -1,6 +1,22 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+/*
+ * Class-based dark variant, scoped to the admin backoffice only ("modo
+ * oscuro... solo el backoffice" -- the public site never gets a `.dark`
+ * ancestor, so `dark:` classes used anywhere in admin components simply
+ * never match on public pages). This intentionally does NOT use
+ * `prefers-color-scheme` -- see the removed comment this replaced: a
+ * media-query-driven dark variant previously flipped `--foreground` to a
+ * near-white color on any OS/browser set to dark mode, silently, with no
+ * way to opt back out, rendering form field text nearly invisible across
+ * the whole backoffice. A manual, persisted `.dark` class (toggled by
+ * ThemeToggle.tsx, applied before first paint by the inline script in
+ * admin/layout.tsx) means dark mode only ever turns on when someone
+ * explicitly asks for it here.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -13,20 +29,17 @@
   --font-mono: var(--font-geist-mono);
 }
 
-/*
- * No dark-mode override here on purpose. This is leftover create-next-app
- * boilerplate; nothing in this app (public site or admin backoffice) is
- * designed with a dark theme in mind -- every component sets its own
- * explicit bg-white/text-slate-* etc. via Tailwind classes, EXCEPT plain
- * <input>/<textarea>/<select> elements, which never set their own text
- * color and so inherited `--foreground` from here. On a device/browser set
- * to dark mode that flipped to a near-white (#ededed) color, rendering
- * form field text as near-invisible pale gray on the white input
- * background across the entire admin backoffice.
- */
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Safety net for the backoffice screens not yet given bespoke dark:
+   classes -- keeps the outer canvas dark and readable everywhere under
+   the admin `.dark` class even before every individual screen gets its
+   own pass (see ThemeToggle.tsx's comment for the rollout plan). */
+.dark body {
+  background: #0f172a;
+  color: #e2e8f0;
 }

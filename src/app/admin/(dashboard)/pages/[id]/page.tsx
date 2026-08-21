@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function PageEditorPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const [page, mediaLibrary, allPages] = await Promise.all([
+  const [page, mediaLibrary, allPages, formDefinitions] = await Promise.all([
     prisma.page.findUnique({
       where: { id },
       include: {
@@ -19,6 +19,7 @@ export default async function PageEditorPage({ params }: { params: Promise<{ id:
     }),
     prisma.media.findMany({ orderBy: { createdAt: "desc" }, take: 60 }),
     prisma.page.findMany({ select: { id: true, slug: true, title: true }, orderBy: { title: "asc" } }),
+    prisma.formDefinition.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
 
   if (!page) notFound();
@@ -60,11 +61,19 @@ export default async function PageEditorPage({ params }: { params: Promise<{ id:
             sectionBgOpacity: b.sectionBgOpacity,
             sectionBgVideoUrl: b.sectionBgVideoUrl,
             sectionBgGradientEnd: b.sectionBgGradientEnd,
+            sectionLayoutMode: b.sectionLayoutMode,
+            sectionFreeHeight: b.sectionFreeHeight,
+            freeX: b.freeX,
+            freeY: b.freeY,
+            freeWidth: b.freeWidth,
+            freeHeight: b.freeHeight,
+            freeZIndex: b.freeZIndex,
           })),
         ),
       }}
       mediaLibrary={mediaLibrary}
       pages={allPages}
+      formDefinitions={formDefinitions}
     />
   );
 }

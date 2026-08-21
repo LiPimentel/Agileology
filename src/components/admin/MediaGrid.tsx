@@ -7,7 +7,7 @@ export type MediaItem = { id: string; url: string; altText: string | null; mimeT
 
 export function MediaGrid({ items, onSelect }: { items: MediaItem[]; onSelect?: (item: MediaItem) => void }) {
   if (items.length === 0) {
-    return <p className="text-sm text-slate-500">No hay archivos todavía.</p>;
+    return <p className="text-sm text-slate-500 dark:text-slate-400">No hay archivos todavía.</p>;
   }
 
   return (
@@ -15,7 +15,7 @@ export function MediaGrid({ items, onSelect }: { items: MediaItem[]; onSelect?: 
       {items.map((item) => {
         const isVideo = item.mimeType?.startsWith("video/") ?? false;
         return (
-          <div key={item.id} className="group relative overflow-hidden rounded-md border border-slate-200">
+          <div key={item.id} className="group relative overflow-hidden rounded-md border border-slate-200 dark:border-slate-700">
             <button
               type="button"
               onClick={() => onSelect?.(item)}

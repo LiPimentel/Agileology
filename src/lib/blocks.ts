@@ -53,6 +53,11 @@ export const mapBlockSchema = z.object({ address: z.string() });
 export const contactFormBlockSchema = z.object({
   enabledFields: z.array(z.enum(["name", "email", "message"])).default(["name", "email", "message"]),
 });
+// One form picked from the reusable library (FormDefinition) -- see
+// lib/forms.ts. Only the reference is stored on the block; fields
+// themselves live on the FormDefinition/FormField rows, edited at
+// /admin/forms, not here.
+export const customFormBlockSchema = z.object({ formId: z.string() });
 
 export type EditorBlock =
   | { id: string; type: "text"; content: z.infer<typeof textBlockSchema> }
@@ -60,7 +65,8 @@ export type EditorBlock =
   | { id: string; type: "link"; content: z.infer<typeof linkBlockSchema> }
   | { id: string; type: "video"; content: z.infer<typeof videoBlockSchema> }
   | { id: string; type: "map"; content: z.infer<typeof mapBlockSchema> }
-  | { id: string; type: "contactForm"; content: z.infer<typeof contactFormBlockSchema> };
+  | { id: string; type: "contactForm"; content: z.infer<typeof contactFormBlockSchema> }
+  | { id: string; type: "customForm"; content: z.infer<typeof customFormBlockSchema> };
 
 /** Sanitizes a block's content before it's persisted (RS-06). */
 export function sanitizeBlockContent(type: string, content: unknown) {
@@ -87,6 +93,10 @@ export function sanitizeBlockContent(type: string, content: unknown) {
     }
     case "contactForm": {
       const parsed = contactFormBlockSchema.parse(content);
+      return parsed;
+    }
+    case "customForm": {
+      const parsed = customFormBlockSchema.parse(content);
       return parsed;
     }
     default:

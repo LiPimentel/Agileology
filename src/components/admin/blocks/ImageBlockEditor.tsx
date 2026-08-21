@@ -138,16 +138,16 @@ function ImageShapeAdjuster({
         </div>
       </ResizableBlockBox>
       <div className="mt-1 flex items-center justify-between">
-        <p className="text-xs text-slate-500">Arrastra la imagen para ajustarla dentro de la forma.</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400">Arrastra la imagen para ajustarla dentro de la forma.</p>
         <button
           type="button"
           onClick={() => onChange({ focalX: 50, focalY: 50, zoom: 1 })}
-          className="text-xs text-violet-700 hover:underline"
+          className="text-xs text-violet-700 hover:underline dark:text-sky-400"
         >
           Centrar
         </button>
       </div>
-      <label className="mt-2 block w-52 max-w-full text-xs font-medium text-slate-700">
+      <label className="mt-2 block w-52 max-w-full text-xs font-medium text-slate-700 dark:text-slate-300">
         Zoom ({zoom.toFixed(1)}x)
         <input
           type="range"
@@ -215,23 +215,23 @@ export function ImageBlockEditor({
           </ResizableBlockBox>
         )
       ) : (
-        <p className="text-sm text-slate-500">Sin imagen seleccionada.</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">Sin imagen seleccionada.</p>
       )}
       <div>
-        <label className="block text-sm font-medium text-slate-700">Texto alternativo (SEO/accesibilidad)</label>
+        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Texto alternativo (SEO/accesibilidad)</label>
         <input
           value={value.altText}
           onChange={(e) => onChange({ ...value, altText: e.target.value })}
-          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
         />
       </div>
       <div className="flex flex-wrap gap-4">
         <div>
-          <label className="block text-sm font-medium text-slate-700">Alineación</label>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Alineación</label>
           <select
             value={value.alignment}
             onChange={(e) => onChange({ ...value, alignment: e.target.value as ImageBlockValue["alignment"] })}
-            className="mt-1 rounded-md border border-slate-300 px-3 py-2"
+            className="mt-1 rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
           >
             <option value="left">Izquierda</option>
             <option value="center">Centro</option>
@@ -239,11 +239,11 @@ export function ImageBlockEditor({
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700">Forma</label>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Forma</label>
           <select
             value={shape}
             onChange={(e) => onChange({ ...value, shape: e.target.value as ImageShape })}
-            className="mt-1 rounded-md border border-slate-300 px-3 py-2"
+            className="mt-1 rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
           >
             {(Object.keys(IMAGE_SHAPE_LABELS) as ImageShape[]).map((s) => (
               <option key={s} value={s}>
@@ -253,7 +253,7 @@ export function ImageBlockEditor({
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700">Tamaño ({width}%)</label>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Tamaño ({width}%)</label>
           <input
             type="range"
             min={20}
@@ -268,12 +268,12 @@ export function ImageBlockEditor({
       <button
         type="button"
         onClick={() => setPickerOpen((v) => !v)}
-        className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+        className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
       >
         {pickerOpen ? "Cerrar biblioteca" : "Elegir de la biblioteca / subir nueva"}
       </button>
       {pickerOpen && (
-        <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+        <div className="rounded-md border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">
           <MediaUploadForm onUploaded={(m) => { onChange({ ...value, url: m.url }); setPickerOpen(false); }} />
           <div className="mt-3">
             <MediaGrid items={mediaLibrary} onSelect={(m) => { onChange({ ...value, url: m.url, altText: value.altText || (m.altText ?? "") }); setPickerOpen(false); }} />

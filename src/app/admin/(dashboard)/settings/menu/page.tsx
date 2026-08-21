@@ -12,8 +12,8 @@ export default async function MenuSettingsPage() {
 
   return (
     <div>
-      <h1 className="mb-1 text-2xl font-semibold text-slate-900">Menú del sitio</h1>
-      <p className="mb-6 text-sm text-slate-500">
+      <h1 className="mb-1 text-2xl font-semibold text-slate-900 dark:text-slate-100">Menú del sitio</h1>
+      <p className="mb-6 text-sm text-slate-500 dark:text-slate-400">
         Controla qué aparece en el menú superior (header) y en los enlaces extra del pie de página (footer): páginas
         del sitio o enlaces a cualquier URL (externa o interna). Un enlace del menú superior puede tener submenú
         (dropdown); los del pie de página no.
