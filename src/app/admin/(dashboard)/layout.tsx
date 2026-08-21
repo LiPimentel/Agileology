@@ -28,12 +28,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
       <aside className="flex w-60 shrink-0 flex-col border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-        <div className="flex items-center justify-between gap-2 border-b border-slate-200 px-4 py-4 dark:border-slate-800">
+        <div className="flex items-center justify-between gap-2 border-b border-slate-200 px-4 py-5 dark:border-slate-800">
           <div className="min-w-0">
             {/* Real uploaded logo (Ajustes del sitio → Logo) when set. */}
             {settings.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={settings.logoUrl} alt={settings.siteTitle} className="h-8 w-auto" />
+              <img src={settings.logoUrl} alt={settings.siteTitle} className="h-16 w-auto max-w-full" />
             ) : (
               <p className="font-semibold text-violet-800 dark:text-sky-300">{settings.siteTitle}</p>
             )}

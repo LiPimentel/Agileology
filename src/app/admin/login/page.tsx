@@ -17,7 +17,7 @@ export default async function AdminLoginPage() {
       */}
       {settings.logoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={settings.logoUrl} alt={settings.siteTitle} className="mx-auto mb-4 h-12 w-auto" />
+        <img src={settings.logoUrl} alt={settings.siteTitle} className="mx-auto mb-4 h-28 w-auto max-w-full" />
       ) : (
         <>
           <h1 className="mb-1 text-xl font-semibold text-slate-900 dark:text-slate-100">Backoffice</h1>
