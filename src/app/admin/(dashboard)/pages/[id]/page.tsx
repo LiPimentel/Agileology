@@ -37,7 +37,12 @@ export default async function PageEditorPage({ params }: { params: Promise<{ id:
         menuVisible: page.menuVisible,
         isSystem: page.isSystem,
         background: page.background
-          ? { imageUrl: page.background.imageUrl, overlayColor: page.background.overlayColor, overlayOpacity: page.background.overlayOpacity }
+          ? {
+              imageUrl: page.background.imageUrl,
+              overlayColor: page.background.overlayColor,
+              overlayOpacity: page.background.overlayOpacity,
+              bannerImageUrl: page.background.bannerImageUrl,
+            }
           : null,
         sections: groupBlocksIntoSections(
           page.blocks.map((b) => ({

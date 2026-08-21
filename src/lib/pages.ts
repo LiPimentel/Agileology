@@ -28,7 +28,12 @@ export async function buildPageSnapshot(pageId: string): Promise<PageRenderData 
       sectionBgOpacity: b.sectionBgOpacity,
     })),
     background: page.background
-      ? { imageUrl: page.background.imageUrl, overlayColor: page.background.overlayColor, overlayOpacity: page.background.overlayOpacity }
+      ? {
+          imageUrl: page.background.imageUrl,
+          overlayColor: page.background.overlayColor,
+          overlayOpacity: page.background.overlayOpacity,
+          bannerImageUrl: page.background.bannerImageUrl,
+        }
       : null,
   };
 }

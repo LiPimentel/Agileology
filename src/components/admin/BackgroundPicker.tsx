@@ -11,6 +11,7 @@ export function BackgroundPicker({
   initialImageUrl,
   initialColor,
   initialOpacity,
+  initialBannerImageUrl,
   mediaLibrary,
   value,
   onChange,
@@ -19,6 +20,10 @@ export function BackgroundPicker({
   initialImageUrl: string | null;
   initialColor: string;
   initialOpacity: number;
+  // Page-level only (uncontrolled mode) -- see the field below. A section
+  // background (controlled mode, `compact`) doesn't have a title/banner to
+  // place this kind of image in front of.
+  initialBannerImageUrl?: string | null;
   mediaLibrary: MediaItem[];
   // Controlled mode (used for per-section backgrounds, where the caller
   // owns the value as part of a larger section/editor state and
@@ -32,7 +37,9 @@ export function BackgroundPicker({
   const [localImageUrl, setLocalImageUrl] = useState(initialImageUrl ?? "");
   const [localColor, setLocalColor] = useState(initialColor);
   const [localOpacity, setLocalOpacity] = useState(initialOpacity);
+  const [bannerImageUrl, setBannerImageUrl] = useState(initialBannerImageUrl ?? "");
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [bannerPickerOpen, setBannerPickerOpen] = useState(false);
 
   const controlled = value !== undefined && onChange !== undefined;
   const imageUrl = controlled ? value.imageUrl : localImageUrl;
@@ -56,6 +63,7 @@ export function BackgroundPicker({
           <input type="hidden" name="backgroundImageUrl" value={imageUrl} readOnly />
           <input type="hidden" name="overlayColor" value={color} readOnly />
           <input type="hidden" name="overlayOpacity" value={opacity} readOnly />
+          <input type="hidden" name="bannerImageUrl" value={bannerImageUrl} readOnly />
         </>
       )}
 
@@ -64,7 +72,12 @@ export function BackgroundPicker({
         style={imageUrl ? { backgroundImage: `url(${imageUrl})` } : undefined}
       >
         <div className="absolute inset-0" style={{ backgroundColor: color, opacity }} />
-        <span className="relative text-sm font-medium text-white">Vista previa</span>
+        {bannerImageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={bannerImageUrl} alt="" className="relative max-h-20 max-w-[60%] object-contain" />
+        ) : (
+          <span className="relative text-sm font-medium text-white">Vista previa</span>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-4">
@@ -104,6 +117,40 @@ export function BackgroundPicker({
           <div className="mt-3">
             <MediaGrid items={mediaLibrary} onSelect={(m) => { set({ imageUrl: m.url }); setPickerOpen(false); }} />
           </div>
+        </div>
+      )}
+
+      {/*
+        A real image (logo, hero photo) placed IN the banner, on top of the
+        cover background above -- not the same thing as it. "no veo como
+        ahora tirarle una imagen arriba como el logo que quiero que salga
+        ahí arriba". Page-level only (uncontrolled mode); a section
+        background has no title/banner to put this in front of.
+      */}
+      {!controlled && (
+        <div className="border-t border-slate-200 pt-3">
+          <p className="text-sm font-medium text-slate-700">Imagen del encabezado (logo u otra imagen, opcional)</p>
+          <p className="mb-2 text-xs text-slate-500">Se muestra sobre el fondo, junto al título de la página.</p>
+          {bannerImageUrl && (
+            <button type="button" onClick={() => setBannerImageUrl("")} className="mb-2 block text-sm text-red-600 hover:underline">
+              Quitar imagen del encabezado
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setBannerPickerOpen((v) => !v)}
+            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+          >
+            {bannerPickerOpen ? "Cerrar biblioteca" : "Elegir imagen del encabezado"}
+          </button>
+          {bannerPickerOpen && (
+            <div className="mt-2 rounded-md border border-slate-200 bg-slate-50 p-3">
+              <MediaUploadForm onUploaded={(m) => { setBannerImageUrl(m.url); setBannerPickerOpen(false); }} />
+              <div className="mt-3">
+                <MediaGrid items={mediaLibrary} onSelect={(m) => { setBannerImageUrl(m.url); setBannerPickerOpen(false); }} />
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

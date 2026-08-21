@@ -5,7 +5,15 @@ export type PageRenderData = {
   id: string;
   title: string;
   blocks: RenderableBlock[];
-  background?: { imageUrl?: string | null; overlayColor?: string | null; overlayOpacity?: number | null } | null;
+  background?: {
+    imageUrl?: string | null;
+    overlayColor?: string | null;
+    overlayOpacity?: number | null;
+    // A real image (logo, hero photo) shown in the banner above the
+    // title -- distinct from imageUrl, which is a full-bleed CSS
+    // background-cover behind everything.
+    bannerImageUrl?: string | null;
+  } | null;
 };
 
 /**
@@ -39,7 +47,11 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
         overlayColor={page.background?.overlayColor}
         overlayOpacity={page.background?.overlayOpacity}
       >
-        <div className="mx-auto max-w-4xl px-6 py-16">
+        <div className={`mx-auto max-w-4xl px-6 py-16 ${page.background?.bannerImageUrl ? "text-center" : ""}`}>
+          {page.background?.bannerImageUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={page.background.bannerImageUrl} alt="" className="mx-auto mb-4 max-h-24 max-w-full object-contain" />
+          )}
           <h1
             className={
               page.background?.imageUrl

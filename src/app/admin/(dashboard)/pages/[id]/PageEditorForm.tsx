@@ -22,7 +22,7 @@ export type PageEditorData = {
   showInMenu: boolean;
   menuVisible: boolean;
   isSystem: boolean;
-  background: { imageUrl: string | null; overlayColor: string; overlayOpacity: number } | null;
+  background: { imageUrl: string | null; overlayColor: string; overlayOpacity: number; bannerImageUrl: string | null } | null;
   sections: EditorSection[];
 };
 
@@ -90,6 +90,7 @@ export function PageEditorForm({
           initialImageUrl={page.background?.imageUrl ?? null}
           initialColor={page.background?.overlayColor ?? "#3B0764"}
           initialOpacity={page.background?.overlayOpacity ?? 0.5}
+          initialBannerImageUrl={page.background?.bannerImageUrl ?? null}
           mediaLibrary={mediaLibrary}
         />
       </section>

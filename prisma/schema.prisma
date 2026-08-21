@@ -213,6 +213,13 @@ model Background {
   imageUrl       String?
   overlayColor   String  @default("#3B0764")
   overlayOpacity Float   @default(0.5)
+  // A real foreground graphic (logo, hero photo) shown IN the banner
+  // alongside the title -- separate from imageUrl above, which is a
+  // full-bleed CSS background-cover behind everything. "no veo como ahora
+  // tirarle una imagen arriba como el logo que quiero que salga ahí
+  // arriba" -- there was no way to place an actual image element there,
+  // only the cover background.
+  bannerImageUrl String?
 }
 
 model BlogSettings {
