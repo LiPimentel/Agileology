@@ -18,7 +18,7 @@ export default async function PageEditorPage({ params }: { params: Promise<{ id:
       },
     }),
     prisma.media.findMany({ orderBy: { createdAt: "desc" }, take: 60 }),
-    prisma.page.findMany({ select: { slug: true, title: true }, orderBy: { title: "asc" } }),
+    prisma.page.findMany({ select: { id: true, slug: true, title: true }, orderBy: { title: "asc" } }),
   ]);
 
   if (!page) notFound();

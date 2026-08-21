@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { savePage, type PageFormState } from "../actions";
 import { BackgroundPicker } from "@/components/admin/BackgroundPicker";
 import { SectionBlockEditor, type EditorSection } from "@/components/admin/SectionBlockEditor";
@@ -40,8 +41,9 @@ export function PageEditorForm({
 }: {
   page: PageEditorData;
   mediaLibrary: MediaItem[];
-  pages: Array<{ slug: string; title: string }>;
+  pages: Array<{ id: string; slug: string; title: string }>;
 }) {
+  const router = useRouter();
   const [state, formAction, pending] = useActionState(savePage, initialState);
   const formRef = useRef<HTMLFormElement>(null);
   const draftButtonRef = useRef<HTMLButtonElement>(null);
@@ -59,6 +61,28 @@ export function PageEditorForm({
   return (
     <form ref={formRef} action={formAction} className="space-y-8 pb-16">
       <input type="hidden" name="pageId" value={page.id} />
+
+      {/*
+        "arriba puedes ver una parte que dice página: Inicio ahí puedo ir
+        cambiando las páginas" -- jump straight to editing another page
+        without leaving the editor for the pages list first. Not a form
+        field (name-less <select>): purely a navigation shortcut, so it
+        can't accidentally get submitted as part of savePage.
+      */}
+      <label className="flex items-center gap-2 text-sm text-slate-600">
+        Página:
+        <select
+          value={page.id}
+          onChange={(e) => router.push(`/admin/pages/${e.target.value}`)}
+          className="rounded-md border border-slate-300 bg-white px-2 py-1 font-medium text-slate-900"
+        >
+          {pages.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.title}
+            </option>
+          ))}
+        </select>
+      </label>
 
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-slate-900">{page.title || "Nueva página"}</h1>
