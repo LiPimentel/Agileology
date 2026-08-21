@@ -25,6 +25,13 @@ type SubmittedBlock = {
   sectionBgOpacity?: number;
   sectionBgVideoUrl?: string;
   sectionBgGradientEnd?: string;
+  sectionLayoutMode?: string;
+  sectionFreeHeight?: number;
+  freeX?: number;
+  freeY?: number;
+  freeWidth?: number;
+  freeHeight?: number;
+  freeZIndex?: number;
 };
 
 function parseBlocks(raw: string): SubmittedBlock[] {
@@ -54,6 +61,16 @@ const HEX_COLOR = /^#[0-9a-fA-F]{3,8}$/;
 function sanitizeHexColor(color: unknown, fallback: string) {
   const s = String(color ?? "");
   return HEX_COLOR.test(s) ? s : fallback;
+}
+
+/** Clamps a free-layout percentage (position or size) to a sane range -- defensive only, layout data isn't sensitive. */
+function sanitizePercent(value: unknown, fallback: number) {
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : fallback;
+}
+function sanitizeFreeHeight(value: unknown) {
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.min(3000, Math.max(100, Math.round(n))) : 400;
 }
 
 async function upsertPageContent(pageId: string, formData: FormData) {
@@ -105,6 +122,13 @@ async function upsertPageContent(pageId: string, formData: FormData) {
     sectionBgOpacity: sanitizeOpacity(b.sectionBgOpacity),
     sectionBgVideoUrl: String(b.sectionBgVideoUrl ?? "") || null,
     sectionBgGradientEnd: String(b.sectionBgGradientEnd ?? "") || null,
+    sectionLayoutMode: b.sectionLayoutMode === "free" ? "free" : "grid",
+    sectionFreeHeight: sanitizeFreeHeight(b.sectionFreeHeight),
+    freeX: sanitizePercent(b.freeX, 10),
+    freeY: sanitizePercent(b.freeY, 10),
+    freeWidth: sanitizePercent(b.freeWidth, 30),
+    freeHeight: sanitizePercent(b.freeHeight, 30),
+    freeZIndex: Number.isFinite(b.freeZIndex) ? Number(b.freeZIndex) : 0,
   }));
 
   await prisma.$transaction(async (tx) => {
@@ -216,6 +240,13 @@ export async function duplicatePage(pageId: string) {
           sectionBgOpacity: b.sectionBgOpacity,
           sectionBgVideoUrl: b.sectionBgVideoUrl,
           sectionBgGradientEnd: b.sectionBgGradientEnd,
+          sectionLayoutMode: b.sectionLayoutMode,
+          sectionFreeHeight: b.sectionFreeHeight,
+          freeX: b.freeX,
+          freeY: b.freeY,
+          freeWidth: b.freeWidth,
+          freeHeight: b.freeHeight,
+          freeZIndex: b.freeZIndex,
         })),
       },
       background: source.background
@@ -265,6 +296,13 @@ export async function restorePageVersion(pageId: string, versionId: string) {
               sectionBgOpacity?: number;
               sectionBgVideoUrl?: string | null;
               sectionBgGradientEnd?: string | null;
+              sectionLayoutMode?: string;
+              sectionFreeHeight?: number;
+              freeX?: number;
+              freeY?: number;
+              freeWidth?: number;
+              freeHeight?: number;
+              freeZIndex?: number;
             },
             i: number,
           ) => ({
@@ -272,9 +310,9 @@ export async function restorePageVersion(pageId: string, versionId: string) {
             type: b.type,
             content: b.content,
             // Older snapshots (published before sections/section
-            // backgrounds/multi-block columns existed) have none of these
-            // -- fall back to one block per single-column, background-less
-            // section, i.e. today's flat layout.
+            // backgrounds/multi-block columns/free layout existed) have
+            // none of these -- fall back to one block per single-column,
+            // background-less, grid-mode section, i.e. today's flat layout.
             position: b.position ?? i,
             columnIndex: b.columnIndex ?? 0,
             columnWidth: b.columnWidth ?? 100,
@@ -284,6 +322,13 @@ export async function restorePageVersion(pageId: string, versionId: string) {
             sectionBgVideoUrl: b.sectionBgVideoUrl ?? null,
             sectionBgGradientEnd: b.sectionBgGradientEnd ?? null,
             sectionBgOpacity: b.sectionBgOpacity ?? 0,
+            sectionLayoutMode: b.sectionLayoutMode ?? "grid",
+            sectionFreeHeight: b.sectionFreeHeight ?? 400,
+            freeX: b.freeX ?? 10,
+            freeY: b.freeY ?? 10,
+            freeWidth: b.freeWidth ?? 30,
+            freeHeight: b.freeHeight ?? 30,
+            freeZIndex: b.freeZIndex ?? 0,
           }),
         ),
       });

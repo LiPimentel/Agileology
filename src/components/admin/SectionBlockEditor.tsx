@@ -16,7 +16,9 @@ import {
   type BlockType,
   type BlockValue,
   type EditorColumn,
+  type EditorFreeBlockItem,
   type EditorSection,
+  convertSectionLayout,
   emptyContent,
   generateId,
   newSection,
@@ -140,6 +142,188 @@ function TwoColumnRow({
       </div>
       <div className="min-w-0" style={{ flexBasis: `calc(${100 - leftWidth}% - 8px)` }}>
         {children[1]}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * One block on a free-layout canvas. x/y/width/height are all percentages
+ * of the canvas (see sections.ts's comment on EditorFreeBlockItem), so the
+ * drag math below reads the canvas's own pixel size on every move and
+ * converts through that -- same pattern as every other drag control in
+ * this editor (TwoColumnRow, ResizableBlockBox, the image pan/zoom
+ * adjuster).
+ *
+ * Unselected: the whole box is one click-to-select target (mirrors
+ * renderBlockCanvas's grid-mode block preview). Selected: dragging is
+ * scoped to a small "⠿" grip and the corner resize handle only -- NOT the
+ * whole box -- because the selected box's body is the block's real editor
+ * (text toolbar, image focal-point adjuster, its own pointer-driven
+ * controls), and capturing pointer events on the whole box would steal
+ * those drags out from under the nested editor the instant one started.
+ */
+function FreeBlockBox({
+  item,
+  canvasRef,
+  selected,
+  onSelect,
+  onMove,
+  onResize,
+  children,
+}: {
+  item: EditorFreeBlockItem;
+  canvasRef: React.RefObject<HTMLDivElement | null>;
+  selected: boolean;
+  onSelect: () => void;
+  onMove: (x: number, y: number) => void;
+  onResize: (width: number, height: number) => void;
+  children: ReactNode;
+}) {
+  const moving = useRef(false);
+  const resizing = useRef(false);
+
+  function handleGripDown(e: React.PointerEvent<HTMLDivElement>) {
+    e.stopPropagation();
+    moving.current = true;
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+  function handleGripMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (!moving.current || !canvasRef.current) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const dxPct = (e.movementX / rect.width) * 100;
+    const dyPct = (e.movementY / rect.height) * 100;
+    onMove(clamp(item.x + dxPct, 0, 100), clamp(item.y + dyPct, 0, 100));
+  }
+  function handleResizeDown(e: React.PointerEvent<HTMLDivElement>) {
+    e.stopPropagation();
+    resizing.current = true;
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+  function handleResizeMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (!resizing.current || !canvasRef.current) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const dWidthPct = (e.movementX / rect.width) * 100;
+    const dHeightPct = (e.movementY / rect.height) * 100;
+    onResize(clamp(item.width + dWidthPct, 5, 100), clamp(item.height + dHeightPct, 5, 100));
+  }
+  function handleUp(e: React.PointerEvent<HTMLDivElement>) {
+    moving.current = false;
+    resizing.current = false;
+    e.currentTarget.releasePointerCapture(e.pointerId);
+  }
+
+  const boxStyle = { left: `${item.x}%`, top: `${item.y}%`, width: `${item.width}%`, height: `${item.height}%` };
+
+  if (!selected) {
+    return (
+      <div
+        role="button"
+        tabIndex={0}
+        onClickCapture={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onSelect();
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onSelect();
+          }
+        }}
+        className="absolute cursor-pointer overflow-hidden rounded-md outline outline-2 outline-transparent hover:outline-violet-300"
+        style={{ ...boxStyle, zIndex: item.zIndex }}
+      >
+        {children}
+      </div>
+    );
+  }
+
+  return (
+    <div onClick={(e) => e.stopPropagation()} className="absolute overflow-visible rounded-md" style={{ ...boxStyle, zIndex: 9999 }}>
+      <div className="flex h-full w-full flex-col overflow-auto rounded-md bg-white ring-2 ring-violet-500">{children}</div>
+      <div
+        onPointerDown={handleGripDown}
+        onPointerMove={handleGripMove}
+        onPointerUp={handleUp}
+        onPointerLeave={handleUp}
+        className="absolute -top-3 left-1/2 z-10 flex h-6 w-8 -translate-x-1/2 cursor-move touch-none items-center justify-center rounded bg-violet-600 text-xs text-white shadow hover:bg-violet-700"
+        title="Arrastra para mover"
+      >
+        ⠿
+      </div>
+      <div
+        onPointerDown={handleResizeDown}
+        onPointerMove={handleResizeMove}
+        onPointerUp={handleUp}
+        onPointerLeave={handleUp}
+        className="absolute -bottom-2 -right-2 z-10 h-5 w-5 cursor-nwse-resize touch-none rounded-full border-2 border-white bg-violet-600 shadow-md hover:bg-violet-700"
+        title="Arrastra para cambiar el tamaño"
+      />
+    </div>
+  );
+}
+
+/**
+ * The free-mode canvas for one section: a fixed-height, relatively
+ * positioned box holding every FreeBlockBox, plus a resize handle on its
+ * bottom edge to change the canvas's own height -- the one absolute-pixel
+ * value in the free-layout system (see sections.ts's DEFAULT_FREE_HEIGHT
+ * comment). Its own `canvasRef` is what every FreeBlockBox's drag math
+ * measures against, so it's threaded down via a render-prop instead of
+ * context -- one canvas, read by however many boxes it holds.
+ */
+function FreeCanvas({
+  freeHeight,
+  onHeightChange,
+  children,
+}: {
+  freeHeight: number;
+  onHeightChange: (height: number) => void;
+  children: (canvasRef: React.RefObject<HTMLDivElement | null>) => ReactNode;
+}) {
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const resizingHeight = useRef(false);
+
+  function handleHeightDown(e: React.PointerEvent<HTMLDivElement>) {
+    resizingHeight.current = true;
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+  function handleHeightMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (!resizingHeight.current) return;
+    onHeightChange(clamp(freeHeight + e.movementY, 150, 1600));
+  }
+  function handleHeightUp(e: React.PointerEvent<HTMLDivElement>) {
+    resizingHeight.current = false;
+    e.currentTarget.releasePointerCapture(e.pointerId);
+  }
+
+  return (
+    <div
+      ref={canvasRef}
+      className="relative w-full overflow-visible rounded-md border border-dashed border-slate-300 bg-slate-50"
+      style={{ height: `${freeHeight}px` }}
+    >
+      {children(canvasRef)}
+      {/*
+        Blank canvas space is still a valid "click outside to deselect"
+        target (parity with grid mode), so this stopPropagation is scoped
+        to just the handle itself -- otherwise finishing a height drag (or
+        even a plain click on the handle) bubbles up to the root
+        deselect-on-outside-click handler and silently closes whatever
+        block editor was open, an easy trap to fall into right after
+        resizing a canvas mid-edit.
+      */}
+      <div
+        onPointerDown={handleHeightDown}
+        onPointerMove={handleHeightMove}
+        onPointerUp={handleHeightUp}
+        onPointerLeave={handleHeightUp}
+        onClick={(e) => e.stopPropagation()}
+        className="absolute inset-x-0 -bottom-1.5 z-20 flex h-3 cursor-ns-resize touch-none items-center justify-center"
+        title="Arrastra para cambiar la altura del lienzo"
+      >
+        <div className="h-1 w-16 rounded-full bg-violet-300 hover:bg-violet-500" />
       </div>
     </div>
   );
@@ -279,8 +463,88 @@ export function SectionBlockEditor({
     setOpenBgPickers((prev) => ({ ...prev, [sectionId]: !prev[sectionId] }));
   }
 
+  /**
+   * Adds a block straight onto a free canvas (vs. a column's stack) --
+   * cascades a little on top of whatever's already there and always lands
+   * on top (highest zIndex), same "select immediately" UX as
+   * addBlockToColumn.
+   */
+  function addFreeBlock(sectionId: string, type: BlockType) {
+    const id = generateId();
+    setSections((prev) =>
+      prev.map((s) => {
+        if (s.id !== sectionId) return s;
+        const maxZ = s.freeBlocks.reduce((max, b) => Math.max(max, b.zIndex), -1);
+        const item: EditorFreeBlockItem = { id, block: emptyContent(type), x: 10, y: 10, width: 30, height: 30, zIndex: maxZ + 1 };
+        return { ...s, freeBlocks: [...s.freeBlocks, item] };
+      }),
+    );
+    setSelectedBlockId(id);
+  }
+  function removeFreeBlock(sectionId: string, blockId: string) {
+    setSections((prev) => prev.map((s) => (s.id !== sectionId ? s : { ...s, freeBlocks: s.freeBlocks.filter((b) => b.id !== blockId) })));
+    setSelectedBlockId((prev) => (prev === blockId ? null : prev));
+  }
+  function updateFreeBlockContent(sectionId: string, blockId: string, content: unknown) {
+    setSections((prev) =>
+      prev.map((s) =>
+        s.id !== sectionId
+          ? s
+          : { ...s, freeBlocks: s.freeBlocks.map((b) => (b.id === blockId ? { ...b, block: { ...b.block, content } as BlockValue } : b)) },
+      ),
+    );
+  }
+  function updateFreeBlockGeometry(
+    sectionId: string,
+    blockId: string,
+    geometry: Partial<Pick<EditorFreeBlockItem, "x" | "y" | "width" | "height">>,
+  ) {
+    setSections((prev) =>
+      prev.map((s) =>
+        s.id !== sectionId ? s : { ...s, freeBlocks: s.freeBlocks.map((b) => (b.id === blockId ? { ...b, ...geometry } : b)) },
+      ),
+    );
+  }
+  /** Overlap ordering -- "traer al frente" / "enviar atrás" for two blocks sharing the same corner of the canvas. */
+  function moveFreeBlockZ(sectionId: string, blockId: string, dir: "front" | "back") {
+    setSections((prev) =>
+      prev.map((s) => {
+        if (s.id !== sectionId) return s;
+        const zs = s.freeBlocks.map((b) => b.zIndex);
+        const target = dir === "front" ? Math.max(0, ...zs) + 1 : Math.min(0, ...zs) - 1;
+        return { ...s, freeBlocks: s.freeBlocks.map((b) => (b.id === blockId ? { ...b, zIndex: target } : b)) };
+      }),
+    );
+  }
+  function setFreeCanvasHeight(sectionId: string, height: number) {
+    setSections((prev) => prev.map((s) => (s.id !== sectionId ? s : { ...s, freeHeight: Math.round(height) })));
+  }
+  function setSectionLayoutMode(sectionId: string, mode: "grid" | "free") {
+    setSections((prev) => prev.map((s) => (s.id !== sectionId ? s : convertSectionLayout(s, mode))));
+    setSelectedBlockId(null);
+  }
+
   function renderBlockEditor(sectionId: string, columnId: string, item: EditorColumn["blocks"][number]) {
     const onChange = (v: unknown) => updateBlockContent(sectionId, columnId, item.id, v);
+    switch (item.block.type) {
+      case "text":
+        return <TextBlockEditor html={item.block.content.html} onChange={(html) => onChange({ html })} mediaLibrary={mediaLibrary} />;
+      case "image":
+        return <ImageBlockEditor value={item.block.content} onChange={onChange} mediaLibrary={mediaLibrary} />;
+      case "link":
+        return <LinkBlockEditor value={item.block.content} onChange={onChange} pages={pages} />;
+      case "video":
+        return <VideoBlockEditor value={item.block.content} onChange={onChange} />;
+      case "map":
+        return <MapBlockEditor value={item.block.content} onChange={onChange} />;
+      case "contactForm":
+        return <ContactFormBlockEditor value={item.block.content} onChange={onChange} />;
+    }
+  }
+
+  /** Same per-type editor dispatch as renderBlockEditor, but writing back to a free-canvas block instead of a column's. */
+  function renderFreeBlockEditor(sectionId: string, item: EditorFreeBlockItem) {
+    const onChange = (v: unknown) => updateFreeBlockContent(sectionId, item.id, v);
     switch (item.block.type) {
       case "text":
         return <TextBlockEditor html={item.block.content.html} onChange={(html) => onChange({ html })} mediaLibrary={mediaLibrary} />;
@@ -403,6 +667,85 @@ export function SectionBlockEditor({
     );
   }
 
+  /**
+   * Mirrors renderColumn's job (build the actual editable canvas surface)
+   * for a free-mode section: a FreeCanvas holding one FreeBlockBox per
+   * item, each showing BlockPreview when unselected or the real
+   * toolbar+editor when selected -- same collapsed/expanded duality as
+   * renderBlockCanvas, just laid out by x/y/w/h instead of column stacking.
+   */
+  function renderFreeCanvas(section: EditorSection) {
+    return (
+      <FreeCanvas freeHeight={section.freeHeight} onHeightChange={(h) => setFreeCanvasHeight(section.id, h)}>
+        {(canvasRef) => (
+          <>
+            {section.freeBlocks.map((item) => {
+              const selected = selectedBlockId === item.id;
+              return (
+                <FreeBlockBox
+                  key={item.id}
+                  item={item}
+                  canvasRef={canvasRef}
+                  selected={selected}
+                  onSelect={() => setSelectedBlockId(item.id)}
+                  onMove={(x, y) => updateFreeBlockGeometry(section.id, item.id, { x, y })}
+                  onResize={(width, height) => updateFreeBlockGeometry(section.id, item.id, { width, height })}
+                >
+                  {selected ? (
+                    <>
+                      <div className="flex flex-wrap items-center justify-between gap-2 rounded-t-[4px] bg-violet-700 px-2 py-1 text-xs text-white">
+                        <span className="font-medium">{BLOCK_LABELS[item.block.type]}</span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => moveFreeBlockZ(section.id, item.id, "back")}
+                            className="hover:text-violet-200"
+                            title="Enviar atrás"
+                          >
+                            ⬇
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => moveFreeBlockZ(section.id, item.id, "front")}
+                            className="hover:text-violet-200"
+                            title="Traer al frente"
+                          >
+                            ⬆
+                          </button>
+                          <button type="button" onClick={() => removeFreeBlock(section.id, item.id)} className="hover:text-red-200">
+                            Quitar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedBlockId(null)}
+                            className="rounded bg-white/20 px-2 py-0.5 font-medium hover:bg-white/30"
+                          >
+                            Listo ✓
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex-1 overflow-auto p-3 text-left">{renderFreeBlockEditor(section.id, item)}</div>
+                    </>
+                  ) : (
+                    <div className="group relative h-full w-full">
+                      <BlockPreview block={item.block} />
+                      <span className="pointer-events-none absolute -top-2.5 right-2 hidden rounded bg-violet-600 px-1.5 py-0.5 text-[10px] font-medium text-white shadow group-hover:inline-block">
+                        {BLOCK_LABELS[item.block.type]} · clic para editar
+                      </span>
+                    </div>
+                  )}
+                </FreeBlockBox>
+              );
+            })}
+            <div onClick={(e) => e.stopPropagation()} className="absolute bottom-3 left-3 z-30">
+              <AddBlockMenu options={BLOCK_TYPE_OPTIONS} onSelect={(type) => addFreeBlock(section.id, type)} label="+ Agregar componente" />
+            </div>
+          </>
+        )}
+      </FreeCanvas>
+    );
+  }
+
   return (
     // Clicking any blank canvas area (not on a block's own click handler,
     // which stops propagation) closes whatever block is currently open --
@@ -418,7 +761,9 @@ export function SectionBlockEditor({
           Boolean(section.background.imageUrl) || Boolean(section.background.videoUrl) || section.background.opacity > 0;
 
         const columnsRow =
-          section.columns.length === 2 ? (
+          section.layoutMode === "free" ? (
+            renderFreeCanvas(section)
+          ) : section.columns.length === 2 ? (
             <TwoColumnRow leftWidth={section.columns[0].width} onSplit={(w) => setSplit(section.id, w)}>
               {[renderColumn(section, section.columns[0], false), renderColumn(section, section.columns[1], false)]}
             </TwoColumnRow>
@@ -444,8 +789,39 @@ export function SectionBlockEditor({
             */}
             <div className="pointer-events-none absolute -top-3 right-3 z-10 hidden items-center gap-2 rounded-md bg-slate-800 px-2 py-1 text-xs text-white shadow-lg group-hover/section:flex">
               <span className="pointer-events-auto font-medium">
-                Sección {i + 1} · {section.columns.length === 1 ? "1 columna" : `${section.columns.length} columnas`}
+                Sección {i + 1} ·{" "}
+                {section.layoutMode === "free"
+                  ? "libre"
+                  : section.columns.length === 1
+                    ? "1 columna"
+                    : `${section.columns.length} columnas`}
               </span>
+              {/*
+                Grilla/Libre: switches the whole section between the
+                column-stack layout and the free (Wix-style) canvas --
+                "quiero entrar a las páginas y verla como si estuviera desde
+                fuera y ajustar ahí mismo". Existing block content carries
+                over (see convertSectionLayout); only its positioning
+                resets.
+              */}
+              <div className="pointer-events-auto flex items-center overflow-hidden rounded border border-white/30 text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => setSectionLayoutMode(section.id, "grid")}
+                  className={`px-1.5 py-0.5 ${section.layoutMode === "grid" ? "bg-violet-600 font-medium" : "hover:text-violet-300"}`}
+                  title="Diseño en cuadrícula por columnas"
+                >
+                  Grilla
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSectionLayoutMode(section.id, "free")}
+                  className={`px-1.5 py-0.5 ${section.layoutMode === "free" ? "bg-violet-600 font-medium" : "hover:text-violet-300"}`}
+                  title="Posicionamiento libre, como Wix"
+                >
+                  Libre
+                </button>
+              </div>
               <button type="button" disabled={i === 0} onClick={() => moveSection(section.id, -1)} className="pointer-events-auto hover:text-violet-300 disabled:opacity-30">
                 ↑
               </button>

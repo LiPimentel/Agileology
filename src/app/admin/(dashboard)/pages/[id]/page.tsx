@@ -60,6 +60,13 @@ export default async function PageEditorPage({ params }: { params: Promise<{ id:
             sectionBgOpacity: b.sectionBgOpacity,
             sectionBgVideoUrl: b.sectionBgVideoUrl,
             sectionBgGradientEnd: b.sectionBgGradientEnd,
+            sectionLayoutMode: b.sectionLayoutMode,
+            sectionFreeHeight: b.sectionFreeHeight,
+            freeX: b.freeX,
+            freeY: b.freeY,
+            freeWidth: b.freeWidth,
+            freeHeight: b.freeHeight,
+            freeZIndex: b.freeZIndex,
           })),
         ),
       }}

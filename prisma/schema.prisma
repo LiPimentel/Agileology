@@ -217,6 +217,28 @@ model ContentBlock {
   // gradient bar).
   sectionBgGradientEnd String?
 
+  // Free-position ("Wix-style") layout, opt-in per section -- "quiero
+  // poder ajustar/mover/redimensionar elementos directamente ahí,
+  // aprovechando libremente el espacio de la página". Default "grid" means
+  // every existing section (and every new one, unless explicitly switched)
+  // keeps using columnIndex/columnWidth exactly as before -- this is
+  // strictly additive, not a replacement of the grid system.
+  //
+  // free* fields are percentages of the section's own canvas box (0-100),
+  // not pixels -- that's what makes this scale down proportionally on a
+  // narrow screen without a second, separate mobile layout to maintain
+  // (see the comment on FREE_LAYOUT in sections.ts for the tradeoff this
+  // implies). sectionFreeHeight is the one absolute-pixel value -- the
+  // canvas's own height, since percentages alone can't define how *tall*
+  // an empty area is.
+  sectionLayoutMode String @default("grid")
+  sectionFreeHeight Int    @default(400)
+  freeX             Float  @default(10)
+  freeY             Float  @default(10)
+  freeWidth         Float  @default(30)
+  freeHeight        Float  @default(30)
+  freeZIndex        Int    @default(0)
+
   @@index([pageId])
   @@index([postId])
 }

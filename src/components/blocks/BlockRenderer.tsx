@@ -31,6 +31,17 @@ export type RenderableBlock = {
   sectionBgOpacity?: number;
   sectionBgVideoUrl?: string | null;
   sectionBgGradientEnd?: string | null;
+  // Free-position ("Wix-style") layout, opt-in per section -- see the
+  // comment on sections.ts's EditorSection.layoutMode. sectionLayoutMode
+  // "free" means PageRenderer positions this block itself via free*
+  // instead of grouping it into columns.
+  sectionLayoutMode?: string;
+  sectionFreeHeight?: number;
+  freeX?: number;
+  freeY?: number;
+  freeWidth?: number;
+  freeHeight?: number;
+  freeZIndex?: number;
 };
 
 export function BlockRenderer({ block, pageId }: { block: RenderableBlock; pageId?: string }) {

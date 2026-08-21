@@ -29,6 +29,13 @@ export async function buildPageSnapshot(pageId: string): Promise<PageRenderData 
       sectionBgOpacity: b.sectionBgOpacity,
       sectionBgVideoUrl: b.sectionBgVideoUrl,
       sectionBgGradientEnd: b.sectionBgGradientEnd,
+      sectionLayoutMode: b.sectionLayoutMode,
+      sectionFreeHeight: b.sectionFreeHeight,
+      freeX: b.freeX,
+      freeY: b.freeY,
+      freeWidth: b.freeWidth,
+      freeHeight: b.freeHeight,
+      freeZIndex: b.freeZIndex,
     })),
     background: page.background
       ? {
