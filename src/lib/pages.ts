@@ -7,7 +7,7 @@ export async function buildPageSnapshot(pageId: string): Promise<PageRenderData 
   const page = await prisma.page.findUnique({
     where: { id: pageId },
     include: {
-      blocks: { orderBy: [{ position: "asc" }, { columnIndex: "asc" }] },
+      blocks: { orderBy: [{ position: "asc" }, { columnIndex: "asc" }, { blockOrder: "asc" }] },
       background: true,
     },
   });
@@ -23,6 +23,7 @@ export async function buildPageSnapshot(pageId: string): Promise<PageRenderData 
       position: b.position,
       columnIndex: b.columnIndex,
       columnWidth: b.columnWidth,
+      blockOrder: b.blockOrder,
       sectionBgImageUrl: b.sectionBgImageUrl,
       sectionBgColor: b.sectionBgColor,
       sectionBgOpacity: b.sectionBgOpacity,

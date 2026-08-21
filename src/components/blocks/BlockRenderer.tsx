@@ -17,6 +17,7 @@ export type RenderableBlock = {
   position?: number;
   columnIndex?: number;
   columnWidth?: number;
+  blockOrder?: number;
   sectionBgImageUrl?: string | null;
   sectionBgColor?: string;
   sectionBgOpacity?: number;
@@ -49,10 +50,12 @@ export function BlockRenderer({ block, pageId }: { block: RenderableBlock; pageI
       const focalX = Number(block.content.focalX ?? 50);
       const focalY = Number(block.content.focalY ?? 50);
       const zoom = Number(block.content.zoom ?? 1);
+      const width = Number(block.content.width ?? 100);
       if (!url) return null;
       // circle/oval default to a smaller max-width -- a full-2xl-wide
       // circle reads as oversized; none/rounded keep the original rectangle
-      // sizing unchanged.
+      // sizing unchanged. The "Tamaño" slider (width%) then scales down
+      // from there, same pattern video blocks already use.
       const maxWidth = shape === "circle" || shape === "oval" ? "max-w-xs" : "max-w-2xl";
       const croppable = isCroppableShape(shape);
       const img = (
@@ -62,12 +65,23 @@ export function BlockRenderer({ block, pageId }: { block: RenderableBlock; pageI
           width={1200}
           height={800}
           className={IMAGE_SHAPE_IMG_CLASS[shape]}
-          style={croppable ? { objectPosition: `${focalX}% ${focalY}%`, transform: `scale(${zoom})` } : undefined}
+          style={
+            croppable
+              ? {
+                  objectPosition: `${focalX}% ${focalY}%`,
+                  transform: `scale(${zoom})`,
+                  // Anchor zoom on the focal point, matching the admin
+                  // editor's ImageShapeAdjuster -- keeps the public render
+                  // pixel-identical to what was previewed while editing.
+                  transformOrigin: `${focalX}% ${focalY}%`,
+                }
+              : undefined
+          }
           unoptimized
         />
       );
       return (
-        <div className={`${maxWidth} ${ALIGN_CLASS[alignment] ?? "mx-auto"}`}>
+        <div className={`${maxWidth} ${ALIGN_CLASS[alignment] ?? "mx-auto"}`} style={{ width: `${width}%` }}>
           {IMAGE_SHAPE_WRAPPER_CLASS[shape] ? <div className={IMAGE_SHAPE_WRAPPER_CLASS[shape]}>{img}</div> : img}
         </div>
       );

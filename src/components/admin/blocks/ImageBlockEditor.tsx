@@ -20,6 +20,7 @@ export type ImageBlockValue = {
   focalX: number;
   focalY: number;
   zoom: number;
+  width: number;
 };
 
 function clamp(n: number, min: number, max: number) {
@@ -61,8 +62,14 @@ function ImageShapeAdjuster({
   function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
     if (!dragging.current || !boxRef.current) return;
     const rect = boxRef.current.getBoundingClientRect();
-    const dxPct = (e.movementX / rect.width) * 100;
-    const dyPct = (e.movementY / rect.height) * 100;
+    // The extra `transform: scale(zoom)` below (anchored on the focal
+    // point, see the img's transformOrigin) visually magnifies everything
+    // downstream of object-position by `zoom` -- a screen-pixel drag needs
+    // to be divided by zoom to still land where the pointer actually is.
+    // Without this, at e.g. 2.6x zoom a small drag jumped the crop way too
+    // far ("hace un desface tan grande" / "queda cortada").
+    const dxPct = (e.movementX / rect.width / zoom) * 100;
+    const dyPct = (e.movementY / rect.height / zoom) * 100;
     // Dragging right/down should feel like moving the photo itself
     // right/down (revealing more of its opposite edge) -- object-position
     // works the other way round, so subtract the delta.
@@ -81,7 +88,17 @@ function ImageShapeAdjuster({
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
-        className={`relative w-[200px] max-w-full cursor-move touch-none border border-slate-300 ${IMAGE_SHAPE_WRAPPER_CLASS[shape]}`}
+        // IMAGE_SHAPE_WRAPPER_CLASS (circle/oval) includes its own `w-full`
+        // -- as a Tailwind class it can win the cascade over a `w-[200px]`
+        // class placed earlier in this same string (Tailwind orders
+        // generated CSS by its own rules, not by className order), silently
+        // stretching this preview box to the full editor width instead of
+        // the intended small 200px square. An inline style always wins
+        // regardless of stylesheet order, so the preview -- and therefore
+        // drag sensitivity, which is computed from this box's real size --
+        // stays a predictable 200px.
+        style={{ width: 200, maxWidth: "100%" }}
+        className={`relative cursor-move touch-none border border-slate-300 ${IMAGE_SHAPE_WRAPPER_CLASS[shape]}`}
       >
         <Image
           src={url}
@@ -90,10 +107,28 @@ function ImageShapeAdjuster({
           unoptimized
           draggable={false}
           className={`select-none ${IMAGE_SHAPE_IMG_CLASS[shape]}`}
-          style={{ objectPosition: `${focalX}% ${focalY}%`, transform: `scale(${zoom})` }}
+          style={{
+            objectPosition: `${focalX}% ${focalY}%`,
+            transform: `scale(${zoom})`,
+            // Anchor the zoom on the point currently focused instead of the
+            // box's center (the default) -- otherwise moving the zoom
+            // slider re-centers from the middle of the frame regardless of
+            // where the photo was panned to, producing a big visual jump
+            // ("desface") independent of anything the user dragged.
+            transformOrigin: `${focalX}% ${focalY}%`,
+          }}
         />
       </div>
-      <p className="mt-1 text-xs text-slate-500">Arrastra la imagen para ajustarla dentro de la forma.</p>
+      <div className="mt-1 flex items-center justify-between">
+        <p className="text-xs text-slate-500">Arrastra la imagen para ajustarla dentro de la forma.</p>
+        <button
+          type="button"
+          onClick={() => onChange({ focalX: 50, focalY: 50, zoom: 1 })}
+          className="text-xs text-violet-700 hover:underline"
+        >
+          Centrar
+        </button>
+      </div>
       <label className="mt-2 block w-[200px] max-w-full text-xs font-medium text-slate-700">
         Zoom ({zoom.toFixed(1)}x)
         <input
@@ -124,6 +159,7 @@ export function ImageBlockEditor({
   const focalX = value.focalX ?? 50;
   const focalY = value.focalY ?? 50;
   const zoom = value.zoom ?? 1;
+  const width = value.width ?? 100;
   const croppable = isCroppableShape(shape);
 
   return (
@@ -188,6 +224,18 @@ export function ImageBlockEditor({
               </option>
             ))}
           </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700">Tamaño ({width}%)</label>
+          <input
+            type="range"
+            min={20}
+            max={100}
+            step={5}
+            value={width}
+            onChange={(e) => onChange({ ...value, width: Number(e.target.value) })}
+            className="mt-3 w-40"
+          />
         </div>
       </div>
       <button

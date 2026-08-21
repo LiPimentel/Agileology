@@ -189,6 +189,12 @@ model ContentBlock {
   position    Int       @default(0)
   columnIndex Int       @default(0)
   columnWidth Int       @default(100)
+  // Order of this block within its column when a column stacks more than
+  // one block (e.g. 2 texts + 1 image on one side of a 2-column section --
+  // "los componentes... me estan limitando... quiero 2 textos y 1 imagen").
+  // Default 0 means "only block in this column", so every existing row is
+  // unaffected.
+  blockOrder  Int       @default(0)
 
   // Per-SECTION background (pages only), duplicated identically across
   // every block sharing this `position` -- there's no separate Section

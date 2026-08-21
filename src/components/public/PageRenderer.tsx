@@ -17,11 +17,14 @@ export type PageRenderData = {
 };
 
 /**
- * Groups the flat, already `position`/`columnIndex`-ordered block list into
- * sections: blocks sharing the same `position` are one section's columns,
- * rendered side by side. `position` is absent on snapshots published
- * before sections existed -- treat each of those blocks as its own
- * single-column section (today's flat layout, unchanged).
+ * Groups the flat, already `position`/`columnIndex`/`blockOrder`-ordered
+ * block list into sections: blocks sharing the same `position` are one
+ * section's columns, rendered side by side; blocks within a section that
+ * also share the same `columnIndex` stack top to bottom in one column
+ * ("quiero 2 textos y 1 imagen" in one side of a section). `position` is
+ * absent on snapshots published before sections existed -- treat each of
+ * those blocks as its own single-column section (today's flat layout,
+ * unchanged).
  */
 function groupIntoSections(blocks: RenderableBlock[]) {
   const sections: RenderableBlock[][] = [];
@@ -37,6 +40,23 @@ function groupIntoSections(blocks: RenderableBlock[]) {
     sections[sections.length - 1].push(block);
   }
   return sections;
+}
+
+/** Groups one section's blocks (already columnIndex-ordered) into columns, preserving block order within each. */
+function groupIntoColumns(section: RenderableBlock[]) {
+  const columns: RenderableBlock[][] = [];
+  let currentColumnIndex: number | undefined;
+  let hasCurrentColumn = false;
+  for (const block of section) {
+    const isNewColumn = block.columnIndex === undefined || !hasCurrentColumn || block.columnIndex !== currentColumnIndex;
+    if (isNewColumn) {
+      columns.push([]);
+      currentColumnIndex = block.columnIndex;
+      hasCurrentColumn = true;
+    }
+    columns[columns.length - 1].push(block);
+  }
+  return columns;
 }
 
 export function PageRenderer({ page }: { page: PageRenderData }) {
@@ -67,20 +87,28 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
       <div className="mx-auto max-w-3xl space-y-8 px-6 py-12">
         {groupIntoSections(page.blocks).map((section, i) => {
           const first = section[0];
+          const columns = groupIntoColumns(section);
           const row =
-            section.length <= 1 ? (
+            columns.length <= 1 ? (
               // Single-column section: no flex row needed, matches the
-              // pre-sections layout exactly.
-              <BlockRenderer key={first?.id ?? i} block={first} pageId={page.id} />
+              // pre-sections layout exactly. Multiple blocks stacked in
+              // that one column still stack vertically.
+              <div key={first?.id ?? i} className="flex flex-col gap-6">
+                {(columns[0] ?? [first]).map((block, j) => (
+                  <BlockRenderer key={block?.id ?? j} block={block} pageId={page.id} />
+                ))}
+              </div>
             ) : (
               <div key={first?.id ?? i} className="flex flex-col gap-6 sm:flex-row">
-                {section.map((block, j) => (
+                {columns.map((col, j) => (
                   <div
-                    key={block.id ?? j}
-                    className="min-w-0"
-                    style={{ flexBasis: `${block.columnWidth ?? Math.round(100 / section.length)}%` }}
+                    key={col[0]?.id ?? j}
+                    className="flex min-w-0 flex-col gap-6"
+                    style={{ flexBasis: `${col[0]?.columnWidth ?? Math.round(100 / columns.length)}%` }}
                   >
-                    <BlockRenderer block={block} pageId={page.id} />
+                    {col.map((block, k) => (
+                      <BlockRenderer key={block.id ?? k} block={block} pageId={page.id} />
+                    ))}
                   </div>
                 ))}
               </div>

@@ -19,6 +19,7 @@ type SubmittedBlock = {
   position?: number;
   columnIndex?: number;
   columnWidth?: number;
+  blockOrder?: number;
   sectionBgImageUrl?: string;
   sectionBgColor?: string;
   sectionBgOpacity?: number;
@@ -96,6 +97,7 @@ async function upsertPageContent(pageId: string, formData: FormData) {
     position: Number.isFinite(b.position) ? Number(b.position) : i,
     columnIndex: Number.isFinite(b.columnIndex) ? Number(b.columnIndex) : 0,
     columnWidth: sanitizeColumnWidth(b.columnWidth),
+    blockOrder: Number.isFinite(b.blockOrder) ? Number(b.blockOrder) : 0,
     sectionBgImageUrl: String(b.sectionBgImageUrl ?? "") || null,
     sectionBgColor: sanitizeHexColor(b.sectionBgColor, "#000000"),
     sectionBgOpacity: sanitizeOpacity(b.sectionBgOpacity),
@@ -206,6 +208,7 @@ export async function duplicatePage(pageId: string) {
           position: b.position,
           columnIndex: b.columnIndex,
           columnWidth: b.columnWidth,
+          blockOrder: b.blockOrder,
           sectionBgImageUrl: b.sectionBgImageUrl,
           sectionBgColor: b.sectionBgColor,
           sectionBgOpacity: b.sectionBgOpacity,
@@ -252,6 +255,7 @@ export async function restorePageVersion(pageId: string, versionId: string) {
               position?: number;
               columnIndex?: number;
               columnWidth?: number;
+              blockOrder?: number;
               sectionBgImageUrl?: string | null;
               sectionBgColor?: string;
               sectionBgOpacity?: number;
@@ -264,12 +268,13 @@ export async function restorePageVersion(pageId: string, versionId: string) {
             type: b.type,
             content: b.content,
             // Older snapshots (published before sections/section
-            // backgrounds existed) have none of these -- fall back to one
-            // block per single-column, background-less section, i.e.
-            // today's flat layout.
+            // backgrounds/multi-block columns existed) have none of these
+            // -- fall back to one block per single-column, background-less
+            // section, i.e. today's flat layout.
             position: b.position ?? i,
             columnIndex: b.columnIndex ?? 0,
             columnWidth: b.columnWidth ?? 100,
+            blockOrder: b.blockOrder ?? 0,
             sectionBgImageUrl: b.sectionBgImageUrl ?? null,
             sectionBgColor: b.sectionBgColor ?? "#000000",
             sectionBgVideoUrl: b.sectionBgVideoUrl ?? null,
