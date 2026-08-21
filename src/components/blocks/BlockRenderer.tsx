@@ -20,6 +20,7 @@ export type RenderableBlock = {
   sectionBgImageUrl?: string | null;
   sectionBgColor?: string;
   sectionBgOpacity?: number;
+  sectionBgVideoUrl?: string | null;
 };
 
 const ALIGN_CLASS: Record<string, string> = {

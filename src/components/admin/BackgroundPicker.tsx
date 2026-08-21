@@ -5,12 +5,16 @@ import type { MediaItem } from "@/components/admin/MediaGrid";
 import { MediaGrid } from "@/components/admin/MediaGrid";
 import { MediaUploadForm } from "@/components/admin/MediaUploadForm";
 
-export type BackgroundValue = { imageUrl: string; color: string; opacity: number };
+export type BackgroundValue = { imageUrl: string; color: string; opacity: number; videoUrl: string };
+
+const IMAGE_ITEMS = (items: MediaItem[]) => items.filter((i) => !i.mimeType?.startsWith("video/"));
+const VIDEO_ITEMS = (items: MediaItem[]) => items.filter((i) => i.mimeType?.startsWith("video/"));
 
 export function BackgroundPicker({
   initialImageUrl,
   initialColor,
   initialOpacity,
+  initialVideoUrl,
   initialBannerImageUrl,
   mediaLibrary,
   value,
@@ -20,6 +24,9 @@ export function BackgroundPicker({
   initialImageUrl: string | null;
   initialColor: string;
   initialOpacity: number;
+  // Page-level only -- the page background has no video tab, only sections
+  // do (see `compact` below).
+  initialVideoUrl?: string | null;
   // Page-level only (uncontrolled mode) -- see the field below. A section
   // background (controlled mode, `compact`) doesn't have a title/banner to
   // place this kind of image in front of.
@@ -37,6 +44,7 @@ export function BackgroundPicker({
   const [localImageUrl, setLocalImageUrl] = useState(initialImageUrl ?? "");
   const [localColor, setLocalColor] = useState(initialColor);
   const [localOpacity, setLocalOpacity] = useState(initialOpacity);
+  const [localVideoUrl, setLocalVideoUrl] = useState(initialVideoUrl ?? "");
   const [bannerImageUrl, setBannerImageUrl] = useState(initialBannerImageUrl ?? "");
   const [pickerOpen, setPickerOpen] = useState(false);
   const [bannerPickerOpen, setBannerPickerOpen] = useState(false);
@@ -45,15 +53,35 @@ export function BackgroundPicker({
   const imageUrl = controlled ? value.imageUrl : localImageUrl;
   const color = controlled ? value.color : localColor;
   const opacity = controlled ? value.opacity : localOpacity;
+  const videoUrl = controlled ? value.videoUrl : localVideoUrl;
+
+  // Which of the three tabs is open -- only meaningful in compact (section)
+  // mode, which is the only one with a Video tab (see the client's own
+  // reference screenshot: "Fondo de la sección" -> Color / Imagen / Video).
+  const [tab, setTab] = useState<"color" | "image" | "video">(videoUrl ? "video" : imageUrl ? "image" : "color");
 
   function set(next: Partial<BackgroundValue>) {
     if (controlled) {
-      onChange({ imageUrl, color, opacity, ...next });
+      onChange({ imageUrl, color, opacity, videoUrl, ...next });
     } else {
       if (next.imageUrl !== undefined) setLocalImageUrl(next.imageUrl);
       if (next.color !== undefined) setLocalColor(next.color);
       if (next.opacity !== undefined) setLocalOpacity(next.opacity);
+      if (next.videoUrl !== undefined) setLocalVideoUrl(next.videoUrl);
     }
+  }
+
+  // Image and video are mutually exclusive as the actual background media
+  // (matches the tabbed reference: picking one clears the other), while
+  // color/opacity stays an overlay tint on top of whichever is active in
+  // either case.
+  function pickImage(url: string) {
+    set({ imageUrl: url, videoUrl: "" });
+    setPickerOpen(false);
+  }
+  function pickVideo(url: string) {
+    set({ videoUrl: url, imageUrl: "" });
+    setPickerOpen(false);
   }
 
   return (
@@ -71,6 +99,9 @@ export function BackgroundPicker({
         className={`relative flex items-center justify-center overflow-hidden rounded-md border border-slate-200 bg-cover bg-center ${compact ? "h-20" : "h-32"}`}
         style={imageUrl ? { backgroundImage: `url(${imageUrl})` } : undefined}
       >
+        {videoUrl && (
+          <video src={videoUrl} autoPlay muted loop playsInline className="absolute inset-0 h-full w-full object-cover" />
+        )}
         <div className="absolute inset-0" style={{ backgroundColor: color, opacity }} />
         {bannerImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -80,43 +111,99 @@ export function BackgroundPicker({
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-4">
-        <div>
-          <label className="block text-sm font-medium text-slate-700">Color de superposición</label>
-          <input type="color" value={color} onChange={(e) => set({ color: e.target.value })} className="mt-1 h-9 w-16" />
+      {compact && (
+        <div className="flex gap-1 rounded-md bg-slate-100 p-1 text-sm">
+          {(
+            [
+              { key: "color" as const, label: "Color" },
+              { key: "image" as const, label: "Imagen" },
+              { key: "video" as const, label: "Video" },
+            ]
+          ).map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setTab(t.key)}
+              className={`flex-1 rounded px-3 py-1.5 font-medium ${
+                tab === t.key ? "bg-white text-violet-700 shadow-sm" : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
         </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700">Transparencia ({Math.round(opacity * 100)}%)</label>
-          <input
-            type="range"
-            min={0}
-            max={1}
-            step={0.05}
-            value={opacity}
-            onChange={(e) => set({ opacity: Number(e.target.value) })}
-            className="mt-1 w-40"
-          />
-        </div>
-        {imageUrl && (
-          <button type="button" onClick={() => set({ imageUrl: "" })} className="text-sm text-red-600 hover:underline">
-            Quitar imagen de fondo
-          </button>
-        )}
-      </div>
+      )}
 
-      <button
-        type="button"
-        onClick={() => setPickerOpen((v) => !v)}
-        className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
-      >
-        {pickerOpen ? "Cerrar biblioteca" : "Elegir imagen de fondo"}
-      </button>
-      {pickerOpen && (
-        <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
-          <MediaUploadForm onUploaded={(m) => { set({ imageUrl: m.url }); setPickerOpen(false); }} />
-          <div className="mt-3">
-            <MediaGrid items={mediaLibrary} onSelect={(m) => { set({ imageUrl: m.url }); setPickerOpen(false); }} />
+      {/* Color + opacity: not gated by `tab` when not compact (page background has no tabs, this is its only control besides the image picker below) -- gated to the Color tab only in compact/section mode. */}
+      {(!compact || tab === "color") && (
+        <div className="flex flex-wrap items-center gap-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700">Color de superposición</label>
+            <input type="color" value={color} onChange={(e) => set({ color: e.target.value })} className="mt-1 h-9 w-16" />
           </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700">Transparencia ({Math.round(opacity * 100)}%)</label>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.05}
+              value={opacity}
+              onChange={(e) => set({ opacity: Number(e.target.value) })}
+              className="mt-1 w-40"
+            />
+          </div>
+        </div>
+      )}
+
+      {(!compact || tab === "image") && (
+        <div className="space-y-2">
+          {imageUrl && (
+            <button type="button" onClick={() => set({ imageUrl: "" })} className="block text-sm text-red-600 hover:underline">
+              Quitar imagen de fondo
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setPickerOpen((v) => !v)}
+            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+          >
+            {pickerOpen ? "Cerrar biblioteca" : "Elegir imagen de fondo"}
+          </button>
+          {pickerOpen && (
+            <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+              <MediaUploadForm onUploaded={(m) => pickImage(m.url)} />
+              <div className="mt-3">
+                <MediaGrid items={IMAGE_ITEMS(mediaLibrary)} onSelect={(m) => pickImage(m.url)} />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {compact && tab === "video" && (
+        <div className="space-y-2">
+          <p className="text-xs text-slate-500">Video corto en bucle (MP4/WebM, máx. 25MB) -- se reproduce silenciado automáticamente.</p>
+          {videoUrl && (
+            <button type="button" onClick={() => set({ videoUrl: "" })} className="block text-sm text-red-600 hover:underline">
+              Quitar video de fondo
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setPickerOpen((v) => !v)}
+            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+          >
+            {pickerOpen ? "Cerrar biblioteca" : "Elegir video de fondo"}
+          </button>
+          {pickerOpen && (
+            <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+              <MediaUploadForm onUploaded={(m) => pickVideo(m.url)} accept="video/mp4,video/webm" label="Subir video" />
+              <div className="mt-3">
+                <MediaGrid items={VIDEO_ITEMS(mediaLibrary)} onSelect={(m) => pickVideo(m.url)} />
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -147,7 +234,7 @@ export function BackgroundPicker({
             <div className="mt-2 rounded-md border border-slate-200 bg-slate-50 p-3">
               <MediaUploadForm onUploaded={(m) => { setBannerImageUrl(m.url); setBannerPickerOpen(false); }} />
               <div className="mt-3">
-                <MediaGrid items={mediaLibrary} onSelect={(m) => { setBannerImageUrl(m.url); setBannerPickerOpen(false); }} />
+                <MediaGrid items={IMAGE_ITEMS(mediaLibrary)} onSelect={(m) => { setBannerImageUrl(m.url); setBannerPickerOpen(false); }} />
               </div>
             </div>
           )}

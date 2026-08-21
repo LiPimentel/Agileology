@@ -87,9 +87,11 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
             );
 
           // A section's own background (separate from the page's overall
-          // one) -- same imageUrl/color/opacity fields duplicated across
-          // every block in this section (see ContentBlock schema comment).
-          const hasSectionBg = Boolean(first?.sectionBgImageUrl) || (first?.sectionBgOpacity ?? 0) > 0;
+          // one) -- same imageUrl/color/opacity/videoUrl fields duplicated
+          // across every block in this section (see ContentBlock schema
+          // comment).
+          const hasSectionBg =
+            Boolean(first?.sectionBgImageUrl) || Boolean(first?.sectionBgVideoUrl) || (first?.sectionBgOpacity ?? 0) > 0;
           if (!hasSectionBg) return row;
 
           return (
@@ -98,6 +100,7 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
               imageUrl={first?.sectionBgImageUrl}
               overlayColor={first?.sectionBgColor}
               overlayOpacity={first?.sectionBgOpacity}
+              videoUrl={first?.sectionBgVideoUrl}
             >
               <div className="rounded-md p-6">{row}</div>
             </BackgroundOverlay>

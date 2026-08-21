@@ -163,7 +163,11 @@ export function SectionBlockEditor({
   }
   function setSectionBackground(sectionId: string, bg: BackgroundValue) {
     setSections((prev) =>
-      prev.map((s) => (s.id !== sectionId ? s : { ...s, background: { imageUrl: bg.imageUrl, color: bg.color, opacity: bg.opacity } })),
+      prev.map((s) =>
+        s.id !== sectionId
+          ? s
+          : { ...s, background: { imageUrl: bg.imageUrl, color: bg.color, opacity: bg.opacity, videoUrl: bg.videoUrl } },
+      ),
     );
   }
   function toggleSectionBgPicker(sectionId: string) {
@@ -226,8 +230,10 @@ export function SectionBlockEditor({
 
       {sections.map((section, i) => {
         // Same rule PageRenderer uses to decide whether a section has a
-        // background of its own: real image, or a visible color overlay.
-        const hasBg = Boolean(section.background.imageUrl) || section.background.opacity > 0;
+        // background of its own: real image, real video, or a visible
+        // color overlay.
+        const hasBg =
+          Boolean(section.background.imageUrl) || Boolean(section.background.videoUrl) || section.background.opacity > 0;
 
         const columnsRow =
           section.columns.length === 2 ? (
@@ -269,7 +275,7 @@ export function SectionBlockEditor({
                 onClick={() => toggleSectionBgPicker(section.id)}
                 className="rounded-md border border-slate-300 px-3 py-1.5 text-xs hover:bg-slate-50"
               >
-                {openBgPickers[section.id] ? "Cerrar fondo de sección" : "Fondo de esta sección (color/imagen)"}
+                {openBgPickers[section.id] ? "Cerrar fondo de sección" : "Fondo de esta sección (color/imagen/video)"}
                 {hasBg && " •"}
               </button>
               {openBgPickers[section.id] && (
@@ -313,7 +319,12 @@ export function SectionBlockEditor({
               form.
             */}
             {hasBg ? (
-              <BackgroundOverlay imageUrl={section.background.imageUrl} overlayColor={section.background.color} overlayOpacity={section.background.opacity}>
+              <BackgroundOverlay
+                imageUrl={section.background.imageUrl}
+                overlayColor={section.background.color}
+                overlayOpacity={section.background.opacity}
+                videoUrl={section.background.videoUrl}
+              >
                 <div className="rounded-md p-4">{columnsRow}</div>
               </BackgroundOverlay>
             ) : (

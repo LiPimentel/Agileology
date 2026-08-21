@@ -22,6 +22,7 @@ type SubmittedBlock = {
   sectionBgImageUrl?: string;
   sectionBgColor?: string;
   sectionBgOpacity?: number;
+  sectionBgVideoUrl?: string;
 };
 
 function parseBlocks(raw: string): SubmittedBlock[] {
@@ -97,6 +98,7 @@ async function upsertPageContent(pageId: string, formData: FormData) {
     sectionBgImageUrl: String(b.sectionBgImageUrl ?? "") || null,
     sectionBgColor: sanitizeHexColor(b.sectionBgColor, "#000000"),
     sectionBgOpacity: sanitizeOpacity(b.sectionBgOpacity),
+    sectionBgVideoUrl: String(b.sectionBgVideoUrl ?? "") || null,
   }));
 
   await prisma.$transaction(async (tx) => {
@@ -205,6 +207,7 @@ export async function duplicatePage(pageId: string) {
           sectionBgImageUrl: b.sectionBgImageUrl,
           sectionBgColor: b.sectionBgColor,
           sectionBgOpacity: b.sectionBgOpacity,
+          sectionBgVideoUrl: b.sectionBgVideoUrl,
         })),
       },
       background: source.background
@@ -249,6 +252,7 @@ export async function restorePageVersion(pageId: string, versionId: string) {
               sectionBgImageUrl?: string | null;
               sectionBgColor?: string;
               sectionBgOpacity?: number;
+              sectionBgVideoUrl?: string | null;
             },
             i: number,
           ) => ({
@@ -264,6 +268,7 @@ export async function restorePageVersion(pageId: string, versionId: string) {
             columnWidth: b.columnWidth ?? 100,
             sectionBgImageUrl: b.sectionBgImageUrl ?? null,
             sectionBgColor: b.sectionBgColor ?? "#000000",
+            sectionBgVideoUrl: b.sectionBgVideoUrl ?? null,
             sectionBgOpacity: b.sectionBgOpacity ?? 0,
           }),
         ),

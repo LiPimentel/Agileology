@@ -55,6 +55,7 @@ export default async function PageEditorPage({ params }: { params: Promise<{ id:
             sectionBgImageUrl: b.sectionBgImageUrl,
             sectionBgColor: b.sectionBgColor,
             sectionBgOpacity: b.sectionBgOpacity,
+            sectionBgVideoUrl: b.sectionBgVideoUrl,
           })),
         ),
       }}

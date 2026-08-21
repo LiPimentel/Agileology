@@ -26,6 +26,7 @@ export async function buildPageSnapshot(pageId: string): Promise<PageRenderData 
       sectionBgImageUrl: b.sectionBgImageUrl,
       sectionBgColor: b.sectionBgColor,
       sectionBgOpacity: b.sectionBgOpacity,
+      sectionBgVideoUrl: b.sectionBgVideoUrl,
     })),
     background: page.background
       ? {

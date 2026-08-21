@@ -39,10 +39,12 @@ export type BlockValue =
   | { type: "contactForm"; content: ContactFormBlockValue };
 
 export type EditorColumn = { id: string; width: number; block: BlockValue | null };
-export type SectionBackground = { imageUrl: string; color: string; opacity: number };
+// videoUrl: an uploaded mp4/webm shown instead of imageUrl when set (the
+// section background picker's "Video" tab) -- see BackgroundOverlay.tsx.
+export type SectionBackground = { imageUrl: string; color: string; opacity: number; videoUrl: string };
 export type EditorSection = { id: string; columns: EditorColumn[]; background: SectionBackground };
 
-export const EMPTY_SECTION_BACKGROUND: SectionBackground = { imageUrl: "", color: "#000000", opacity: 0 };
+export const EMPTY_SECTION_BACKGROUND: SectionBackground = { imageUrl: "", color: "#000000", opacity: 0, videoUrl: "" };
 
 // crypto.randomUUID() only exists in a secure context (HTTPS/localhost) and
 // throws over plain HTTP -- see BlockEditor.tsx for the incident this came
@@ -100,6 +102,7 @@ export function groupBlocksIntoSections(
     sectionBgImageUrl: string | null;
     sectionBgColor: string;
     sectionBgOpacity: number;
+    sectionBgVideoUrl: string | null;
   }>,
 ): EditorSection[] {
   const sections: EditorSection[] = [];
@@ -109,7 +112,12 @@ export function groupBlocksIntoSections(
       sections.push({
         id: generateId(),
         columns: [],
-        background: { imageUrl: b.sectionBgImageUrl ?? "", color: b.sectionBgColor, opacity: b.sectionBgOpacity },
+        background: {
+          imageUrl: b.sectionBgImageUrl ?? "",
+          color: b.sectionBgColor,
+          opacity: b.sectionBgOpacity,
+          videoUrl: b.sectionBgVideoUrl ?? "",
+        },
       });
       currentPosition = b.position;
     }
@@ -134,6 +142,7 @@ export function serializeSections(sections: EditorSection[]) {
     sectionBgImageUrl: string;
     sectionBgColor: string;
     sectionBgOpacity: number;
+    sectionBgVideoUrl: string;
   }> = [];
   sections.forEach((section, position) => {
     section.columns.forEach((col, columnIndex) => {
@@ -148,6 +157,7 @@ export function serializeSections(sections: EditorSection[]) {
         sectionBgImageUrl: section.background.imageUrl,
         sectionBgColor: section.background.color,
         sectionBgOpacity: section.background.opacity,
+        sectionBgVideoUrl: section.background.videoUrl,
       });
     });
   });

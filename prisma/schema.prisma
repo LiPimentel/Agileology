@@ -201,6 +201,10 @@ model ContentBlock {
   sectionBgImageUrl String?
   sectionBgColor    String  @default("#000000")
   sectionBgOpacity  Float   @default(0)
+  // A real uploaded video (mp4/webm) as the section's background, shown
+  // instead of sectionBgImageUrl when set -- the "Video" tab in the
+  // section background picker.
+  sectionBgVideoUrl String?
 
   @@index([pageId])
   @@index([postId])
