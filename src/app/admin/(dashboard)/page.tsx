@@ -47,38 +47,40 @@ export default async function AdminDashboardPage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-semibold text-slate-900">Dashboard</h1>
+      <h1 className="mb-6 text-2xl font-semibold text-slate-900 dark:text-slate-100">Dashboard</h1>
       <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
         {cards.map((c) => (
           <Link
             key={c.label}
             href={c.href}
-            className="rounded-lg border border-slate-200 bg-white p-5 hover:border-violet-300 hover:shadow-sm"
+            className="rounded-lg border border-slate-200 bg-white p-5 hover:border-violet-300 hover:shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:hover:border-sky-600"
           >
-            <p className="text-sm text-slate-500">{c.label}</p>
-            <p className="mt-2 text-3xl font-semibold text-violet-800">{c.value}</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">{c.label}</p>
+            <p className="mt-2 text-3xl font-semibold text-violet-800 dark:text-sky-400">{c.value}</p>
           </Link>
         ))}
       </div>
 
       <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="rounded-lg border border-slate-200 bg-white p-5">
+        <div className="rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-900">Posts recientes</h2>
-            <Link href="/admin/posts" className="text-sm text-violet-700 hover:underline">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Posts recientes</h2>
+            <Link href="/admin/posts" className="text-sm text-violet-700 hover:underline dark:text-sky-400">
               Ver todos
             </Link>
           </div>
           {recentPosts.length === 0 ? (
-            <p className="text-sm text-slate-500">Sin publicaciones todavía.</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">Sin publicaciones todavía.</p>
           ) : (
             <ul className="space-y-2">
               {recentPosts.map((p) => (
                 <li key={p.id} className="flex items-center justify-between text-sm">
-                  <Link href={`/admin/posts/${p.id}`} className="font-medium text-violet-700 hover:underline">
+                  <Link href={`/admin/posts/${p.id}`} className="font-medium text-violet-700 hover:underline dark:text-sky-400">
                     {p.title}
                   </Link>
-                  <span className={`rounded-full px-2 py-0.5 text-xs ${p.status === "published" ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800"}`}>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs ${p.status === "published" ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300" : "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"}`}
+                  >
                     {p.status === "published" ? "Publicado" : "Borrador"}
                   </span>
                 </li>
@@ -87,23 +89,23 @@ export default async function AdminDashboardPage() {
           )}
         </div>
 
-        <div className="rounded-lg border border-slate-200 bg-white p-5">
+        <div className="rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-900">Páginas más visitadas</h2>
-            <Link href="/admin/analytics" className="text-sm text-violet-700 hover:underline">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Páginas más visitadas</h2>
+            <Link href="/admin/analytics" className="text-sm text-violet-700 hover:underline dark:text-sky-400">
               Ver analítica
             </Link>
           </div>
           {topPagesRanked.length === 0 ? (
-            <p className="text-sm text-slate-500">Sin visitas todavía.</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">Sin visitas todavía.</p>
           ) : (
             <ul className="space-y-2">
               {topPagesRanked.map(({ page, count }) => (
                 <li key={page.id} className="flex items-center justify-between text-sm">
-                  <Link href={`/admin/pages/${page.id}`} className="font-medium text-violet-700 hover:underline">
+                  <Link href={`/admin/pages/${page.id}`} className="font-medium text-violet-700 hover:underline dark:text-sky-400">
                     {page.title}
                   </Link>
-                  <span className="font-medium text-slate-900">{count}</span>
+                  <span className="font-medium text-slate-900 dark:text-slate-100">{count}</span>
                 </li>
               ))}
             </ul>
