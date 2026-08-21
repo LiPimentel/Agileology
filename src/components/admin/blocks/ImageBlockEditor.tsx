@@ -104,7 +104,6 @@ function ImageShapeAdjuster({
           src={url}
           alt={altText}
           fill
-          unoptimized
           draggable={false}
           className={`select-none ${IMAGE_SHAPE_IMG_CLASS[shape]}`}
           style={{
@@ -182,7 +181,6 @@ export function ImageBlockEditor({
               alt={value.altText}
               width={400}
               height={300}
-              unoptimized
               className={`border border-slate-200 ${IMAGE_SHAPE_IMG_CLASS[shape]}`}
             />
           </div>

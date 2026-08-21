@@ -235,6 +235,14 @@ model Background {
   // arriba" -- there was no way to place an actual image element there,
   // only the cover background.
   bannerImageUrl String?
+  // Whether the title/background banner block renders at all, above the
+  // page's own sections. Previously this was forced on every page with no
+  // way to turn it off -- "eso no puede estar fijo como obligatorio en
+  // cada página": a page whose design puts a video or a slideshow section
+  // directly under the header has no use for a fixed purple title bar in
+  // between. Defaults true so every existing page's current look is
+  // unchanged; an admin opts a specific page out of it explicitly.
+  showBanner     Boolean @default(true)
 }
 
 model BlogSettings {

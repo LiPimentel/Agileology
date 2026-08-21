@@ -46,7 +46,6 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           alt=""
           width={900}
           height={500}
-          unoptimized
           className="w-full rounded-lg object-cover"
         />
       )}

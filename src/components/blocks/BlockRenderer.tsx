@@ -77,7 +77,6 @@ export function BlockRenderer({ block, pageId }: { block: RenderableBlock; pageI
                 }
               : undefined
           }
-          unoptimized
         />
       );
       return (

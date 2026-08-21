@@ -35,7 +35,7 @@ export default async function BlogIndexPage({ searchParams }: { searchParams: Pr
           {posts.map((p) => (
             <Link key={p.id} href={`/blog/${p.slug}`} className="group overflow-hidden rounded-lg border border-slate-200 bg-white">
               {p.featuredImage && (
-                <Image src={p.featuredImage} alt="" width={400} height={250} unoptimized className="h-40 w-full object-cover" />
+                <Image src={p.featuredImage} alt="" width={400} height={250} className="h-40 w-full object-cover" />
               )}
               <div className="p-4">
                 <h2 className="font-semibold text-slate-900 group-hover:text-violet-700">{p.title}</h2>
@@ -52,7 +52,7 @@ export default async function BlogIndexPage({ searchParams }: { searchParams: Pr
           {posts.map((p) => (
             <Link key={p.id} href={`/blog/${p.slug}`} className="group flex gap-4 py-5">
               {p.featuredImage && (
-                <Image src={p.featuredImage} alt="" width={120} height={90} unoptimized className="h-24 w-32 shrink-0 rounded-md object-cover" />
+                <Image src={p.featuredImage} alt="" width={120} height={90} className="h-24 w-32 shrink-0 rounded-md object-cover" />
               )}
               <div>
                 <h2 className="font-semibold text-slate-900 group-hover:text-violet-700">{p.title}</h2>
