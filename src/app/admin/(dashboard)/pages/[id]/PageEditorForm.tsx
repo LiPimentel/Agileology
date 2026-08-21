@@ -38,10 +38,12 @@ export function PageEditorForm({
   page,
   mediaLibrary,
   pages,
+  formDefinitions,
 }: {
   page: PageEditorData;
   mediaLibrary: MediaItem[];
   pages: Array<{ id: string; slug: string; title: string }>;
+  formDefinitions: Array<{ id: string; name: string }>;
 }) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(savePage, initialState);
@@ -187,7 +189,7 @@ export function PageEditorForm({
         <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">
           Agrega el mapa o el formulario de contacto como un componente más, en la sección donde los quieras.
         </p>
-        <SectionBlockEditor initialSections={page.sections} mediaLibrary={mediaLibrary} pages={pages} />
+        <SectionBlockEditor initialSections={page.sections} mediaLibrary={mediaLibrary} pages={pages} formDefinitions={formDefinitions} />
       </section>
 
       {state.error && <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p>}

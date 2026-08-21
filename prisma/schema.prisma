@@ -23,6 +23,16 @@ enum BlockType {
   // Page.menuOrder/menuVisible/showInMenu).
   map
   contactForm
+  // A page-only block that renders one form from the reusable form
+  // library below (FormDefinition) -- "una sección donde yo los cree
+  // como forms y queden listos como componentes independientes ya que
+  // pueden haber varios tipos de forms". The block's own content only
+  // stores which form (formId); its fields are resolved fresh at render
+  // time (see resolveCustomFormBlocks in lib/forms.ts), not baked into
+  // the page's published snapshot -- editing a form updates every page
+  // using it immediately, the same way swapping a Media Library image
+  // updates every page referencing that URL.
+  customForm
 }
 
 enum BlogLayout {
@@ -95,6 +105,7 @@ model Page {
   contactFormComponent ContactFormComponent?
   versions      PageVersion[]
   contactSubmissions ContactFormSubmission[]
+  formSubmissions FormSubmission[]
   visitLogs     VisitLog[]
   menuItems     MenuItem[]
 }
@@ -313,6 +324,57 @@ model ContactFormComponent {
   pageId         String   @unique
   page           Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
   enabledFields  String[] @default(["name", "email", "message"])
+}
+
+// Reusable form library ("biblioteca de formularios reutilizables") -- a
+// FormDefinition is built once here, independent of any page, then dropped
+// onto any number of pages via a "customForm" ContentBlock that just
+// stores its id. Distinct from the older fixed name/email/message
+// ContactFormSubmission model above: that one stays exactly as-is for the
+// simple built-in contact block, this is the general case for "pueden
+// haber varios tipos de forms" with an admin-defined set of fields.
+model FormDefinition {
+  id     String @id @default(cuid())
+  name   String
+  // Falls back to CommunicationSettings.contactFormDestinationEmail when
+  // unset -- most forms don't need their own destination, but a few
+  // ("solicitar cotización" vs. "contacto general") might.
+  destinationEmail String?
+  successMessage   String   @default("Gracias, tu mensaje fue enviado.")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  fields      FormField[]
+  submissions FormSubmission[]
+}
+
+model FormField {
+  id     String         @id @default(cuid())
+  formId String
+  form   FormDefinition @relation(fields: [formId], references: [id], onDelete: Cascade)
+  label  String
+  // "text" | "email" | "tel" | "textarea" | "select" | "checkbox" -- plain
+  // string rather than an enum so a future field type doesn't need a
+  // migration, same reasoning as ContentBlock.content being Json.
+  fieldType   String
+  required    Boolean  @default(false)
+  placeholder String?
+  // Only meaningful for fieldType "select".
+  options String[] @default([])
+  order   Int       @default(0)
+}
+
+model FormSubmission {
+  id     String         @id @default(cuid())
+  formId String
+  form   FormDefinition @relation(fields: [formId], references: [id], onDelete: Cascade)
+  pageId String?
+  page   Page?          @relation(fields: [pageId], references: [id], onDelete: SetNull)
+  // Keyed by FormField.id (stable even if a label is edited later), not by
+  // label text -- {"clx123...": "Jane Doe", "clx456...": true}.
+  data        Json
+  status      MessageStatus @default(new)
+  submittedAt DateTime      @default(now())
 }
 
 model CommunicationSettings {

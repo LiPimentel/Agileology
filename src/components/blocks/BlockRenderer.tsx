@@ -12,10 +12,11 @@ import {
 } from "@/lib/imageShape";
 import { MapEmbed } from "@/components/public/MapEmbed";
 import { ContactForm } from "@/components/public/ContactForm";
+import { CustomFormRenderer, type PublicFormField } from "@/components/public/CustomFormRenderer";
 
 export type RenderableBlock = {
   id?: string;
-  type: "text" | "image" | "link" | "video" | "map" | "contactForm";
+  type: "text" | "image" | "link" | "video" | "map" | "contactForm" | "customForm";
   content: Record<string, unknown>;
   // Section/column layout (pages only -- see PageRenderer, which groups
   // blocks sharing the same `position` into one row and lays them out
@@ -149,6 +150,26 @@ export function BlockRenderer({ block, pageId }: { block: RenderableBlock; pageI
         ? (block.content.enabledFields as string[])
         : ["name", "email", "message"];
       return <ContactForm pageId={pageId} enabledFields={enabledFields} />;
+    }
+    case "customForm": {
+      // One form from the reusable library (see lib/forms.ts) -- like
+      // contactForm, this needs the page's id to attribute submissions,
+      // and its fields are only present once resolveCustomFormBlocks()
+      // has run (public render + admin preview; the editor's own
+      // click-to-select canvas shows a static placeholder instead, see
+      // CustomFormBlockEditor.tsx's comment).
+      if (!pageId) return null;
+      const formId = String(block.content.formId ?? "");
+      const fields = Array.isArray(block.content.fields) ? (block.content.fields as PublicFormField[]) : [];
+      if (!formId || fields.length === 0) return null;
+      return (
+        <CustomFormRenderer
+          pageId={pageId}
+          formId={formId}
+          fields={fields}
+          successMessage={String(block.content.successMessage ?? "Gracias, tu mensaje fue enviado.")}
+        />
+      );
     }
     default:
       return null;

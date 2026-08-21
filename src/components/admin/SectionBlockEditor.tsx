@@ -12,6 +12,7 @@ import { LinkBlockEditor } from "@/components/admin/blocks/LinkBlockEditor";
 import { VideoBlockEditor } from "@/components/admin/blocks/VideoBlockEditor";
 import { MapBlockEditor } from "@/components/admin/blocks/MapBlockEditor";
 import { ContactFormBlockEditor } from "@/components/admin/blocks/ContactFormBlockEditor";
+import { CustomFormBlockEditor } from "@/components/admin/blocks/CustomFormBlockEditor";
 import {
   type BlockType,
   type BlockValue,
@@ -34,6 +35,7 @@ const BLOCK_LABELS: Record<BlockType, string> = {
   video: "Video",
   map: "Mapa",
   contactForm: "Formulario de contacto",
+  customForm: "Formulario (biblioteca)",
 };
 const BLOCK_TYPE_OPTIONS = (Object.keys(BLOCK_LABELS) as BlockType[]).map((type) => ({ type, label: BLOCK_LABELS[type] }));
 
@@ -56,6 +58,8 @@ function hasContent(block: BlockValue): boolean {
       return Boolean(block.content.address);
     case "contactForm":
       return true;
+    case "customForm":
+      return Boolean(block.content.formId);
   }
 }
 
@@ -66,19 +70,29 @@ function hasContent(block: BlockValue): boolean {
  * the real page -- "quiero ver la página real y hacer clic directo sobre
  * el componente para editarlo ahí mismo, en vez de un panel aparte".
  *
- * contactForm is the one exception: BlockRenderer's version is a real,
- * submittable form (it needs a pageId to attribute submissions) -- letting
- * an admin accidentally fire a real "test" submission from inside the
- * editor would pollute their actual inbox, so this shows a static card
- * instead of the live form.
+ * contactForm/customForm are the exceptions: BlockRenderer's version of
+ * either is a real, submittable form (it needs a pageId to attribute
+ * submissions, and customForm also needs its fields resolved from the DB
+ * first -- see lib/forms.ts) -- letting an admin accidentally fire a real
+ * "test" submission from inside the editor would pollute their actual
+ * inbox, so both show a static card instead of the live form.
  */
-function BlockPreview({ block }: { block: BlockValue }) {
+function BlockPreview({ block, formDefinitions = [] }: { block: BlockValue; formDefinitions?: Array<{ id: string; name: string }> }) {
   if (block.type === "contactForm") {
     const fields = block.content.enabledFields ?? [];
     return (
       <div className="rounded-md border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
         📋 Formulario de contacto ({fields.length ? fields.join(", ") : "sin campos"}) — vista previa desactivada aquí
         para no generar envíos de prueba.
+      </div>
+    );
+  }
+  if (block.type === "customForm") {
+    const form = formDefinitions.find((f) => f.id === block.content.formId);
+    return (
+      <div className="rounded-md border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
+        📋 {form ? `Formulario: ${form.name}` : "Sin formulario seleccionado"} — vista previa desactivada aquí para no
+        generar envíos de prueba.
       </div>
     );
   }
@@ -333,10 +347,12 @@ export function SectionBlockEditor({
   initialSections,
   mediaLibrary,
   pages,
+  formDefinitions = [],
 }: {
   initialSections: EditorSection[];
   mediaLibrary: MediaItem[];
   pages: Array<{ slug: string; title: string }>;
+  formDefinitions?: Array<{ id: string; name: string }>;
 }) {
   const [sections, setSections] = useState<EditorSection[]>(initialSections);
   const [openBgPickers, setOpenBgPickers] = useState<Record<string, boolean>>({});
@@ -539,6 +555,8 @@ export function SectionBlockEditor({
         return <MapBlockEditor value={item.block.content} onChange={onChange} />;
       case "contactForm":
         return <ContactFormBlockEditor value={item.block.content} onChange={onChange} />;
+      case "customForm":
+        return <CustomFormBlockEditor value={item.block.content} onChange={onChange} formDefinitions={formDefinitions} />;
     }
   }
 
@@ -558,6 +576,8 @@ export function SectionBlockEditor({
         return <MapBlockEditor value={item.block.content} onChange={onChange} />;
       case "contactForm":
         return <ContactFormBlockEditor value={item.block.content} onChange={onChange} />;
+      case "customForm":
+        return <CustomFormBlockEditor value={item.block.content} onChange={onChange} formDefinitions={formDefinitions} />;
     }
   }
 
@@ -589,7 +609,7 @@ export function SectionBlockEditor({
           }}
           className="group relative cursor-pointer rounded-md outline outline-2 outline-transparent transition hover:outline-violet-300"
         >
-          <BlockPreview block={item.block} />
+          <BlockPreview block={item.block} formDefinitions={formDefinitions} />
           <span className="pointer-events-none absolute -top-2.5 right-2 hidden rounded bg-violet-600 px-1.5 py-0.5 text-[10px] font-medium text-white shadow group-hover:inline-block">
             {BLOCK_LABELS[item.block.type]} · clic para editar
           </span>
@@ -728,7 +748,7 @@ export function SectionBlockEditor({
                     </>
                   ) : (
                     <div className="group relative h-full w-full">
-                      <BlockPreview block={item.block} />
+                      <BlockPreview block={item.block} formDefinitions={formDefinitions} />
                       <span className="pointer-events-none absolute -top-2.5 right-2 hidden rounded bg-violet-600 px-1.5 py-0.5 text-[10px] font-medium text-white shadow group-hover:inline-block">
                         {BLOCK_LABELS[item.block.type]} · clic para editar
                       </span>

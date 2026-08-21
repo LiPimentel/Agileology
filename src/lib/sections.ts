@@ -10,6 +10,7 @@ import type { LinkBlockValue } from "@/components/admin/blocks/LinkBlockEditor";
 import type { VideoBlockValue } from "@/components/admin/blocks/VideoBlockEditor";
 import type { MapBlockValue } from "@/components/admin/blocks/MapBlockEditor";
 import type { ContactFormBlockValue } from "@/components/admin/blocks/ContactFormBlockEditor";
+import type { CustomFormBlockValue } from "@/components/admin/blocks/CustomFormBlockEditor";
 
 // Pages only (posts keep the simpler, single-column BlockEditor -- blog
 // posts have their own format per the client's explicit call).
@@ -28,7 +29,7 @@ import type { ContactFormBlockValue } from "@/components/admin/blocks/ContactFor
 // section needs at least one filled column for its background to have
 // somewhere to be saved; a fully empty section has no rows to carry it.
 
-export type BlockType = "text" | "image" | "link" | "video" | "map" | "contactForm";
+export type BlockType = "text" | "image" | "link" | "video" | "map" | "contactForm" | "customForm";
 
 export type BlockValue =
   | { type: "text"; content: { html: string } }
@@ -38,7 +39,11 @@ export type BlockValue =
   // Map/contact form: real, addable blocks now (see blocks.ts's comment) --
   // no longer a fixed section shown on every page.
   | { type: "map"; content: MapBlockValue }
-  | { type: "contactForm"; content: ContactFormBlockValue };
+  | { type: "contactForm"; content: ContactFormBlockValue }
+  // One form picked from the reusable library (FormDefinition) -- see
+  // lib/forms.ts's comment on why its fields are resolved at render time
+  // instead of being stored here.
+  | { type: "customForm"; content: CustomFormBlockValue };
 
 // One entry in a column's stack -- `id` is the ContentBlock row's id (or a
 // generated placeholder for a not-yet-saved block), separate from the
@@ -135,6 +140,8 @@ export function emptyContent(type: BlockType): BlockValue {
       return { type, content: { address: "" } };
     case "contactForm":
       return { type, content: { enabledFields: ["name", "email", "message"] } };
+    case "customForm":
+      return { type, content: { formId: "" } };
   }
 }
 

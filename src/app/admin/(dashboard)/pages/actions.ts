@@ -14,7 +14,7 @@ export type PageFormState = { error?: string; pageId?: string; savedAt?: number 
 
 type SubmittedBlock = {
   id: string;
-  type: "text" | "image" | "link" | "video" | "map" | "contactForm";
+  type: "text" | "image" | "link" | "video" | "map" | "contactForm" | "customForm";
   content: unknown;
   position?: number;
   columnIndex?: number;

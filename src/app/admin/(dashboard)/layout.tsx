@@ -12,6 +12,7 @@ const NAV = [
   { href: "/admin/pages", label: "Páginas" },
   { href: "/admin/posts", label: "Blog" },
   { href: "/admin/media", label: "Medios" },
+  { href: "/admin/forms", label: "Formularios" },
   { href: "/admin/inbox", label: "Bandeja de entrada" },
   { href: "/admin/analytics", label: "Analítica" },
   { href: "/admin/settings/site", label: "Ajustes del sitio" },
