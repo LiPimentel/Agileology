@@ -36,6 +36,7 @@ export async function buildPageSnapshot(pageId: string): Promise<PageRenderData 
           overlayColor: page.background.overlayColor,
           overlayOpacity: page.background.overlayOpacity,
           bannerImageUrl: page.background.bannerImageUrl,
+          showBanner: page.background.showBanner,
         }
       : null,
   };

@@ -9,7 +9,7 @@ const initialState: SiteSettingsState = {};
 const inputClass =
   "mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-violet-600 focus:outline-none focus:ring-1 focus:ring-violet-600";
 
-export function SiteSettingsForm({ settings }: { settings: SiteSettings }) {
+export function SiteSettingsForm({ settings, siteUrl }: { settings: SiteSettings; siteUrl: string }) {
   const [state, formAction, pending] = useActionState(updateSiteSettings, initialState);
 
   return (
@@ -27,6 +27,56 @@ export function SiteSettingsForm({ settings }: { settings: SiteSettings }) {
           Meta descripción por defecto (SEO)
         </label>
         <textarea name="defaultMetaDescription" defaultValue={settings.defaultMetaDescription ?? ""} rows={2} className={inputClass} />
+      </div>
+
+      {/*
+        "el backoffice incluye las configuraciones necesarias para que la
+        página aparezca en internet? ... no recuerdo haberlo visto en el
+        backoffice" -- sitemap.xml/robots.txt exist and update themselves
+        automatically (no setting needed), but there was genuinely nothing
+        in the backoffice showing they exist or work. This section doesn't
+        add new mechanics, it makes the ones that already run visible and
+        checkable, plus adds the one piece that really was missing: a place
+        for the Google Search Console verification code.
+      */}
+      <div className="space-y-3 rounded-md border border-slate-200 bg-slate-50 p-4">
+        <h2 className="text-sm font-semibold text-slate-900">Visibilidad en buscadores (SEO)</h2>
+        {siteUrl ? (
+          <p className="text-sm text-slate-600">
+            URL pública configurada: <span className="font-mono text-slate-800">{siteUrl}</span>
+          </p>
+        ) : (
+          <p className="text-sm text-red-600">
+            ⚠️ No hay una URL pública configurada (variable de entorno <code className="font-mono">NEXT_PUBLIC_SITE_URL</code>{" "}
+            en el servidor). Sin ella, el mapa del sitio y robots.txt no incluyen la dirección completa y Google no puede
+            usarlos correctamente -- esto se corrige en la configuración del servidor/Docker, no aquí.
+          </p>
+        )}
+        <div className="flex flex-wrap gap-4 text-sm">
+          <a href="/sitemap.xml" target="_blank" rel="noreferrer" className="text-violet-700 underline">
+            Ver mapa del sitio (sitemap.xml)
+          </a>
+          <a href="/robots.txt" target="_blank" rel="noreferrer" className="text-violet-700 underline">
+            Ver robots.txt
+          </a>
+        </div>
+        <p className="text-xs text-slate-500">
+          Ambos se generan solos a partir de las páginas y publicaciones que ya tienes publicadas -- no hay nada que
+          configurar en ellos.
+        </p>
+        <div>
+          <label className="block text-sm font-medium text-slate-700">Verificación de Google Search Console</label>
+          <p className="mb-1 text-xs text-slate-500">
+            En Search Console, agrega el sitio como propiedad con el método &quot;etiqueta HTML&quot; y pega aquí solo el
+            valor de <code className="font-mono">content=&quot;...&quot;</code> que te den (no la etiqueta completa).
+          </p>
+          <input
+            name="googleSiteVerification"
+            defaultValue={settings.googleSiteVerification ?? ""}
+            placeholder="AbCdEf123..."
+            className={inputClass}
+          />
+        </div>
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>

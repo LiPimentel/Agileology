@@ -29,7 +29,6 @@ export function MediaGrid({ items, onSelect }: { items: MediaItem[]; onSelect?: 
                   alt={item.altText ?? ""}
                   width={200}
                   height={200}
-                  unoptimized
                   className="aspect-square w-full object-cover"
                 />
               )}

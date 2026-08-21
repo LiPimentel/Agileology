@@ -12,7 +12,19 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const post = await getPublishedPostBySlug(slug);
   if (!post) return {};
-  return { title: post.seoTitle ?? post.snapshot.title, description: post.seoDescription ?? undefined };
+  const title = post.seoTitle ?? post.snapshot.title;
+  const description = post.seoDescription ?? undefined;
+  return {
+    title,
+    description,
+    alternates: { canonical: `/blog/${slug}` },
+    openGraph: {
+      title,
+      description,
+      type: "article",
+      images: post.snapshot.featuredImage ? [post.snapshot.featuredImage] : undefined,
+    },
+  };
 }
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -46,7 +58,6 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           alt=""
           width={900}
           height={500}
-          unoptimized
           className="w-full rounded-lg object-cover"
         />
       )}

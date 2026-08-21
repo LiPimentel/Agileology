@@ -13,6 +13,10 @@ export type PageRenderData = {
     // title -- distinct from imageUrl, which is a full-bleed CSS
     // background-cover behind everything.
     bannerImageUrl?: string | null;
+    // Whether the banner block below renders at all. undefined (snapshots
+    // published before this existed) defaults to true, matching the old,
+    // always-on behavior exactly.
+    showBanner?: boolean;
   } | null;
 };
 
@@ -60,29 +64,44 @@ function groupIntoColumns(section: RenderableBlock[]) {
 }
 
 export function PageRenderer({ page }: { page: PageRenderData }) {
+  // "eso no puede estar fijo como obligatorio en cada página" -- this
+  // banner used to render unconditionally on every page (even with no
+  // image/color set, just a flat purple bar), leaving no way to put a
+  // video/slideshow section directly under the header instead. Defaults to
+  // true so every page published before this existed keeps its exact
+  // current look.
+  const showBanner = page.background?.showBanner ?? true;
+
   return (
     <article>
-      <BackgroundOverlay
-        imageUrl={page.background?.imageUrl}
-        overlayColor={page.background?.overlayColor}
-        overlayOpacity={page.background?.overlayOpacity}
-      >
-        <div className={`mx-auto max-w-4xl px-6 py-16 ${page.background?.bannerImageUrl ? "text-center" : ""}`}>
-          {page.background?.bannerImageUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={page.background.bannerImageUrl} alt="" className="mx-auto mb-4 max-h-24 max-w-full object-contain" />
-          )}
-          <h1
-            className={
-              page.background?.imageUrl
-                ? "text-4xl font-bold text-white"
-                : "text-4xl font-bold text-slate-900"
-            }
-          >
-            {page.title}
-          </h1>
-        </div>
-      </BackgroundOverlay>
+      {showBanner ? (
+        <BackgroundOverlay
+          imageUrl={page.background?.imageUrl}
+          overlayColor={page.background?.overlayColor}
+          overlayOpacity={page.background?.overlayOpacity}
+        >
+          <div className={`mx-auto max-w-4xl px-6 py-16 ${page.background?.bannerImageUrl ? "text-center" : ""}`}>
+            {page.background?.bannerImageUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={page.background.bannerImageUrl} alt="" className="mx-auto mb-4 max-h-24 max-w-full object-contain" />
+            )}
+            <h1
+              className={
+                page.background?.imageUrl
+                  ? "text-4xl font-bold text-white"
+                  : "text-4xl font-bold text-slate-900"
+              }
+            >
+              {page.title}
+            </h1>
+          </div>
+        </BackgroundOverlay>
+      ) : (
+        // Banner turned off for this page -- still need exactly one <h1>
+        // for accessibility/SEO, just not shown visually (the page's own
+        // first section takes over immediately below the nav instead).
+        <h1 className="sr-only">{page.title}</h1>
+      )}
 
       <div className="mx-auto max-w-3xl space-y-8 px-6 py-12">
         {groupIntoSections(page.blocks).map((section, i) => {

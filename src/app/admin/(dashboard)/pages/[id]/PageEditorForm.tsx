@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { savePage, type PageFormState } from "../actions";
 import { BackgroundPicker } from "@/components/admin/BackgroundPicker";
@@ -22,7 +22,13 @@ export type PageEditorData = {
   showInMenu: boolean;
   menuVisible: boolean;
   isSystem: boolean;
-  background: { imageUrl: string | null; overlayColor: string; overlayOpacity: number; bannerImageUrl: string | null } | null;
+  background: {
+    imageUrl: string | null;
+    overlayColor: string;
+    overlayOpacity: number;
+    bannerImageUrl: string | null;
+    showBanner: boolean;
+  } | null;
   sections: EditorSection[];
 };
 
@@ -38,6 +44,7 @@ export function PageEditorForm({
   const [state, formAction, pending] = useActionState(savePage, initialState);
   const formRef = useRef<HTMLFormElement>(null);
   const draftButtonRef = useRef<HTMLButtonElement>(null);
+  const [showBanner, setShowBanner] = useState(page.background?.showBanner ?? true);
 
   // Autosave draft periodically (7.14) so unsaved edits survive an accidental tab close.
   useEffect(() => {
@@ -85,14 +92,38 @@ export function PageEditorForm({
       </p>
 
       <section className="rounded-lg border border-slate-200 bg-white p-5">
-        <h2 className="mb-3 text-lg font-semibold text-slate-900">Fondo y superposición</h2>
-        <BackgroundPicker
-          initialImageUrl={page.background?.imageUrl ?? null}
-          initialColor={page.background?.overlayColor ?? "#3B0764"}
-          initialOpacity={page.background?.overlayOpacity ?? 0.5}
-          initialBannerImageUrl={page.background?.bannerImageUrl ?? null}
-          mediaLibrary={mediaLibrary}
-        />
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-slate-900">Encabezado con título</h2>
+          <label className="flex items-center gap-2 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              name="showBanner"
+              checked={showBanner}
+              onChange={(e) => setShowBanner(e.target.checked)}
+            />
+            Mostrarlo en esta página
+          </label>
+        </div>
+        {!showBanner && (
+          <p className="mb-3 text-sm text-slate-500">
+            Esta página no tendrá el bloque fijo de título/fondo -- empieza directo con las secciones de abajo (útil si la
+            primera sección ya es un video, un slideshow, etc.). Las opciones de abajo quedan guardadas por si lo reactivas.
+          </p>
+        )}
+        {/*
+          Kept mounted (not unmounted) when hidden, just visually hidden --
+          so toggling the checkbox off and back on doesn't lose whatever
+          background/logo was already configured underneath.
+        */}
+        <div className={showBanner ? undefined : "hidden"}>
+          <BackgroundPicker
+            initialImageUrl={page.background?.imageUrl ?? null}
+            initialColor={page.background?.overlayColor ?? "#3B0764"}
+            initialOpacity={page.background?.overlayOpacity ?? 0.5}
+            initialBannerImageUrl={page.background?.bannerImageUrl ?? null}
+            mediaLibrary={mediaLibrary}
+          />
+        </div>
       </section>
 
       <section>

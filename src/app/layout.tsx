@@ -15,10 +15,38 @@ const geistMono = Geist_Mono({
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  const description = settings.defaultMetaDescription ?? "Coaching y gestión ágil.";
+
   return {
+    // Lets relative URLs elsewhere in metadata (e.g. an openGraph image
+    // set per-page) resolve to absolute ones -- required for social/search
+    // previews to actually load the image. Guarded: an unset/invalid URL
+    // must not crash metadata generation for the whole site.
+    metadataBase: siteUrl && URL.canParse(siteUrl) ? new URL(siteUrl) : undefined,
     title: { default: settings.siteTitle, template: `%s — ${settings.siteTitle}` },
-    description: settings.defaultMetaDescription ?? "Coaching y gestión ágil.",
+    description,
     icons: settings.faviconUrl ? { icon: settings.faviconUrl } : undefined,
+    // Default social/search preview -- individual pages/posts override
+    // title/description/images via their own generateMetadata.
+    openGraph: {
+      siteName: settings.siteTitle,
+      title: settings.siteTitle,
+      description,
+      images: settings.logoUrl ? [settings.logoUrl] : undefined,
+      locale: "es",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: settings.siteTitle,
+      description,
+      images: settings.logoUrl ? [settings.logoUrl] : undefined,
+    },
+    // The <meta name="google-site-verification" content="..."> tag Search
+    // Console needs to confirm domain ownership -- set from Ajustes del
+    // sitio; absent entirely (no empty tag rendered) until an admin fills
+    // it in.
+    verification: settings.googleSiteVerification ? { google: settings.googleSiteVerification } : undefined,
   };
 }
 

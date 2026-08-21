@@ -93,7 +93,7 @@ export function PostEditorForm({
       <section className="rounded-lg border border-slate-200 bg-white p-5">
         <h2 className="mb-3 text-lg font-semibold text-slate-900">Imagen destacada</h2>
         {featuredImage && (
-          <Image src={featuredImage} alt="" width={300} height={200} unoptimized className="mb-3 max-h-40 w-auto rounded-md border border-slate-200" />
+          <Image src={featuredImage} alt="" width={300} height={200} className="mb-3 max-h-40 w-auto rounded-md border border-slate-200" />
         )}
         <button type="button" onClick={() => setPickerOpen((v) => !v)} className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50">
           {pickerOpen ? "Cerrar" : "Elegir imagen"}

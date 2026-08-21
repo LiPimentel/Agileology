@@ -51,3 +51,18 @@ export const CROPPABLE_SHAPES: ImageShape[] = ["circle", "oval"];
 export function isCroppableShape(shape: ImageShape): boolean {
   return CROPPABLE_SHAPES.includes(shape);
 }
+
+// Shared by BlockRenderer (public render) and the admin editors' live
+// previews (ImageBlockEditor, VideoBlockEditor) -- keeping this in one
+// place is what lets the editor preview actually match the published
+// look pixel-for-pixel instead of drifting from it over time.
+export const ALIGN_CLASS: Record<string, string> = {
+  left: "mr-auto",
+  center: "mx-auto",
+  right: "ml-auto",
+};
+
+/** circle/oval read as oversized at a full 2xl width; none/rounded keep the wider default. */
+export function imageMaxWidthClass(shape: ImageShape): string {
+  return shape === "circle" || shape === "oval" ? "max-w-xs" : "max-w-2xl";
+}

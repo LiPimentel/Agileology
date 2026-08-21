@@ -42,6 +42,7 @@ export default async function PageEditorPage({ params }: { params: Promise<{ id:
               overlayColor: page.background.overlayColor,
               overlayOpacity: page.background.overlayOpacity,
               bannerImageUrl: page.background.bannerImageUrl,
+              showBanner: page.background.showBanner,
             }
           : null,
         sections: groupBlocksIntoSections(
