@@ -13,11 +13,13 @@ import { UPLOAD_DIR } from "@/lib/image";
 // docker-compose volume at UPLOAD_DIR (i.e. the UPLOADS_DIR env var, or
 // its default) and uploads survive rebuilds regardless of build mode.
 //
-// Content type is hardcoded to webp: saveUploadedImage() always converts
-// to webp on the way in, so every file this ever serves is one, by
-// construction (not derived from the request, which could otherwise be
-// used to probe the filesystem).
-const MIME_BY_EXT: Record<string, string> = { webp: "image/webp" };
+// Content type is derived from a small fixed allowlist of extensions, never
+// from the request -- saveUploadedImage() always converts to webp, and
+// saveUploadedVideo() (background videos) only ever writes mp4/webm, so
+// every file this serves is one of exactly these, by construction (not an
+// arbitrary extension that could otherwise be used to probe the
+// filesystem).
+const MIME_BY_EXT: Record<string, string> = { webp: "image/webp", mp4: "video/mp4", webm: "video/webm" };
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const { path: segments } = await params;

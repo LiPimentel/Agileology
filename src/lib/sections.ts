@@ -8,6 +8,8 @@
 import type { ImageBlockValue } from "@/components/admin/blocks/ImageBlockEditor";
 import type { LinkBlockValue } from "@/components/admin/blocks/LinkBlockEditor";
 import type { VideoBlockValue } from "@/components/admin/blocks/VideoBlockEditor";
+import type { MapBlockValue } from "@/components/admin/blocks/MapBlockEditor";
+import type { ContactFormBlockValue } from "@/components/admin/blocks/ContactFormBlockEditor";
 
 // Pages only (posts keep the simpler, single-column BlockEditor -- blog
 // posts have their own format per the client's explicit call).
@@ -24,19 +26,31 @@ import type { VideoBlockValue } from "@/components/admin/blocks/VideoBlockEditor
 // background to have somewhere to be saved; a fully empty section has no
 // rows to carry it.
 
-export type BlockType = "text" | "image" | "link" | "video";
+export type BlockType = "text" | "image" | "link" | "video" | "map" | "contactForm";
 
 export type BlockValue =
   | { type: "text"; content: { html: string } }
   | { type: "image"; content: ImageBlockValue }
   | { type: "link"; content: LinkBlockValue }
-  | { type: "video"; content: VideoBlockValue };
+  | { type: "video"; content: VideoBlockValue }
+  // Map/contact form: real, addable blocks now (see blocks.ts's comment) --
+  // no longer a fixed section shown on every page.
+  | { type: "map"; content: MapBlockValue }
+  | { type: "contactForm"; content: ContactFormBlockValue };
 
 export type EditorColumn = { id: string; width: number; block: BlockValue | null };
-export type SectionBackground = { imageUrl: string; color: string; opacity: number };
+// videoUrl: an uploaded mp4/webm shown instead of imageUrl when set (the
+// section background picker's "Video" tab) -- see BackgroundOverlay.tsx.
+export type SectionBackground = { imageUrl: string; color: string; opacity: number; videoUrl: string; gradientEnd: string };
 export type EditorSection = { id: string; columns: EditorColumn[]; background: SectionBackground };
 
-export const EMPTY_SECTION_BACKGROUND: SectionBackground = { imageUrl: "", color: "#000000", opacity: 0 };
+export const EMPTY_SECTION_BACKGROUND: SectionBackground = {
+  imageUrl: "",
+  color: "#000000",
+  opacity: 0,
+  videoUrl: "",
+  gradientEnd: "",
+};
 
 // crypto.randomUUID() only exists in a secure context (HTTPS/localhost) and
 // throws over plain HTTP -- see BlockEditor.tsx for the incident this came
@@ -56,6 +70,10 @@ export function emptyContent(type: BlockType): BlockValue {
       return { type, content: { label: "", href: "", internal: true, newTab: false } };
     case "video":
       return { type, content: { url: "", alignment: "center", shape: "none", width: 100 } };
+    case "map":
+      return { type, content: { address: "" } };
+    case "contactForm":
+      return { type, content: { enabledFields: ["name", "email", "message"] } };
   }
 }
 
@@ -90,6 +108,8 @@ export function groupBlocksIntoSections(
     sectionBgImageUrl: string | null;
     sectionBgColor: string;
     sectionBgOpacity: number;
+    sectionBgVideoUrl: string | null;
+    sectionBgGradientEnd: string | null;
   }>,
 ): EditorSection[] {
   const sections: EditorSection[] = [];
@@ -99,7 +119,13 @@ export function groupBlocksIntoSections(
       sections.push({
         id: generateId(),
         columns: [],
-        background: { imageUrl: b.sectionBgImageUrl ?? "", color: b.sectionBgColor, opacity: b.sectionBgOpacity },
+        background: {
+          imageUrl: b.sectionBgImageUrl ?? "",
+          color: b.sectionBgColor,
+          opacity: b.sectionBgOpacity,
+          videoUrl: b.sectionBgVideoUrl ?? "",
+          gradientEnd: b.sectionBgGradientEnd ?? "",
+        },
       });
       currentPosition = b.position;
     }
@@ -124,6 +150,8 @@ export function serializeSections(sections: EditorSection[]) {
     sectionBgImageUrl: string;
     sectionBgColor: string;
     sectionBgOpacity: number;
+    sectionBgVideoUrl: string;
+    sectionBgGradientEnd: string;
   }> = [];
   sections.forEach((section, position) => {
     section.columns.forEach((col, columnIndex) => {
@@ -138,6 +166,8 @@ export function serializeSections(sections: EditorSection[]) {
         sectionBgImageUrl: section.background.imageUrl,
         sectionBgColor: section.background.color,
         sectionBgOpacity: section.background.opacity,
+        sectionBgVideoUrl: section.background.videoUrl,
+        sectionBgGradientEnd: section.background.gradientEnd,
       });
     });
   });

@@ -22,7 +22,17 @@ const initialState: UploadState = {};
 // which button was clicked -- so uploadMedia knows which of the (now
 // uniquely-named, to avoid colliding in the same big FormData) file/altText
 // fields belongs to this instance.
-export function MediaUploadForm({ onUploaded }: { onUploaded?: (media: { id: string; url: string }) => void }) {
+export function MediaUploadForm({
+  onUploaded,
+  accept = "image/*",
+  label = "Subir imagen",
+}: {
+  onUploaded?: (media: { id: string; url: string }) => void;
+  // "video/mp4,video/webm" for the section background's Video tab -- see
+  // BackgroundPicker.tsx. Defaults to images, unchanged everywhere else.
+  accept?: string;
+  label?: string;
+}) {
   const [state, formAction, pending] = useActionState(uploadMedia, initialState);
   const fieldId = useId();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -41,7 +51,7 @@ export function MediaUploadForm({ onUploaded }: { onUploaded?: (media: { id: str
     <div className="flex flex-wrap items-end gap-3">
       <div>
         <label className="block text-sm font-medium text-slate-700">Archivo</label>
-        <input ref={fileInputRef} type="file" name={`file-${fieldId}`} accept="image/*" required className="mt-1 text-sm" />
+        <input ref={fileInputRef} type="file" name={`file-${fieldId}`} accept={accept} required className="mt-1 text-sm" />
       </div>
       <div>
         <label className="block text-sm font-medium text-slate-700">Texto alternativo</label>
@@ -59,7 +69,7 @@ export function MediaUploadForm({ onUploaded }: { onUploaded?: (media: { id: str
         disabled={pending}
         className="rounded-md bg-violet-700 px-4 py-2 text-sm font-medium text-white hover:bg-violet-800 disabled:opacity-60"
       >
-        {pending ? "Subiendo..." : "Subir imagen"}
+        {pending ? "Subiendo..." : label}
       </button>
     </div>
   );

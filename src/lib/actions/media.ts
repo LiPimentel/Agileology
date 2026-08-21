@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { saveUploadedImage, UPLOAD_DIR } from "@/lib/image";
+import { saveUploadedVideo } from "@/lib/video-upload";
 import { sanitizePlainText } from "@/lib/sanitize";
 import { revalidatePath } from "next/cache";
 import { unlink } from "node:fs/promises";
@@ -40,9 +41,9 @@ export async function uploadMedia(_prev: UploadState, formData: FormData): Promi
 
   let saved;
   try {
-    saved = await saveUploadedImage(file);
+    saved = file.type.startsWith("video/") ? await saveUploadedVideo(file) : await saveUploadedImage(file);
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "No se pudo procesar la imagen." };
+    return { error: err instanceof Error ? err.message : "No se pudo procesar el archivo." };
   }
 
   const altText = sanitizePlainText(String(altTextRaw ?? ""));

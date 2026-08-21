@@ -17,6 +17,12 @@ enum BlockType {
   image
   link
   video
+  // Real, addable blocks now -- see blocks.ts's comment. The old
+  // MapComponent/ContactFormComponent models below are unused going
+  // forward (left in place rather than a destructive drop, same as
+  // Page.menuOrder/menuVisible/showInMenu).
+  map
+  contactForm
 }
 
 enum BlogLayout {
@@ -195,6 +201,15 @@ model ContentBlock {
   sectionBgImageUrl String?
   sectionBgColor    String  @default("#000000")
   sectionBgOpacity  Float   @default(0)
+  // A real uploaded video (mp4/webm) as the section's background, shown
+  // instead of sectionBgImageUrl when set -- the "Video" tab in the
+  // section background picker.
+  sectionBgVideoUrl String?
+  // When set, the Color tab is a two-stop linear gradient (sectionBgColor
+  // -> sectionBgGradientEnd) instead of a solid color -- matches the
+  // client's own reference screenshot ("Selector de color" with a
+  // gradient bar).
+  sectionBgGradientEnd String?
 
   @@index([pageId])
   @@index([postId])
@@ -207,6 +222,13 @@ model Background {
   imageUrl       String?
   overlayColor   String  @default("#3B0764")
   overlayOpacity Float   @default(0.5)
+  // A real foreground graphic (logo, hero photo) shown IN the banner
+  // alongside the title -- separate from imageUrl above, which is a
+  // full-bleed CSS background-cover behind everything. "no veo como ahora
+  // tirarle una imagen arriba como el logo que quiero que salga ahí
+  // arriba" -- there was no way to place an actual image element there,
+  // only the cover background.
+  bannerImageUrl String?
 }
 
 model BlogSettings {

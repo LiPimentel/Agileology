@@ -15,8 +15,6 @@ export default async function PageEditorPage({ params }: { params: Promise<{ id:
       include: {
         blocks: { orderBy: [{ position: "asc" }, { columnIndex: "asc" }] },
         background: true,
-        mapComponent: true,
-        contactFormComponent: true,
       },
     }),
     prisma.media.findMany({ orderBy: { createdAt: "desc" }, take: 60 }),
@@ -39,7 +37,12 @@ export default async function PageEditorPage({ params }: { params: Promise<{ id:
         menuVisible: page.menuVisible,
         isSystem: page.isSystem,
         background: page.background
-          ? { imageUrl: page.background.imageUrl, overlayColor: page.background.overlayColor, overlayOpacity: page.background.overlayOpacity }
+          ? {
+              imageUrl: page.background.imageUrl,
+              overlayColor: page.background.overlayColor,
+              overlayOpacity: page.background.overlayOpacity,
+              bannerImageUrl: page.background.bannerImageUrl,
+            }
           : null,
         sections: groupBlocksIntoSections(
           page.blocks.map((b) => ({
@@ -52,10 +55,10 @@ export default async function PageEditorPage({ params }: { params: Promise<{ id:
             sectionBgImageUrl: b.sectionBgImageUrl,
             sectionBgColor: b.sectionBgColor,
             sectionBgOpacity: b.sectionBgOpacity,
+            sectionBgVideoUrl: b.sectionBgVideoUrl,
+            sectionBgGradientEnd: b.sectionBgGradientEnd,
           })),
         ),
-        mapComponent: page.mapComponent ? { address: page.mapComponent.address } : null,
-        contactFormComponent: page.contactFormComponent ? { enabledFields: page.contactFormComponent.enabledFields } : null,
       }}
       mediaLibrary={mediaLibrary}
       pages={allPages}

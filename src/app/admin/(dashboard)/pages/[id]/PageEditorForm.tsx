@@ -22,10 +22,8 @@ export type PageEditorData = {
   showInMenu: boolean;
   menuVisible: boolean;
   isSystem: boolean;
-  background: { imageUrl: string | null; overlayColor: string; overlayOpacity: number } | null;
+  background: { imageUrl: string | null; overlayColor: string; overlayOpacity: number; bannerImageUrl: string | null } | null;
   sections: EditorSection[];
-  mapComponent: { address: string } | null;
-  contactFormComponent: { enabledFields: string[] } | null;
 };
 
 export function PageEditorForm({
@@ -92,18 +90,17 @@ export function PageEditorForm({
           initialImageUrl={page.background?.imageUrl ?? null}
           initialColor={page.background?.overlayColor ?? "#3B0764"}
           initialOpacity={page.background?.overlayOpacity ?? 0.5}
+          initialBannerImageUrl={page.background?.bannerImageUrl ?? null}
           mediaLibrary={mediaLibrary}
         />
       </section>
 
       <section>
         <h2 className="mb-3 text-lg font-semibold text-slate-900">Contenido</h2>
+        <p className="mb-3 text-xs text-slate-500">
+          Agrega el mapa o el formulario de contacto como un componente más, en la sección donde los quieras.
+        </p>
         <SectionBlockEditor initialSections={page.sections} mediaLibrary={mediaLibrary} pages={pages} />
-      </section>
-
-      <section className="rounded-lg border border-slate-200 bg-white p-5">
-        <h2 className="mb-3 text-lg font-semibold text-slate-900">Componentes de contacto (opcional)</h2>
-        <ContactComponentsFields page={page} />
       </section>
 
       {state.error && <p className="text-sm text-red-600">{state.error}</p>}
@@ -144,43 +141,5 @@ export function PageEditorForm({
         </Link>
       </div>
     </form>
-  );
-}
-
-function ContactComponentsFields({ page }: { page: PageEditorData }) {
-  return (
-    <div className="space-y-4">
-      <div>
-        <label className="flex items-center gap-2 text-sm text-slate-700">
-          <input type="checkbox" name="includeMap" defaultChecked={!!page.mapComponent} />
-          Incluir mapa de ubicación
-        </label>
-        <input
-          name="mapAddress"
-          defaultValue={page.mapComponent?.address ?? ""}
-          placeholder="Dirección"
-          className={`${inputClass} mt-2`}
-        />
-      </div>
-      <div>
-        <label className="flex items-center gap-2 text-sm text-slate-700">
-          <input type="checkbox" name="includeContactForm" defaultChecked={!!page.contactFormComponent} />
-          Incluir formulario de contacto
-        </label>
-        <div className="mt-2 flex gap-4 text-sm text-slate-700">
-          {["name", "email", "message"].map((f) => (
-            <label key={f} className="flex items-center gap-1">
-              <input
-                type="checkbox"
-                name="contactFields"
-                value={f}
-                defaultChecked={page.contactFormComponent?.enabledFields.includes(f) ?? true}
-              />
-              {f === "name" ? "Nombre" : f === "email" ? "Email" : "Mensaje"}
-            </label>
-          ))}
-        </div>
-      </div>
-    </div>
   );
 }

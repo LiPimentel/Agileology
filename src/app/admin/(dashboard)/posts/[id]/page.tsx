@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import type { EditorBlock } from "@/components/admin/BlockEditor";
 import { PostEditorForm } from "./PostEditorForm";
 
 export const metadata = { title: "Editar post — Backoffice" };
@@ -35,8 +36,13 @@ export default async function PostEditorPage({ params }: { params: Promise<{ id:
         seoTitle: post.seoTitle,
         seoDescription: post.seoDescription,
         publishAt: toLocalInput(post.publishAt),
+        // Blog posts only ever contain text/image/link/video blocks (map/
+        // contactForm are pages-only, added through the section editor) --
+        // the DB-level BlockType enum is shared across both, so this cast
+        // is safe in practice even though the type system can't express
+        // "this table's rows are a subset of that enum" on its own.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        blocks: post.blocks.map((b) => ({ id: b.id, type: b.type, content: b.content as any })),
+        blocks: post.blocks.map((b) => ({ id: b.id, type: b.type, content: b.content as any })) as EditorBlock[],
       }}
       mediaLibrary={mediaLibrary}
       pages={pages}

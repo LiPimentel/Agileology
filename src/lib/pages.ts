@@ -9,8 +9,6 @@ export async function buildPageSnapshot(pageId: string): Promise<PageRenderData 
     include: {
       blocks: { orderBy: [{ position: "asc" }, { columnIndex: "asc" }] },
       background: true,
-      mapComponent: true,
-      contactFormComponent: true,
     },
   });
   if (!page) return null;
@@ -28,13 +26,16 @@ export async function buildPageSnapshot(pageId: string): Promise<PageRenderData 
       sectionBgImageUrl: b.sectionBgImageUrl,
       sectionBgColor: b.sectionBgColor,
       sectionBgOpacity: b.sectionBgOpacity,
+      sectionBgVideoUrl: b.sectionBgVideoUrl,
+      sectionBgGradientEnd: b.sectionBgGradientEnd,
     })),
     background: page.background
-      ? { imageUrl: page.background.imageUrl, overlayColor: page.background.overlayColor, overlayOpacity: page.background.overlayOpacity }
-      : null,
-    mapComponent: page.mapComponent ? { address: page.mapComponent.address } : null,
-    contactFormComponent: page.contactFormComponent
-      ? { enabledFields: page.contactFormComponent.enabledFields }
+      ? {
+          imageUrl: page.background.imageUrl,
+          overlayColor: page.background.overlayColor,
+          overlayOpacity: page.background.overlayOpacity,
+          bannerImageUrl: page.background.bannerImageUrl,
+        }
       : null,
   };
 }

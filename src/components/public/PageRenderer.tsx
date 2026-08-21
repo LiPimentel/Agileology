@@ -1,15 +1,19 @@
 import { BlockRenderer, type RenderableBlock } from "@/components/blocks/BlockRenderer";
 import { BackgroundOverlay } from "@/components/public/BackgroundOverlay";
-import { MapEmbed } from "@/components/public/MapEmbed";
-import { ContactForm } from "@/components/public/ContactForm";
 
 export type PageRenderData = {
   id: string;
   title: string;
   blocks: RenderableBlock[];
-  background?: { imageUrl?: string | null; overlayColor?: string | null; overlayOpacity?: number | null } | null;
-  mapComponent?: { address: string } | null;
-  contactFormComponent?: { enabledFields: string[] } | null;
+  background?: {
+    imageUrl?: string | null;
+    overlayColor?: string | null;
+    overlayOpacity?: number | null;
+    // A real image (logo, hero photo) shown in the banner above the
+    // title -- distinct from imageUrl, which is a full-bleed CSS
+    // background-cover behind everything.
+    bannerImageUrl?: string | null;
+  } | null;
 };
 
 /**
@@ -43,7 +47,11 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
         overlayColor={page.background?.overlayColor}
         overlayOpacity={page.background?.overlayOpacity}
       >
-        <div className="mx-auto max-w-4xl px-6 py-16">
+        <div className={`mx-auto max-w-4xl px-6 py-16 ${page.background?.bannerImageUrl ? "text-center" : ""}`}>
+          {page.background?.bannerImageUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={page.background.bannerImageUrl} alt="" className="mx-auto mb-4 max-h-24 max-w-full object-contain" />
+          )}
           <h1
             className={
               page.background?.imageUrl
@@ -63,7 +71,7 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
             section.length <= 1 ? (
               // Single-column section: no flex row needed, matches the
               // pre-sections layout exactly.
-              <BlockRenderer key={first?.id ?? i} block={first} />
+              <BlockRenderer key={first?.id ?? i} block={first} pageId={page.id} />
             ) : (
               <div key={first?.id ?? i} className="flex flex-col gap-6 sm:flex-row">
                 {section.map((block, j) => (
@@ -72,16 +80,18 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
                     className="min-w-0"
                     style={{ flexBasis: `${block.columnWidth ?? Math.round(100 / section.length)}%` }}
                   >
-                    <BlockRenderer block={block} />
+                    <BlockRenderer block={block} pageId={page.id} />
                   </div>
                 ))}
               </div>
             );
 
           // A section's own background (separate from the page's overall
-          // one) -- same imageUrl/color/opacity fields duplicated across
-          // every block in this section (see ContentBlock schema comment).
-          const hasSectionBg = Boolean(first?.sectionBgImageUrl) || (first?.sectionBgOpacity ?? 0) > 0;
+          // one) -- same imageUrl/color/opacity/videoUrl fields duplicated
+          // across every block in this section (see ContentBlock schema
+          // comment).
+          const hasSectionBg =
+            Boolean(first?.sectionBgImageUrl) || Boolean(first?.sectionBgVideoUrl) || (first?.sectionBgOpacity ?? 0) > 0;
           if (!hasSectionBg) return row;
 
           return (
@@ -90,25 +100,13 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
               imageUrl={first?.sectionBgImageUrl}
               overlayColor={first?.sectionBgColor}
               overlayOpacity={first?.sectionBgOpacity}
+              videoUrl={first?.sectionBgVideoUrl}
+              gradientEnd={first?.sectionBgGradientEnd}
             >
               <div className="rounded-md p-6">{row}</div>
             </BackgroundOverlay>
           );
         })}
-
-        {page.mapComponent && (
-          <div>
-            <h2 className="mb-3 text-xl font-semibold text-slate-900">Ubicación</h2>
-            <MapEmbed address={page.mapComponent.address} />
-          </div>
-        )}
-
-        {page.contactFormComponent && (
-          <div>
-            <h2 className="mb-3 text-xl font-semibold text-slate-900">Contáctanos</h2>
-            <ContactForm pageId={page.id} enabledFields={page.contactFormComponent.enabledFields} />
-          </div>
-        )}
       </div>
     </article>
   );

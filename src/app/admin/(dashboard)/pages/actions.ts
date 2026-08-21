@@ -14,7 +14,7 @@ export type PageFormState = { error?: string; pageId?: string; savedAt?: number 
 
 type SubmittedBlock = {
   id: string;
-  type: "text" | "image" | "link" | "video";
+  type: "text" | "image" | "link" | "video" | "map" | "contactForm";
   content: unknown;
   position?: number;
   columnIndex?: number;
@@ -22,6 +22,8 @@ type SubmittedBlock = {
   sectionBgImageUrl?: string;
   sectionBgColor?: string;
   sectionBgOpacity?: number;
+  sectionBgVideoUrl?: string;
+  sectionBgGradientEnd?: string;
 };
 
 function parseBlocks(raw: string): SubmittedBlock[] {
@@ -76,13 +78,12 @@ async function upsertPageContent(pageId: string, formData: FormData) {
   const overlayColor = String(formData.get("overlayColor") ?? "#3B0764");
   const overlayOpacity = Math.min(1, Math.max(0, Number(formData.get("overlayOpacity") ?? 0.5)));
   const backgroundImageUrl = String(formData.get("backgroundImageUrl") ?? "") || null;
+  const bannerImageUrl = String(formData.get("bannerImageUrl") ?? "") || null;
 
-  const includeMap = formData.get("includeMap") === "on";
-  const mapAddress = sanitizePlainText(String(formData.get("mapAddress") ?? ""));
-
-  const includeContactForm = formData.get("includeContactForm") === "on";
-  const contactFields = formData.getAll("contactFields").map(String);
-
+  // Map/contact form used to be separate page-level singletons (own
+  // formData fields, own DB tables) -- they're regular blocks now (see
+  // blocks.ts), so they flow through the same blocksJson path as every
+  // other block type below. No special-casing needed here anymore.
   const blocksRaw = parseBlocks(String(formData.get("blocksJson") ?? "[]"));
   // Sections editor sends position (shared by every block/column in one
   // section = one row) and columnIndex/columnWidth (this block's slot and
@@ -98,6 +99,8 @@ async function upsertPageContent(pageId: string, formData: FormData) {
     sectionBgImageUrl: String(b.sectionBgImageUrl ?? "") || null,
     sectionBgColor: sanitizeHexColor(b.sectionBgColor, "#000000"),
     sectionBgOpacity: sanitizeOpacity(b.sectionBgOpacity),
+    sectionBgVideoUrl: String(b.sectionBgVideoUrl ?? "") || null,
+    sectionBgGradientEnd: String(b.sectionBgGradientEnd ?? "") || null,
   }));
 
   await prisma.$transaction(async (tx) => {
@@ -113,29 +116,9 @@ async function upsertPageContent(pageId: string, formData: FormData) {
 
     await tx.background.upsert({
       where: { pageId },
-      update: { overlayColor, overlayOpacity, imageUrl: backgroundImageUrl },
-      create: { pageId, overlayColor, overlayOpacity, imageUrl: backgroundImageUrl },
+      update: { overlayColor, overlayOpacity, imageUrl: backgroundImageUrl, bannerImageUrl },
+      create: { pageId, overlayColor, overlayOpacity, imageUrl: backgroundImageUrl, bannerImageUrl },
     });
-
-    if (includeMap && mapAddress) {
-      await tx.mapComponent.upsert({
-        where: { pageId },
-        update: { address: mapAddress },
-        create: { pageId, address: mapAddress },
-      });
-    } else {
-      await tx.mapComponent.deleteMany({ where: { pageId } });
-    }
-
-    if (includeContactForm) {
-      await tx.contactFormComponent.upsert({
-        where: { pageId },
-        update: { enabledFields: contactFields.length ? contactFields : ["name", "email", "message"] },
-        create: { pageId, enabledFields: contactFields.length ? contactFields : ["name", "email", "message"] },
-      });
-    } else {
-      await tx.contactFormComponent.deleteMany({ where: { pageId } });
-    }
   });
 
   return slug;
@@ -199,7 +182,7 @@ export async function duplicatePage(pageId: string) {
   const admin = await requireAdmin();
   const source = await prisma.page.findUnique({
     where: { id: pageId },
-    include: { blocks: true, background: true, mapComponent: true, contactFormComponent: true },
+    include: { blocks: true, background: true },
   });
   if (!source) throw new Error("Página no encontrada.");
 
@@ -226,15 +209,20 @@ export async function duplicatePage(pageId: string) {
           sectionBgImageUrl: b.sectionBgImageUrl,
           sectionBgColor: b.sectionBgColor,
           sectionBgOpacity: b.sectionBgOpacity,
+          sectionBgVideoUrl: b.sectionBgVideoUrl,
+          sectionBgGradientEnd: b.sectionBgGradientEnd,
         })),
       },
       background: source.background
-        ? { create: { imageUrl: source.background.imageUrl, overlayColor: source.background.overlayColor, overlayOpacity: source.background.overlayOpacity } }
+        ? {
+            create: {
+              imageUrl: source.background.imageUrl,
+              overlayColor: source.background.overlayColor,
+              overlayOpacity: source.background.overlayOpacity,
+              bannerImageUrl: source.background.bannerImageUrl,
+            },
+          }
         : { create: {} },
-      mapComponent: source.mapComponent ? { create: { address: source.mapComponent.address } } : undefined,
-      contactFormComponent: source.contactFormComponent
-        ? { create: { enabledFields: source.contactFormComponent.enabledFields } }
-        : undefined,
     },
   });
 
@@ -267,6 +255,8 @@ export async function restorePageVersion(pageId: string, versionId: string) {
               sectionBgImageUrl?: string | null;
               sectionBgColor?: string;
               sectionBgOpacity?: number;
+              sectionBgVideoUrl?: string | null;
+              sectionBgGradientEnd?: string | null;
             },
             i: number,
           ) => ({
@@ -282,6 +272,8 @@ export async function restorePageVersion(pageId: string, versionId: string) {
             columnWidth: b.columnWidth ?? 100,
             sectionBgImageUrl: b.sectionBgImageUrl ?? null,
             sectionBgColor: b.sectionBgColor ?? "#000000",
+            sectionBgVideoUrl: b.sectionBgVideoUrl ?? null,
+            sectionBgGradientEnd: b.sectionBgGradientEnd ?? null,
             sectionBgOpacity: b.sectionBgOpacity ?? 0,
           }),
         ),
@@ -293,12 +285,14 @@ export async function restorePageVersion(pageId: string, versionId: string) {
         imageUrl: snapshot.background?.imageUrl ?? null,
         overlayColor: snapshot.background?.overlayColor ?? "#3B0764",
         overlayOpacity: snapshot.background?.overlayOpacity ?? 0.5,
+        bannerImageUrl: snapshot.background?.bannerImageUrl ?? null,
       },
       create: {
         pageId,
         imageUrl: snapshot.background?.imageUrl ?? null,
         overlayColor: snapshot.background?.overlayColor ?? "#3B0764",
         overlayOpacity: snapshot.background?.overlayOpacity ?? 0.5,
+        bannerImageUrl: snapshot.background?.bannerImageUrl ?? null,
       },
     });
   });
