@@ -17,6 +17,10 @@ export const imageBlockSchema = z.object({
   focalX: z.number().min(0).max(100).default(50),
   focalY: z.number().min(0).max(100).default(50),
   zoom: z.number().min(1).max(3).default(1),
+  // Percentage of the column's width -- same "Tamaño" control video blocks
+  // already have (see videoBlockSchema below). Previously there was no way
+  // to shrink the shape itself, only zoom/crop the photo inside it.
+  width: z.number().min(20).max(100).default(100),
 });
 export const linkBlockSchema = z.object({
   label: z.string(),

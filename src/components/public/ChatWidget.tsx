@@ -20,9 +20,12 @@ export function ChatWidget({
   const [state, formAction, pending] = useActionState(submitChatMessage, initialState);
 
   return (
-    <div className="fixed bottom-5 right-5 z-40">
+    <div className="fixed bottom-5 right-5 left-5 z-40 flex flex-col items-end sm:left-auto">
       {open && (
-        <div className="mb-3 w-80 rounded-lg border border-slate-200 bg-white shadow-xl">
+        // w-80 is fine from `sm:` up, but on a narrow phone (< ~360px) it can
+        // overflow past the screen edge -- cap it to the viewport width
+        // (minus the fixed left/right margins above) below that.
+        <div className="mb-3 w-full max-w-80 rounded-lg border border-slate-200 bg-white shadow-xl">
           <div className="flex items-center justify-between rounded-t-lg bg-[#1c1140] px-4 py-3 text-white">
             <span className="font-medium">{title}</span>
             <button type="button" onClick={() => setOpen(false)} aria-label="Cerrar chat">

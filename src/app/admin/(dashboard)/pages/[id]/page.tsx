@@ -13,7 +13,7 @@ export default async function PageEditorPage({ params }: { params: Promise<{ id:
     prisma.page.findUnique({
       where: { id },
       include: {
-        blocks: { orderBy: [{ position: "asc" }, { columnIndex: "asc" }] },
+        blocks: { orderBy: [{ position: "asc" }, { columnIndex: "asc" }, { blockOrder: "asc" }] },
         background: true,
       },
     }),
@@ -51,6 +51,7 @@ export default async function PageEditorPage({ params }: { params: Promise<{ id:
             type: b.type as any,
             content: b.content,
             position: b.position,
+            columnIndex: b.columnIndex,
             columnWidth: b.columnWidth,
             sectionBgImageUrl: b.sectionBgImageUrl,
             sectionBgColor: b.sectionBgColor,

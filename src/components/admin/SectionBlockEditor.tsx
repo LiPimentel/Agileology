@@ -17,6 +17,7 @@ import {
   type EditorColumn,
   type EditorSection,
   emptyContent,
+  generateId,
   newSection,
   serializeSections,
 } from "@/lib/sections";
@@ -120,28 +121,64 @@ export function SectionBlockEditor({
       return next;
     });
   }
-  function setColumnType(sectionId: string, columnId: string, type: BlockType) {
-    setSections((prev) =>
-      prev.map((s) =>
-        s.id !== sectionId
-          ? s
-          : { ...s, columns: s.columns.map((c) => (c.id === columnId ? { ...c, block: emptyContent(type) } : c)) },
-      ),
-    );
-  }
-  function clearColumn(sectionId: string, columnId: string) {
-    setSections((prev) =>
-      prev.map((s) => (s.id !== sectionId ? s : { ...s, columns: s.columns.map((c) => (c.id === columnId ? { ...c, block: null } : c)) })),
-    );
-  }
-  function updateColumnContent(sectionId: string, columnId: string, content: unknown) {
+  /** Adds a block to a column's stack instead of replacing it -- a column can hold any number of blocks now. */
+  function addBlockToColumn(sectionId: string, columnId: string, type: BlockType) {
     setSections((prev) =>
       prev.map((s) =>
         s.id !== sectionId
           ? s
           : {
               ...s,
-              columns: s.columns.map((c) => (c.id === columnId && c.block ? { ...c, block: { ...c.block, content } as BlockValue } : c)),
+              columns: s.columns.map((c) =>
+                c.id === columnId ? { ...c, blocks: [...c.blocks, { id: generateId(), block: emptyContent(type) }] } : c,
+              ),
+            },
+      ),
+    );
+  }
+  function removeBlockFromColumn(sectionId: string, columnId: string, blockId: string) {
+    setSections((prev) =>
+      prev.map((s) =>
+        s.id !== sectionId
+          ? s
+          : { ...s, columns: s.columns.map((c) => (c.id === columnId ? { ...c, blocks: c.blocks.filter((b) => b.id !== blockId) } : c)) },
+      ),
+    );
+  }
+  function moveBlockInColumn(sectionId: string, columnId: string, blockId: string, dir: -1 | 1) {
+    setSections((prev) =>
+      prev.map((s) => {
+        if (s.id !== sectionId) return s;
+        return {
+          ...s,
+          columns: s.columns.map((c) => {
+            if (c.id !== columnId) return c;
+            const i = c.blocks.findIndex((b) => b.id === blockId);
+            const j = i + dir;
+            if (i < 0 || j < 0 || j >= c.blocks.length) return c;
+            const blocks = [...c.blocks];
+            [blocks[i], blocks[j]] = [blocks[j], blocks[i]];
+            return { ...c, blocks };
+          }),
+        };
+      }),
+    );
+  }
+  function updateBlockContent(sectionId: string, columnId: string, blockId: string, content: unknown) {
+    setSections((prev) =>
+      prev.map((s) =>
+        s.id !== sectionId
+          ? s
+          : {
+              ...s,
+              columns: s.columns.map((c) =>
+                c.id !== columnId
+                  ? c
+                  : {
+                      ...c,
+                      blocks: c.blocks.map((b) => (b.id === blockId ? { ...b, block: { ...b.block, content } as BlockValue } : b)),
+                    },
+              ),
             },
       ),
     );
@@ -193,36 +230,61 @@ export function SectionBlockEditor({
             />
           </div>
         )}
-        {!col.block ? (
-          <AddBlockMenu options={BLOCK_TYPE_OPTIONS} onSelect={(type) => setColumnType(section.id, col.id, type)} />
-        ) : (
-          <div>
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-500">{BLOCK_LABELS[col.block.type]}</span>
-              <button type="button" onClick={() => clearColumn(section.id, col.id)} className="text-xs text-red-600 hover:underline">
-                Quitar
-              </button>
+        <div className="space-y-3">
+          {col.blocks.map((item, bi) => (
+            <div key={item.id} className={bi > 0 ? "border-t border-dashed border-slate-200 pt-3" : undefined}>
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-500">{BLOCK_LABELS[item.block.type]}</span>
+                <div className="flex items-center gap-2 text-xs">
+                  <button
+                    type="button"
+                    disabled={bi === 0}
+                    onClick={() => moveBlockInColumn(section.id, col.id, item.id, -1)}
+                    className="text-slate-500 hover:text-violet-700 disabled:opacity-30"
+                    title="Mover arriba"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    disabled={bi === col.blocks.length - 1}
+                    onClick={() => moveBlockInColumn(section.id, col.id, item.id, 1)}
+                    className="text-slate-500 hover:text-violet-700 disabled:opacity-30"
+                    title="Mover abajo"
+                  >
+                    ↓
+                  </button>
+                  <button type="button" onClick={() => removeBlockFromColumn(section.id, col.id, item.id)} className="text-red-600 hover:underline">
+                    Quitar
+                  </button>
+                </div>
+              </div>
+              {item.block.type === "text" && (
+                <TextBlockEditor html={item.block.content.html} onChange={(html) => updateBlockContent(section.id, col.id, item.id, { html })} mediaLibrary={mediaLibrary} />
+              )}
+              {item.block.type === "image" && (
+                <ImageBlockEditor value={item.block.content} onChange={(v) => updateBlockContent(section.id, col.id, item.id, v)} mediaLibrary={mediaLibrary} />
+              )}
+              {item.block.type === "link" && (
+                <LinkBlockEditor value={item.block.content} onChange={(v) => updateBlockContent(section.id, col.id, item.id, v)} pages={pages} />
+              )}
+              {item.block.type === "video" && (
+                <VideoBlockEditor value={item.block.content} onChange={(v) => updateBlockContent(section.id, col.id, item.id, v)} />
+              )}
+              {item.block.type === "map" && (
+                <MapBlockEditor value={item.block.content} onChange={(v) => updateBlockContent(section.id, col.id, item.id, v)} />
+              )}
+              {item.block.type === "contactForm" && (
+                <ContactFormBlockEditor value={item.block.content} onChange={(v) => updateBlockContent(section.id, col.id, item.id, v)} />
+              )}
             </div>
-            {col.block.type === "text" && (
-              <TextBlockEditor html={col.block.content.html} onChange={(html) => updateColumnContent(section.id, col.id, { html })} mediaLibrary={mediaLibrary} />
-            )}
-            {col.block.type === "image" && (
-              <ImageBlockEditor value={col.block.content} onChange={(v) => updateColumnContent(section.id, col.id, v)} mediaLibrary={mediaLibrary} />
-            )}
-            {col.block.type === "link" && (
-              <LinkBlockEditor value={col.block.content} onChange={(v) => updateColumnContent(section.id, col.id, v)} pages={pages} />
-            )}
-            {col.block.type === "video" && (
-              <VideoBlockEditor value={col.block.content} onChange={(v) => updateColumnContent(section.id, col.id, v)} />
-            )}
-            {col.block.type === "map" && (
-              <MapBlockEditor value={col.block.content} onChange={(v) => updateColumnContent(section.id, col.id, v)} />
-            )}
-            {col.block.type === "contactForm" && (
-              <ContactFormBlockEditor value={col.block.content} onChange={(v) => updateColumnContent(section.id, col.id, v)} />
-            )}
-          </div>
-        )}
+          ))}
+          <AddBlockMenu
+            options={BLOCK_TYPE_OPTIONS}
+            onSelect={(type) => addBlockToColumn(section.id, col.id, type)}
+            label={col.blocks.length === 0 ? "+ Agregar componente" : "+ Agregar otro componente"}
+          />
+        </div>
       </div>
     );
   }
@@ -257,7 +319,7 @@ export function SectionBlockEditor({
           <div key={section.id} className="rounded-lg border border-slate-200 bg-white p-4">
             <div className="mb-3 flex items-center justify-between">
               <span className="text-sm font-semibold text-slate-500">
-                Sección {i + 1} · {section.columns.length === 1 ? "1 componente" : `${section.columns.length} componentes`}
+                Sección {i + 1} · {section.columns.length === 1 ? "1 columna" : `${section.columns.length} columnas`}
               </span>
               <div className="flex gap-2 text-sm">
                 <button type="button" disabled={i === 0} onClick={() => moveSection(section.id, -1)} className="text-slate-500 hover:text-violet-700 disabled:opacity-30">
