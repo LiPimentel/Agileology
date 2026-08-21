@@ -2,6 +2,7 @@
 
 import { parseVideoEmbed } from "@/lib/video";
 import { ALIGN_CLASS, IMAGE_SHAPE_LABELS, VIDEO_SHAPE_WRAPPER_CLASS, type ImageShape } from "@/lib/imageShape";
+import { ResizableBlockBox } from "@/components/admin/blocks/ResizableBlockBox";
 
 export type VideoBlockValue = {
   url: string;
@@ -30,8 +31,14 @@ export function VideoBlockEditor({ value, onChange }: { value: VideoBlockValue; 
         // max-w-3xl/ALIGN_CLASS match BlockRenderer's video case exactly --
         // was capped at max-w-md (28rem) here regardless of alignment, so
         // the editor preview undersold how big a wide video actually
-        // publishes at.
-        <div className={`max-w-3xl ${ALIGN_CLASS[value.alignment] ?? "mx-auto"}`} style={{ width: `${value.width}%` }}>
+        // publishes at. The corner handle drags "Tamaño" directly, same as
+        // images -- the slider below stays for precise/typed values.
+        <ResizableBlockBox
+          width={value.width}
+          onWidthChange={(w) => onChange({ ...value, width: w })}
+          maxWidthClass="max-w-3xl"
+          alignClass={ALIGN_CLASS[value.alignment] ?? "mx-auto"}
+        >
           {/*
             circle/oval crop the embed's iframe container into that frame --
             there's no pan/zoom for video the way images have it, an
@@ -47,7 +54,7 @@ export function VideoBlockEditor({ value, onChange }: { value: VideoBlockValue; 
               title="Previsualización de video"
             />
           </div>
-        </div>
+        </ResizableBlockBox>
       )}
       <div className="flex flex-wrap gap-4">
         <div>

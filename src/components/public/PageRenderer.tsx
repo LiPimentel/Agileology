@@ -17,6 +17,10 @@ export type PageRenderData = {
     // published before this existed) defaults to true, matching the old,
     // always-on behavior exactly.
     showBanner?: boolean;
+    // Whether the title TEXT shows inside the banner -- independent of
+    // showBanner (which hides the whole block). Also defaults true for old
+    // snapshots.
+    showTitle?: boolean;
   } | null;
 };
 
@@ -71,6 +75,13 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
   // true so every page published before this existed keeps its exact
   // current look.
   const showBanner = page.background?.showBanner ?? true;
+  // "habrán secciones o partes donde no quiero que se vea el nombre de la
+  // página" -- independent of showBanner: a page can keep its background
+  // image/logo but skip repeating the title as text over it.
+  const showTitle = page.background?.showTitle ?? true;
+  // Exactly one <h1> always exists (accessibility/SEO), visible only when
+  // both the banner and the title text are turned on for this page.
+  const titleVisible = showBanner && showTitle;
 
   return (
     <article>
@@ -87,9 +98,11 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
             )}
             <h1
               className={
-                page.background?.imageUrl
-                  ? "text-4xl font-bold text-white"
-                  : "text-4xl font-bold text-slate-900"
+                titleVisible
+                  ? page.background?.imageUrl
+                    ? "text-4xl font-bold text-white"
+                    : "text-4xl font-bold text-slate-900"
+                  : "sr-only"
               }
             >
               {page.title}

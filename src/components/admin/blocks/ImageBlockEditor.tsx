@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import Image from "next/image";
 import { MediaGrid, type MediaItem } from "@/components/admin/MediaGrid";
 import { MediaUploadForm } from "@/components/admin/MediaUploadForm";
+import { ResizableBlockBox } from "@/components/admin/blocks/ResizableBlockBox";
 import {
   ALIGN_CLASS,
   IMAGE_SHAPE_IMG_CLASS,
@@ -63,7 +64,7 @@ function ImageShapeAdjuster({
   zoom: number;
   width: number;
   alignment: ImageBlockValue["alignment"];
-  onChange: (patch: { focalX?: number; focalY?: number; zoom?: number }) => void;
+  onChange: (patch: { focalX?: number; focalY?: number; zoom?: number; width?: number }) => void;
 }) {
   const boxRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
@@ -97,12 +98,17 @@ function ImageShapeAdjuster({
 
   return (
     <div>
-      <div
-        className={`${maxWidthClass} ${ALIGN_CLASS[alignment] ?? "mx-auto"}`}
-        // Real published width (the "Tamaño" slider below) -- same style
-        // BlockRenderer applies, so a smaller/larger setting is visible
-        // right here instead of only after publishing.
-        style={{ width: `${width}%` }}
+      {/*
+        The corner handle (bottom-right, added by ResizableBlockBox) drags
+        `width` directly on the canvas -- "quiero poder agrandar/achicar el
+        componente arrastrando, no solo con el slider" -- the slider below
+        stays too, for precise/typed values.
+      */}
+      <ResizableBlockBox
+        width={width}
+        onWidthChange={(w) => onChange({ width: w })}
+        maxWidthClass={maxWidthClass}
+        alignClass={ALIGN_CLASS[alignment] ?? "mx-auto"}
       >
         <div
           ref={boxRef}
@@ -130,7 +136,7 @@ function ImageShapeAdjuster({
             }}
           />
         </div>
-      </div>
+      </ResizableBlockBox>
       <div className="mt-1 flex items-center justify-between">
         <p className="text-xs text-slate-500">Arrastra la imagen para ajustarla dentro de la forma.</p>
         <button
@@ -193,7 +199,12 @@ export function ImageBlockEditor({
           // Same maxWidth/width%/alignment classes BlockRenderer applies
           // publicly -- was hard-capped at 200px before, so a wide "Tamaño"
           // or a rectangle shape never showed its real size while editing.
-          <div className={`${imageMaxWidthClass(shape)} ${ALIGN_CLASS[value.alignment] ?? "mx-auto"}`} style={{ width: `${width}%` }}>
+          <ResizableBlockBox
+            width={width}
+            onWidthChange={(w) => onChange({ ...value, width: w })}
+            maxWidthClass={imageMaxWidthClass(shape)}
+            alignClass={ALIGN_CLASS[value.alignment] ?? "mx-auto"}
+          >
             <Image
               src={value.url}
               alt={value.altText}
@@ -201,7 +212,7 @@ export function ImageBlockEditor({
               height={600}
               className={`w-full border border-slate-200 ${IMAGE_SHAPE_IMG_CLASS[shape]}`}
             />
-          </div>
+          </ResizableBlockBox>
         )
       ) : (
         <p className="text-sm text-slate-500">Sin imagen seleccionada.</p>

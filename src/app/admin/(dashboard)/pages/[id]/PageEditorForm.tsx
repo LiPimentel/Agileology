@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { savePage, type PageFormState } from "../actions";
 import { BackgroundPicker } from "@/components/admin/BackgroundPicker";
 import { SectionBlockEditor, type EditorSection } from "@/components/admin/SectionBlockEditor";
@@ -28,6 +29,7 @@ export type PageEditorData = {
     overlayOpacity: number;
     bannerImageUrl: string | null;
     showBanner: boolean;
+    showTitle: boolean;
   } | null;
   sections: EditorSection[];
 };
@@ -39,12 +41,14 @@ export function PageEditorForm({
 }: {
   page: PageEditorData;
   mediaLibrary: MediaItem[];
-  pages: Array<{ slug: string; title: string }>;
+  pages: Array<{ id: string; slug: string; title: string }>;
 }) {
+  const router = useRouter();
   const [state, formAction, pending] = useActionState(savePage, initialState);
   const formRef = useRef<HTMLFormElement>(null);
   const draftButtonRef = useRef<HTMLButtonElement>(null);
   const [showBanner, setShowBanner] = useState(page.background?.showBanner ?? true);
+  const [showTitle, setShowTitle] = useState(page.background?.showTitle ?? true);
 
   // Autosave draft periodically (7.14) so unsaved edits survive an accidental tab close.
   useEffect(() => {
@@ -57,6 +61,28 @@ export function PageEditorForm({
   return (
     <form ref={formRef} action={formAction} className="space-y-8 pb-16">
       <input type="hidden" name="pageId" value={page.id} />
+
+      {/*
+        "arriba puedes ver una parte que dice página: Inicio ahí puedo ir
+        cambiando las páginas" -- jump straight to editing another page
+        without leaving the editor for the pages list first. Not a form
+        field (name-less <select>): purely a navigation shortcut, so it
+        can't accidentally get submitted as part of savePage.
+      */}
+      <label className="flex items-center gap-2 text-sm text-slate-600">
+        Página:
+        <select
+          value={page.id}
+          onChange={(e) => router.push(`/admin/pages/${e.target.value}`)}
+          className="rounded-md border border-slate-300 bg-white px-2 py-1 font-medium text-slate-900"
+        >
+          {pages.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.title}
+            </option>
+          ))}
+        </select>
+      </label>
 
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-slate-900">{page.title || "Nueva página"}</h1>
@@ -92,22 +118,50 @@ export function PageEditorForm({
       </p>
 
       <section className="rounded-lg border border-slate-200 bg-white p-5">
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-semibold text-slate-900">Encabezado con título</h2>
-          <label className="flex items-center gap-2 text-sm text-slate-700">
-            <input
-              type="checkbox"
-              name="showBanner"
-              checked={showBanner}
-              onChange={(e) => setShowBanner(e.target.checked)}
-            />
-            Mostrarlo en esta página
-          </label>
+          <div className="flex flex-wrap items-center gap-4">
+            <label className="flex items-center gap-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                name="showBanner"
+                checked={showBanner}
+                onChange={(e) => setShowBanner(e.target.checked)}
+              />
+              Mostrarlo en esta página
+            </label>
+            {/*
+              Independent of showBanner above -- "habrán secciones o partes
+              donde no quiero que se vea el nombre de la página": keep the
+              background image/logo but skip repeating the title as text
+              over it. Only meaningful while the banner itself is shown, so
+              disabled (not hidden -- the choice still gets saved) otherwise.
+            */}
+            {/*
+              Deliberately NOT `disabled` -- a disabled checkbox is excluded
+              from FormData entirely on submit, which would silently save
+              showTitle as false the moment the banner is off, even if it
+              was checked, and leave it out of sync once the banner comes
+              back on. pointer-events-none + dimming gets the same "not
+              interactive right now" look without that data-loss bug.
+            */}
+            <label
+              className={`flex items-center gap-2 text-sm text-slate-700 ${showBanner ? "" : "pointer-events-none opacity-50"}`}
+            >
+              <input type="checkbox" name="showTitle" checked={showTitle} onChange={(e) => setShowTitle(e.target.checked)} />
+              Mostrar el nombre de la página
+            </label>
+          </div>
         </div>
         {!showBanner && (
           <p className="mb-3 text-sm text-slate-500">
             Esta página no tendrá el bloque fijo de título/fondo -- empieza directo con las secciones de abajo (útil si la
             primera sección ya es un video, un slideshow, etc.). Las opciones de abajo quedan guardadas por si lo reactivas.
+          </p>
+        )}
+        {showBanner && !showTitle && (
+          <p className="mb-3 text-sm text-slate-500">
+            El fondo/logo de esta página se mostrará, pero sin el texto del nombre encima.
           </p>
         )}
         {/*

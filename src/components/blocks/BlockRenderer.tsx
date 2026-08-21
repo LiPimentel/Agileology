@@ -1,6 +1,6 @@
-import Link from "next/link";
 import Image from "next/image";
 import { parseVideoEmbed } from "@/lib/video";
+import { TrackedLink } from "@/components/public/TrackedLink";
 import {
   IMAGE_SHAPE_WRAPPER_CLASS,
   IMAGE_SHAPE_IMG_CLASS,
@@ -94,17 +94,10 @@ export function BlockRenderer({ block, pageId }: { block: RenderableBlock; pageI
       const newTab = Boolean(block.content.newTab);
       if (!href) return null;
       const className = "inline-block rounded-md bg-violet-700 px-5 py-2 text-white hover:bg-violet-800";
-      if (internal) {
-        return (
-          <Link href={href} className={className} target={newTab ? "_blank" : undefined}>
-            {label}
-          </Link>
-        );
-      }
       return (
-        <a href={href} className={className} target={newTab ? "_blank" : undefined} rel="noopener noreferrer">
+        <TrackedLink href={href} label={`cta:${href}`} internal={internal} newTab={newTab} className={className}>
           {label}
-        </a>
+        </TrackedLink>
       );
     }
     case "video": {

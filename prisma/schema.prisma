@@ -243,6 +243,13 @@ model Background {
   // between. Defaults true so every existing page's current look is
   // unchanged; an admin opts a specific page out of it explicitly.
   showBanner     Boolean @default(true)
+  // Whether the page TITLE TEXT shows inside the banner -- separate from
+  // showBanner above (which hides the whole block: background/logo/title
+  // together). "habrán secciones o partes donde no quiero que se vea el
+  // nombre de la página" -- a page can want to keep its background image
+  // and logo but not repeat the title as text over it. Defaults true so
+  // every existing page keeps showing its title exactly as before.
+  showTitle      Boolean @default(true)
 }
 
 model BlogSettings {
@@ -349,9 +356,18 @@ model VisitLog {
   path      String
   referrer  String?
   timestamp DateTime @default(now())
+  // "pageview" (default, unchanged behavior -- one row per page load) or
+  // "click" -- an in-page interaction that doesn't necessarily produce its
+  // own pageview (chat widget opened, a WhatsApp/phone/social link, a CTA
+  // button in a link block). "quiero ver... click dentro del sitio".
+  eventType String  @default("pageview")
+  // What was clicked, only set for eventType="click" (e.g. "chat_widget",
+  // "whatsapp", "phone", "social:facebook", "cta:/contacto").
+  label     String?
 
   @@index([timestamp])
   @@index([pageId])
+  @@index([eventType])
 }
 
 model AuditLog {
