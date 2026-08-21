@@ -91,12 +91,27 @@ not application code — see `SECURITY.md` for the full list. In short:
   (see `src/proxy.ts`) — point that DNS record at the same deployment and
   it works; `/admin` also still works directly if you don't set up the
   subdomain.
-- **Uploaded media**: images are written to `public/uploads/` on local
-  disk. That's fine on a traditional Node server / VPS / Docker deployment
-  with a persistent volume, but **will not persist** on a stateless
-  serverless platform (e.g. Vercel's default runtime). If you deploy
-  there, swap `src/lib/image.ts`'s `saveUploadedImage` to write to an
-  object store (S3, Cloudflare R2, Supabase Storage, etc.) instead.
+- **`NEXT_PUBLIC_SITE_URL` (search engines / SEO)**: set this to the site's
+  real public URL (e.g. `https://agileologywave.com`) in the production
+  environment. `sitemap.xml` and `robots.txt` (both fully automatic, no
+  backoffice screen needed — see Ajustes del sitio → Visibilidad en
+  buscadores for live links to them) read it to build the absolute URLs
+  search engines require; left unset, `sitemap.xml` emits broken relative
+  URLs and `robots.txt` silently omits the `Sitemap:` line entirely, with
+  no visible error anywhere. Site settings also shows a warning banner in
+  the backoffice if this is unset.
+- **Uploaded media**: images/videos are written to `UPLOADS_DIR` (defaults
+  to a project-relative `uploads/` folder, deliberately *outside*
+  `public/` — see the comment on `UPLOAD_DIR` in `src/lib/image.ts` for
+  why) on local disk. That's fine on a traditional Node server / VPS /
+  Docker deployment as long as that exact path is mounted as a **persistent
+  volume** — a Docker rebuild replaces the container's filesystem entirely,
+  so anything written there without a volume mount is lost on every
+  redeploy. Uploads **will not persist at all** on a stateless serverless
+  platform (e.g. Vercel's default runtime); if you deploy there, swap
+  `src/lib/image.ts`'s `saveUploadedImage` (and `src/lib/video-upload.ts`)
+  to write to an object store (S3, Cloudflare R2, Supabase Storage, etc.)
+  instead.
 - **Email**: configured for Gmail SMTP with an
   [app password](https://myaccount.google.com/apppasswords). For better
   deliverability at scale, consider a transactional provider (Resend,

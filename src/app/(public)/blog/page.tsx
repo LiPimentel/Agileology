@@ -7,7 +7,7 @@ import { getBlogSettings } from "@/lib/settings";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Blog",
-  alternates: { types: { "application/rss+xml": "/blog/rss.xml" } },
+  alternates: { canonical: "/blog", types: { "application/rss+xml": "/blog/rss.xml" } },
 };
 
 export default async function BlogIndexPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {

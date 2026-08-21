@@ -10,9 +10,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const [page, settings] = await Promise.all([getPublishedPageBySlug(slug), getSiteSettings()]);
   if (!page) return {};
+  const title = page.seoTitle ?? settings.siteTitle;
+  const description = page.seoDescription ?? settings.defaultMetaDescription ?? undefined;
+  const ogImage = page.snapshot.background?.bannerImageUrl ?? page.snapshot.background?.imageUrl ?? undefined;
   return {
-    title: page.seoTitle ?? settings.siteTitle,
-    description: page.seoDescription ?? settings.defaultMetaDescription ?? undefined,
+    title,
+    description,
+    alternates: { canonical: slug === "home" ? "/" : `/${slug}` },
+    openGraph: { title, description, images: ogImage ? [ogImage] : undefined },
   };
 }
 

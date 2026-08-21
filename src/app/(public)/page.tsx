@@ -8,9 +8,14 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
   const [page, settings] = await Promise.all([getPublishedPageBySlug("home"), getSiteSettings()]);
+  const title = page?.seoTitle ?? settings.siteTitle;
+  const description = page?.seoDescription ?? settings.defaultMetaDescription ?? undefined;
+  const ogImage = page?.snapshot.background?.bannerImageUrl ?? page?.snapshot.background?.imageUrl ?? undefined;
   return {
-    title: page?.seoTitle ?? settings.siteTitle,
-    description: page?.seoDescription ?? settings.defaultMetaDescription ?? undefined,
+    title,
+    description,
+    alternates: { canonical: "/" },
+    openGraph: { title, description, images: ogImage ? [ogImage] : undefined },
   };
 }
 

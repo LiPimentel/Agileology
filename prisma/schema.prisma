@@ -322,6 +322,12 @@ model SiteSettings {
   phone                 String?
   whatsapp              String?
   cookieNoticeEnabled   Boolean @default(true)
+  // The verification meta tag Google Search Console gives you when you add
+  // the site as a property ("HTML tag" method) -- just the content value
+  // (e.g. "AbCdEf123..."), rendered as <meta name="google-site-verification"
+  // content="..."> in the root layout. Needed to prove domain ownership
+  // before Search Console will accept the sitemap it's told about below.
+  googleSiteVerification String?
 }
 
 model Media {
