@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { MediaItem } from "@/components/admin/MediaGrid";
+import { AddBlockMenu } from "@/components/admin/AddBlockMenu";
 import { TextBlockEditor } from "@/components/admin/blocks/TextBlockEditor";
 import { ImageBlockEditor, type ImageBlockValue } from "@/components/admin/blocks/ImageBlockEditor";
 import { LinkBlockEditor, type LinkBlockValue } from "@/components/admin/blocks/LinkBlockEditor";
@@ -19,6 +20,7 @@ const BLOCK_LABELS: Record<EditorBlock["type"], string> = {
   link: "Enlace",
   video: "Video",
 };
+const BLOCK_TYPE_OPTIONS = (Object.keys(BLOCK_LABELS) as EditorBlock["type"][]).map((type) => ({ type, label: BLOCK_LABELS[type] }));
 
 // crypto.randomUUID() only exists in a "secure context" (HTTPS or
 // localhost) -- browsers omit it entirely over plain HTTP (e.g. accessed
@@ -111,18 +113,7 @@ export function BlockEditor({
         </div>
       ))}
 
-      <div className="flex flex-wrap gap-2">
-        {(Object.keys(BLOCK_LABELS) as EditorBlock["type"][]).map((type) => (
-          <button
-            key={type}
-            type="button"
-            onClick={() => add(type)}
-            className="rounded-md border border-dashed border-slate-300 px-3 py-1.5 text-sm text-slate-600 hover:border-violet-400 hover:text-violet-700"
-          >
-            + {BLOCK_LABELS[type]}
-          </button>
-        ))}
-      </div>
+      <AddBlockMenu options={BLOCK_TYPE_OPTIONS} onSelect={add} />
     </div>
   );
 }

@@ -8,6 +8,8 @@
 import type { ImageBlockValue } from "@/components/admin/blocks/ImageBlockEditor";
 import type { LinkBlockValue } from "@/components/admin/blocks/LinkBlockEditor";
 import type { VideoBlockValue } from "@/components/admin/blocks/VideoBlockEditor";
+import type { MapBlockValue } from "@/components/admin/blocks/MapBlockEditor";
+import type { ContactFormBlockValue } from "@/components/admin/blocks/ContactFormBlockEditor";
 
 // Pages only (posts keep the simpler, single-column BlockEditor -- blog
 // posts have their own format per the client's explicit call).
@@ -24,13 +26,17 @@ import type { VideoBlockValue } from "@/components/admin/blocks/VideoBlockEditor
 // background to have somewhere to be saved; a fully empty section has no
 // rows to carry it.
 
-export type BlockType = "text" | "image" | "link" | "video";
+export type BlockType = "text" | "image" | "link" | "video" | "map" | "contactForm";
 
 export type BlockValue =
   | { type: "text"; content: { html: string } }
   | { type: "image"; content: ImageBlockValue }
   | { type: "link"; content: LinkBlockValue }
-  | { type: "video"; content: VideoBlockValue };
+  | { type: "video"; content: VideoBlockValue }
+  // Map/contact form: real, addable blocks now (see blocks.ts's comment) --
+  // no longer a fixed section shown on every page.
+  | { type: "map"; content: MapBlockValue }
+  | { type: "contactForm"; content: ContactFormBlockValue };
 
 export type EditorColumn = { id: string; width: number; block: BlockValue | null };
 export type SectionBackground = { imageUrl: string; color: string; opacity: number };
@@ -56,6 +62,10 @@ export function emptyContent(type: BlockType): BlockValue {
       return { type, content: { label: "", href: "", internal: true, newTab: false } };
     case "video":
       return { type, content: { url: "", alignment: "center", shape: "none", width: 100 } };
+    case "map":
+      return { type, content: { address: "" } };
+    case "contactForm":
+      return { type, content: { enabledFields: ["name", "email", "message"] } };
   }
 }
 

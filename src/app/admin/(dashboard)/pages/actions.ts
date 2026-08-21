@@ -14,7 +14,7 @@ export type PageFormState = { error?: string; pageId?: string; savedAt?: number 
 
 type SubmittedBlock = {
   id: string;
-  type: "text" | "image" | "link" | "video";
+  type: "text" | "image" | "link" | "video" | "map" | "contactForm";
   content: unknown;
   position?: number;
   columnIndex?: number;
@@ -77,12 +77,10 @@ async function upsertPageContent(pageId: string, formData: FormData) {
   const overlayOpacity = Math.min(1, Math.max(0, Number(formData.get("overlayOpacity") ?? 0.5)));
   const backgroundImageUrl = String(formData.get("backgroundImageUrl") ?? "") || null;
 
-  const includeMap = formData.get("includeMap") === "on";
-  const mapAddress = sanitizePlainText(String(formData.get("mapAddress") ?? ""));
-
-  const includeContactForm = formData.get("includeContactForm") === "on";
-  const contactFields = formData.getAll("contactFields").map(String);
-
+  // Map/contact form used to be separate page-level singletons (own
+  // formData fields, own DB tables) -- they're regular blocks now (see
+  // blocks.ts), so they flow through the same blocksJson path as every
+  // other block type below. No special-casing needed here anymore.
   const blocksRaw = parseBlocks(String(formData.get("blocksJson") ?? "[]"));
   // Sections editor sends position (shared by every block/column in one
   // section = one row) and columnIndex/columnWidth (this block's slot and
@@ -116,26 +114,6 @@ async function upsertPageContent(pageId: string, formData: FormData) {
       update: { overlayColor, overlayOpacity, imageUrl: backgroundImageUrl },
       create: { pageId, overlayColor, overlayOpacity, imageUrl: backgroundImageUrl },
     });
-
-    if (includeMap && mapAddress) {
-      await tx.mapComponent.upsert({
-        where: { pageId },
-        update: { address: mapAddress },
-        create: { pageId, address: mapAddress },
-      });
-    } else {
-      await tx.mapComponent.deleteMany({ where: { pageId } });
-    }
-
-    if (includeContactForm) {
-      await tx.contactFormComponent.upsert({
-        where: { pageId },
-        update: { enabledFields: contactFields.length ? contactFields : ["name", "email", "message"] },
-        create: { pageId, enabledFields: contactFields.length ? contactFields : ["name", "email", "message"] },
-      });
-    } else {
-      await tx.contactFormComponent.deleteMany({ where: { pageId } });
-    }
   });
 
   return slug;
@@ -199,7 +177,7 @@ export async function duplicatePage(pageId: string) {
   const admin = await requireAdmin();
   const source = await prisma.page.findUnique({
     where: { id: pageId },
-    include: { blocks: true, background: true, mapComponent: true, contactFormComponent: true },
+    include: { blocks: true, background: true },
   });
   if (!source) throw new Error("Página no encontrada.");
 
@@ -231,10 +209,6 @@ export async function duplicatePage(pageId: string) {
       background: source.background
         ? { create: { imageUrl: source.background.imageUrl, overlayColor: source.background.overlayColor, overlayOpacity: source.background.overlayOpacity } }
         : { create: {} },
-      mapComponent: source.mapComponent ? { create: { address: source.mapComponent.address } } : undefined,
-      contactFormComponent: source.contactFormComponent
-        ? { create: { enabledFields: source.contactFormComponent.enabledFields } }
-        : undefined,
     },
   });
 

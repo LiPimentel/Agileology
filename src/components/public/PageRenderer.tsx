@@ -1,15 +1,11 @@
 import { BlockRenderer, type RenderableBlock } from "@/components/blocks/BlockRenderer";
 import { BackgroundOverlay } from "@/components/public/BackgroundOverlay";
-import { MapEmbed } from "@/components/public/MapEmbed";
-import { ContactForm } from "@/components/public/ContactForm";
 
 export type PageRenderData = {
   id: string;
   title: string;
   blocks: RenderableBlock[];
   background?: { imageUrl?: string | null; overlayColor?: string | null; overlayOpacity?: number | null } | null;
-  mapComponent?: { address: string } | null;
-  contactFormComponent?: { enabledFields: string[] } | null;
 };
 
 /**
@@ -63,7 +59,7 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
             section.length <= 1 ? (
               // Single-column section: no flex row needed, matches the
               // pre-sections layout exactly.
-              <BlockRenderer key={first?.id ?? i} block={first} />
+              <BlockRenderer key={first?.id ?? i} block={first} pageId={page.id} />
             ) : (
               <div key={first?.id ?? i} className="flex flex-col gap-6 sm:flex-row">
                 {section.map((block, j) => (
@@ -72,7 +68,7 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
                     className="min-w-0"
                     style={{ flexBasis: `${block.columnWidth ?? Math.round(100 / section.length)}%` }}
                   >
-                    <BlockRenderer block={block} />
+                    <BlockRenderer block={block} pageId={page.id} />
                   </div>
                 ))}
               </div>
@@ -95,20 +91,6 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
             </BackgroundOverlay>
           );
         })}
-
-        {page.mapComponent && (
-          <div>
-            <h2 className="mb-3 text-xl font-semibold text-slate-900">Ubicación</h2>
-            <MapEmbed address={page.mapComponent.address} />
-          </div>
-        )}
-
-        {page.contactFormComponent && (
-          <div>
-            <h2 className="mb-3 text-xl font-semibold text-slate-900">Contáctanos</h2>
-            <ContactForm pageId={page.id} enabledFields={page.contactFormComponent.enabledFields} />
-          </div>
-        )}
       </div>
     </article>
   );

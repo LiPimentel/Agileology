@@ -38,12 +38,25 @@ export const videoBlockSchema = z.object({
   // component.
   width: z.number().min(20).max(100).default(100),
 });
+// Map/contact form used to be page-level singletons (a fixed "Componentes
+// de contacto" section shown on every page's editor, with no way to place
+// them at a specific spot or leave them off most pages). They're now real
+// blocks like any other -- addable to any page section, editable inline,
+// and only present where an admin actually adds one ("este componente de
+// mapa no tiene que salir en todas partes"). Pages only (see
+// SectionBlockEditor), not blog posts.
+export const mapBlockSchema = z.object({ address: z.string() });
+export const contactFormBlockSchema = z.object({
+  enabledFields: z.array(z.enum(["name", "email", "message"])).default(["name", "email", "message"]),
+});
 
 export type EditorBlock =
   | { id: string; type: "text"; content: z.infer<typeof textBlockSchema> }
   | { id: string; type: "image"; content: z.infer<typeof imageBlockSchema> }
   | { id: string; type: "link"; content: z.infer<typeof linkBlockSchema> }
-  | { id: string; type: "video"; content: z.infer<typeof videoBlockSchema> };
+  | { id: string; type: "video"; content: z.infer<typeof videoBlockSchema> }
+  | { id: string; type: "map"; content: z.infer<typeof mapBlockSchema> }
+  | { id: string; type: "contactForm"; content: z.infer<typeof contactFormBlockSchema> };
 
 /** Sanitizes a block's content before it's persisted (RS-06). */
 export function sanitizeBlockContent(type: string, content: unknown) {
@@ -62,6 +75,14 @@ export function sanitizeBlockContent(type: string, content: unknown) {
     }
     case "video": {
       const parsed = videoBlockSchema.parse(content);
+      return parsed;
+    }
+    case "map": {
+      const parsed = mapBlockSchema.parse(content);
+      return { address: sanitizePlainText(parsed.address) };
+    }
+    case "contactForm": {
+      const parsed = contactFormBlockSchema.parse(content);
       return parsed;
     }
     default:

@@ -2,12 +2,15 @@
 
 import { useRef, useState, type ReactNode } from "react";
 import type { MediaItem } from "@/components/admin/MediaGrid";
+import { AddBlockMenu } from "@/components/admin/AddBlockMenu";
 import { BackgroundPicker, type BackgroundValue } from "@/components/admin/BackgroundPicker";
 import { BackgroundOverlay } from "@/components/public/BackgroundOverlay";
 import { TextBlockEditor } from "@/components/admin/blocks/TextBlockEditor";
 import { ImageBlockEditor } from "@/components/admin/blocks/ImageBlockEditor";
 import { LinkBlockEditor } from "@/components/admin/blocks/LinkBlockEditor";
 import { VideoBlockEditor } from "@/components/admin/blocks/VideoBlockEditor";
+import { MapBlockEditor } from "@/components/admin/blocks/MapBlockEditor";
+import { ContactFormBlockEditor } from "@/components/admin/blocks/ContactFormBlockEditor";
 import {
   type BlockType,
   type BlockValue,
@@ -20,7 +23,15 @@ import {
 
 export type { EditorSection, EditorColumn } from "@/lib/sections";
 
-const BLOCK_LABELS: Record<BlockType, string> = { text: "Texto", image: "Imagen", link: "Enlace", video: "Video" };
+const BLOCK_LABELS: Record<BlockType, string> = {
+  text: "Texto",
+  image: "Imagen",
+  link: "Enlace",
+  video: "Video",
+  map: "Mapa",
+  contactForm: "Formulario de contacto",
+};
+const BLOCK_TYPE_OPTIONS = (Object.keys(BLOCK_LABELS) as BlockType[]).map((type) => ({ type, label: BLOCK_LABELS[type] }));
 
 function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, n));
@@ -176,18 +187,7 @@ export function SectionBlockEditor({
           </div>
         )}
         {!col.block ? (
-          <div className="flex flex-wrap gap-2">
-            {(Object.keys(BLOCK_LABELS) as BlockType[]).map((type) => (
-              <button
-                key={type}
-                type="button"
-                onClick={() => setColumnType(section.id, col.id, type)}
-                className="rounded-md border border-dashed border-slate-300 px-3 py-1.5 text-sm text-slate-600 hover:border-violet-400 hover:text-violet-700"
-              >
-                + {BLOCK_LABELS[type]}
-              </button>
-            ))}
-          </div>
+          <AddBlockMenu options={BLOCK_TYPE_OPTIONS} onSelect={(type) => setColumnType(section.id, col.id, type)} />
         ) : (
           <div>
             <div className="mb-2 flex items-center justify-between">
@@ -207,6 +207,12 @@ export function SectionBlockEditor({
             )}
             {col.block.type === "video" && (
               <VideoBlockEditor value={col.block.content} onChange={(v) => updateColumnContent(section.id, col.id, v)} />
+            )}
+            {col.block.type === "map" && (
+              <MapBlockEditor value={col.block.content} onChange={(v) => updateColumnContent(section.id, col.id, v)} />
+            )}
+            {col.block.type === "contactForm" && (
+              <ContactFormBlockEditor value={col.block.content} onChange={(v) => updateColumnContent(section.id, col.id, v)} />
             )}
           </div>
         )}

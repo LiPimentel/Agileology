@@ -17,6 +17,12 @@ enum BlockType {
   image
   link
   video
+  // Real, addable blocks now -- see blocks.ts's comment. The old
+  // MapComponent/ContactFormComponent models below are unused going
+  // forward (left in place rather than a destructive drop, same as
+  // Page.menuOrder/menuVisible/showInMenu).
+  map
+  contactForm
 }
 
 enum BlogLayout {

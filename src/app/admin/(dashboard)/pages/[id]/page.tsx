@@ -15,8 +15,6 @@ export default async function PageEditorPage({ params }: { params: Promise<{ id:
       include: {
         blocks: { orderBy: [{ position: "asc" }, { columnIndex: "asc" }] },
         background: true,
-        mapComponent: true,
-        contactFormComponent: true,
       },
     }),
     prisma.media.findMany({ orderBy: { createdAt: "desc" }, take: 60 }),
@@ -54,8 +52,6 @@ export default async function PageEditorPage({ params }: { params: Promise<{ id:
             sectionBgOpacity: b.sectionBgOpacity,
           })),
         ),
-        mapComponent: page.mapComponent ? { address: page.mapComponent.address } : null,
-        contactFormComponent: page.contactFormComponent ? { enabledFields: page.contactFormComponent.enabledFields } : null,
       }}
       mediaLibrary={mediaLibrary}
       pages={allPages}
