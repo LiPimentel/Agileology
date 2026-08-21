@@ -41,10 +41,16 @@ export type BlockValue =
 export type EditorColumn = { id: string; width: number; block: BlockValue | null };
 // videoUrl: an uploaded mp4/webm shown instead of imageUrl when set (the
 // section background picker's "Video" tab) -- see BackgroundOverlay.tsx.
-export type SectionBackground = { imageUrl: string; color: string; opacity: number; videoUrl: string };
+export type SectionBackground = { imageUrl: string; color: string; opacity: number; videoUrl: string; gradientEnd: string };
 export type EditorSection = { id: string; columns: EditorColumn[]; background: SectionBackground };
 
-export const EMPTY_SECTION_BACKGROUND: SectionBackground = { imageUrl: "", color: "#000000", opacity: 0, videoUrl: "" };
+export const EMPTY_SECTION_BACKGROUND: SectionBackground = {
+  imageUrl: "",
+  color: "#000000",
+  opacity: 0,
+  videoUrl: "",
+  gradientEnd: "",
+};
 
 // crypto.randomUUID() only exists in a secure context (HTTPS/localhost) and
 // throws over plain HTTP -- see BlockEditor.tsx for the incident this came
@@ -103,6 +109,7 @@ export function groupBlocksIntoSections(
     sectionBgColor: string;
     sectionBgOpacity: number;
     sectionBgVideoUrl: string | null;
+    sectionBgGradientEnd: string | null;
   }>,
 ): EditorSection[] {
   const sections: EditorSection[] = [];
@@ -117,6 +124,7 @@ export function groupBlocksIntoSections(
           color: b.sectionBgColor,
           opacity: b.sectionBgOpacity,
           videoUrl: b.sectionBgVideoUrl ?? "",
+          gradientEnd: b.sectionBgGradientEnd ?? "",
         },
       });
       currentPosition = b.position;
@@ -143,6 +151,7 @@ export function serializeSections(sections: EditorSection[]) {
     sectionBgColor: string;
     sectionBgOpacity: number;
     sectionBgVideoUrl: string;
+    sectionBgGradientEnd: string;
   }> = [];
   sections.forEach((section, position) => {
     section.columns.forEach((col, columnIndex) => {
@@ -158,6 +167,7 @@ export function serializeSections(sections: EditorSection[]) {
         sectionBgColor: section.background.color,
         sectionBgOpacity: section.background.opacity,
         sectionBgVideoUrl: section.background.videoUrl,
+        sectionBgGradientEnd: section.background.gradientEnd,
       });
     });
   });

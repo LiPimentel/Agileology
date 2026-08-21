@@ -166,7 +166,10 @@ export function SectionBlockEditor({
       prev.map((s) =>
         s.id !== sectionId
           ? s
-          : { ...s, background: { imageUrl: bg.imageUrl, color: bg.color, opacity: bg.opacity, videoUrl: bg.videoUrl } },
+          : {
+              ...s,
+              background: { imageUrl: bg.imageUrl, color: bg.color, opacity: bg.opacity, videoUrl: bg.videoUrl, gradientEnd: bg.gradientEnd },
+            },
       ),
     );
   }
@@ -324,6 +327,7 @@ export function SectionBlockEditor({
                 overlayColor={section.background.color}
                 overlayOpacity={section.background.opacity}
                 videoUrl={section.background.videoUrl}
+                gradientEnd={section.background.gradientEnd}
               >
                 <div className="rounded-md p-4">{columnsRow}</div>
               </BackgroundOverlay>

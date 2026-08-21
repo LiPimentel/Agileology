@@ -101,6 +101,7 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
               overlayColor={first?.sectionBgColor}
               overlayOpacity={first?.sectionBgOpacity}
               videoUrl={first?.sectionBgVideoUrl}
+              gradientEnd={first?.sectionBgGradientEnd}
             >
               <div className="rounded-md p-6">{row}</div>
             </BackgroundOverlay>

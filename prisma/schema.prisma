@@ -205,6 +205,11 @@ model ContentBlock {
   // instead of sectionBgImageUrl when set -- the "Video" tab in the
   // section background picker.
   sectionBgVideoUrl String?
+  // When set, the Color tab is a two-stop linear gradient (sectionBgColor
+  // -> sectionBgGradientEnd) instead of a solid color -- matches the
+  // client's own reference screenshot ("Selector de color" with a
+  // gradient bar).
+  sectionBgGradientEnd String?
 
   @@index([pageId])
   @@index([postId])

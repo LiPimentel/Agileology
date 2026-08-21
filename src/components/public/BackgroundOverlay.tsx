@@ -3,6 +3,7 @@ export function BackgroundOverlay({
   overlayColor,
   overlayOpacity,
   videoUrl,
+  gradientEnd,
   children,
 }: {
   imageUrl?: string | null;
@@ -12,6 +13,10 @@ export function BackgroundOverlay({
   // background picker's "Video" tab. Autoplaying/muted/looping, the only
   // way a background video can play without a user gesture in any browser.
   videoUrl?: string | null;
+  // When set, the overlay is a two-stop linear gradient (overlayColor ->
+  // gradientEnd) instead of a solid color -- the Color tab's "Degradado"
+  // option.
+  gradientEnd?: string | null;
   children: React.ReactNode;
 }) {
   // A color-only overlay (no background image/video) is a valid combination
@@ -45,7 +50,11 @@ export function BackgroundOverlay({
       {hasOverlay && (
         <div
           className="absolute inset-0"
-          style={{ backgroundColor: overlayColor ?? "#3B0764", opacity: overlayOpacity ?? 0.5 }}
+          style={
+            gradientEnd
+              ? { background: `linear-gradient(135deg, ${overlayColor ?? "#3B0764"}, ${gradientEnd})`, opacity: overlayOpacity ?? 0.5 }
+              : { backgroundColor: overlayColor ?? "#3B0764", opacity: overlayOpacity ?? 0.5 }
+          }
           aria-hidden
         />
       )}

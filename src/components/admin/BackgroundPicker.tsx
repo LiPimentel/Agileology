@@ -5,7 +5,7 @@ import type { MediaItem } from "@/components/admin/MediaGrid";
 import { MediaGrid } from "@/components/admin/MediaGrid";
 import { MediaUploadForm } from "@/components/admin/MediaUploadForm";
 
-export type BackgroundValue = { imageUrl: string; color: string; opacity: number; videoUrl: string };
+export type BackgroundValue = { imageUrl: string; color: string; opacity: number; videoUrl: string; gradientEnd: string };
 
 const IMAGE_ITEMS = (items: MediaItem[]) => items.filter((i) => !i.mimeType?.startsWith("video/"));
 const VIDEO_ITEMS = (items: MediaItem[]) => items.filter((i) => i.mimeType?.startsWith("video/"));
@@ -45,6 +45,7 @@ export function BackgroundPicker({
   const [localColor, setLocalColor] = useState(initialColor);
   const [localOpacity, setLocalOpacity] = useState(initialOpacity);
   const [localVideoUrl, setLocalVideoUrl] = useState(initialVideoUrl ?? "");
+  const [localGradientEnd, setLocalGradientEnd] = useState("");
   const [bannerImageUrl, setBannerImageUrl] = useState(initialBannerImageUrl ?? "");
   const [pickerOpen, setPickerOpen] = useState(false);
   const [bannerPickerOpen, setBannerPickerOpen] = useState(false);
@@ -54,6 +55,8 @@ export function BackgroundPicker({
   const color = controlled ? value.color : localColor;
   const opacity = controlled ? value.opacity : localOpacity;
   const videoUrl = controlled ? value.videoUrl : localVideoUrl;
+  const gradientEnd = controlled ? value.gradientEnd : localGradientEnd;
+  const isGradient = Boolean(gradientEnd);
 
   // Which of the three tabs is open -- only meaningful in compact (section)
   // mode, which is the only one with a Video tab (see the client's own
@@ -62,12 +65,13 @@ export function BackgroundPicker({
 
   function set(next: Partial<BackgroundValue>) {
     if (controlled) {
-      onChange({ imageUrl, color, opacity, videoUrl, ...next });
+      onChange({ imageUrl, color, opacity, videoUrl, gradientEnd, ...next });
     } else {
       if (next.imageUrl !== undefined) setLocalImageUrl(next.imageUrl);
       if (next.color !== undefined) setLocalColor(next.color);
       if (next.opacity !== undefined) setLocalOpacity(next.opacity);
       if (next.videoUrl !== undefined) setLocalVideoUrl(next.videoUrl);
+      if (next.gradientEnd !== undefined) setLocalGradientEnd(next.gradientEnd);
     }
   }
 
@@ -102,7 +106,10 @@ export function BackgroundPicker({
         {videoUrl && (
           <video src={videoUrl} autoPlay muted loop playsInline className="absolute inset-0 h-full w-full object-cover" />
         )}
-        <div className="absolute inset-0" style={{ backgroundColor: color, opacity }} />
+        <div
+          className="absolute inset-0"
+          style={isGradient ? { background: `linear-gradient(135deg, ${color}, ${gradientEnd})`, opacity } : { backgroundColor: color, opacity }}
+        />
         {bannerImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={bannerImageUrl} alt="" className="relative max-h-20 max-w-[60%] object-contain" />
@@ -136,23 +143,42 @@ export function BackgroundPicker({
 
       {/* Color + opacity: not gated by `tab` when not compact (page background has no tabs, this is its only control besides the image picker below) -- gated to the Color tab only in compact/section mode. */}
       {(!compact || tab === "color") && (
-        <div className="flex flex-wrap items-center gap-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700">Color de superposición</label>
-            <input type="color" value={color} onChange={(e) => set({ color: e.target.value })} className="mt-1 h-9 w-16" />
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700">{isGradient ? "Color inicial" : "Color de superposición"}</label>
+              <input type="color" value={color} onChange={(e) => set({ color: e.target.value })} className="mt-1 h-9 w-16" />
+            </div>
+            {isGradient && (
+              <div>
+                <label className="block text-sm font-medium text-slate-700">Color final</label>
+                <input type="color" value={gradientEnd} onChange={(e) => set({ gradientEnd: e.target.value })} className="mt-1 h-9 w-16" />
+              </div>
+            )}
+            <div>
+              <label className="block text-sm font-medium text-slate-700">Transparencia ({Math.round(opacity * 100)}%)</label>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={opacity}
+                onChange={(e) => set({ opacity: Number(e.target.value) })}
+                className="mt-1 w-40"
+              />
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700">Transparencia ({Math.round(opacity * 100)}%)</label>
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.05}
-              value={opacity}
-              onChange={(e) => set({ opacity: Number(e.target.value) })}
-              className="mt-1 w-40"
-            />
-          </div>
+          {/* Degradado (gradient) -- only meaningful for a section's own background, matches the client's reference screenshot ("Selector de color" with a two-stop gradient bar). */}
+          {compact && (
+            <label className="flex items-center gap-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={isGradient}
+                onChange={(e) => set({ gradientEnd: e.target.checked ? "#8DD1CA" : "" })}
+              />
+              Degradado (dos colores)
+            </label>
+          )}
         </div>
       )}
 
