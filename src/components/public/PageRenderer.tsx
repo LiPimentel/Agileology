@@ -131,7 +131,18 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
         <h1 className="sr-only">{page.title}</h1>
       )}
 
-      <div className="mx-auto max-w-3xl space-y-8 px-6 py-12">
+      {/*
+        Grid sections stay in the narrow, centered, readable-width column
+        (below) like any article/page body -- but a free section is meant
+        to be used like Wix's canvas, "yo debería ser la que defina hasta
+        dónde queda [el contenido], no una limitante impuesta": it breaks
+        out of that column entirely and spans the full page width instead
+        of being boxed into the same ~768px column as regular text
+        content. Each section picks its own wrapper below (isFree), so a
+        page can freely mix narrow article-style sections with full-width
+        ones.
+      */}
+      <div className="space-y-8 py-12">
         {groupIntoSections(page.blocks).map((section, i) => {
           const first = section[0];
           const isFree = first?.sectionLayoutMode === "free";
@@ -190,19 +201,27 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
           // comment).
           const hasSectionBg =
             Boolean(first?.sectionBgImageUrl) || Boolean(first?.sectionBgVideoUrl) || (first?.sectionBgOpacity ?? 0) > 0;
-          if (!hasSectionBg) return row;
-
-          return (
+          const content = hasSectionBg ? (
             <BackgroundOverlay
-              key={`bg-${first?.id ?? i}`}
               imageUrl={first?.sectionBgImageUrl}
               overlayColor={first?.sectionBgColor}
               overlayOpacity={first?.sectionBgOpacity}
               videoUrl={first?.sectionBgVideoUrl}
               gradientEnd={first?.sectionBgGradientEnd}
             >
-              <div className="rounded-md p-6">{row}</div>
+              <div className={isFree ? "" : "rounded-md p-6"}>{row}</div>
             </BackgroundOverlay>
+          ) : (
+            row
+          );
+
+          // Free sections span the full page width; grid sections stay in
+          // the centered ~768px readable column, same as before this
+          // existed -- see the comment on the outer wrapper above.
+          return (
+            <div key={first?.id ?? i} className={isFree ? "w-full" : "mx-auto max-w-3xl px-6"}>
+              {content}
+            </div>
           );
         })}
       </div>
