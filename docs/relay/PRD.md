@@ -62,8 +62,11 @@ Campos del formulario:
 | Severidad | Baja / Media / Alta / Crítica | Sí | Qué tan grave es el impacto (ej. "rompe la app" vs. "detalle visual"). |
 | Urgencia | Baja / Media / Alta | Sí | Qué tan pronto se necesita resuelto, independiente de la severidad. |
 
-La app de origen (`source_app_name`) y quién reporta (`reporter_email`)
-se guardan automáticamente, sin que el usuario tenga que escribirlos.
+La app de origen (`source_app_name`) y la identidad de quién reporta
+(nombre, apellido y correo) se guardan automáticamente desde la sesión ya
+activa, sin que el usuario tenga que escribirlos a mano. Nombre, apellido
+y correo **no son opcionales**: todo reporte queda siempre asociado a una
+persona identificada — nunca se guarda un reporte anónimo o incompleto.
 
 ### 6.2 Mis Reportes (pantalla opcional, dentro de cada app)
 
@@ -76,8 +79,8 @@ versión).
 
 Vista de administrador con **todos** los reportes de **todas** las apps,
 ordenable/filtrable por severidad y urgencia, para decidir qué atender
-primero. Incluye quién reportó, cuándo, y el estado actual
-(`nuevo` / `en progreso` / `resuelto` / `descartado`).
+primero. Incluye quién reportó (nombre, apellido y correo), cuándo, y el
+estado actual (`nuevo` / `en progreso` / `resuelto` / `descartado`).
 
 ## 7. Modelo de datos (alto nivel)
 
@@ -90,7 +93,9 @@ primero. Incluye quién reportó, cuándo, y el estado actual
 - description
 - severity — low | medium | high | critical
 - urgency — low | medium | high
-- reporter_email — quién lo creó
+- reporter_first_name — nombre de quién lo creó (obligatorio)
+- reporter_last_name — apellido de quién lo creó (obligatorio)
+- reporter_email — correo de quién lo creó (obligatorio)
 - status — new | in_progress | resolved | discarded
 - created_at
 
