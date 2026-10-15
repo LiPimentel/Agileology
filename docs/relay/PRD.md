@@ -71,7 +71,7 @@ activa, sin que el usuario tenga que escribirlos a mano. Nombre, apellido
 y correo **no son opcionales**: todo reporte queda siempre asociado a una
 persona identificada — nunca se guarda un reporte anónimo o incompleto.
 
-### 6.2 Mis Reportes (pantalla opcional, dentro de cada app)
+### 6.2 Mis Reportes (cada app decide si la incluye, dentro de esa misma app)
 
 Lista de los reportes que **esa persona** ha enviado, desde cualquier app,
 con: título, tipo, app de origen, severidad, urgencia, estado, fecha.
