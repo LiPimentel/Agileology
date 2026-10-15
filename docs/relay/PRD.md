@@ -61,6 +61,9 @@ Campos del formulario:
 | Descripción | Texto largo | Sí | Qué pasó / qué se necesita, pasos para reproducir si es un bug. |
 | Severidad | Baja / Media / Alta / Crítica | Sí | Qué tan grave es el impacto (ej. "rompe la app" vs. "detalle visual"). |
 | Urgencia | Baja / Media / Alta | Sí | Qué tan pronto se necesita resuelto, independiente de la severidad. |
+| Nombre | Texto corto | Sí | Tomado de la sesión activa, no se escribe a mano. |
+| Apellido | Texto corto | Sí | Tomado de la sesión activa, no se escribe a mano. |
+| Correo | Texto corto | Sí | Tomado de la sesión activa, no se escribe a mano. |
 
 La app de origen (`source_app_name`) y la identidad de quién reporta
 (nombre, apellido y correo) se guardan automáticamente desde la sesión ya
