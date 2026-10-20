@@ -7,10 +7,8 @@ export async function buildPageSnapshot(pageId: string): Promise<PageRenderData 
   const page = await prisma.page.findUnique({
     where: { id: pageId },
     include: {
-      blocks: { orderBy: { position: "asc" } },
+      blocks: { orderBy: [{ position: "asc" }, { columnIndex: "asc" }, { blockOrder: "asc" }] },
       background: true,
-      mapComponent: true,
-      contactFormComponent: true,
     },
   });
   if (!page) return null;
@@ -18,13 +16,36 @@ export async function buildPageSnapshot(pageId: string): Promise<PageRenderData 
   return {
     id: page.id,
     title: page.title,
-    blocks: page.blocks.map((b) => ({ id: b.id, type: b.type, content: b.content as Record<string, unknown> })),
+    blocks: page.blocks.map((b) => ({
+      id: b.id,
+      type: b.type,
+      content: b.content as Record<string, unknown>,
+      position: b.position,
+      columnIndex: b.columnIndex,
+      columnWidth: b.columnWidth,
+      blockOrder: b.blockOrder,
+      sectionBgImageUrl: b.sectionBgImageUrl,
+      sectionBgColor: b.sectionBgColor,
+      sectionBgOpacity: b.sectionBgOpacity,
+      sectionBgVideoUrl: b.sectionBgVideoUrl,
+      sectionBgGradientEnd: b.sectionBgGradientEnd,
+      sectionLayoutMode: b.sectionLayoutMode,
+      sectionFreeHeight: b.sectionFreeHeight,
+      freeX: b.freeX,
+      freeY: b.freeY,
+      freeWidth: b.freeWidth,
+      freeHeight: b.freeHeight,
+      freeZIndex: b.freeZIndex,
+    })),
     background: page.background
-      ? { imageUrl: page.background.imageUrl, overlayColor: page.background.overlayColor, overlayOpacity: page.background.overlayOpacity }
-      : null,
-    mapComponent: page.mapComponent ? { address: page.mapComponent.address } : null,
-    contactFormComponent: page.contactFormComponent
-      ? { enabledFields: page.contactFormComponent.enabledFields }
+      ? {
+          imageUrl: page.background.imageUrl,
+          overlayColor: page.background.overlayColor,
+          overlayOpacity: page.background.overlayOpacity,
+          bannerImageUrl: page.background.bannerImageUrl,
+          showBanner: page.background.showBanner,
+          showTitle: page.background.showTitle,
+        }
       : null,
   };
 }

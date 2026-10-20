@@ -82,3 +82,37 @@ export async function listPublishedPosts(opts: { q?: string; skip?: number; take
 
   return { posts, total };
 }
+
+export type AdminPostFilter = { q?: string; from?: string; to?: string };
+
+/**
+ * Shared filter for the admin posts list AND its CSV export -- both need
+ * the exact same query so "download CSV" reflects whatever's currently
+ * filtered/visible, not the full unfiltered table. Date range is on
+ * createdAt (always set, unlike publishedAt which is null for drafts) so
+ * it works the same for drafts and published posts alike.
+ */
+export function adminPostListWhere(filter: AdminPostFilter) {
+  const from = filter.from ? new Date(filter.from) : null;
+  // Push "to" to the end of that calendar day so a same-day range (from=to)
+  // actually includes posts created that day, not just at midnight.
+  const to = filter.to ? new Date(`${filter.to}T23:59:59.999`) : null;
+
+  return {
+    title: filter.q ? { contains: filter.q, mode: "insensitive" as const } : undefined,
+    createdAt:
+      from || to
+        ? {
+            ...(from && !isNaN(from.getTime()) ? { gte: from } : {}),
+            ...(to && !isNaN(to.getTime()) ? { lte: to } : {}),
+          }
+        : undefined,
+  };
+}
+
+export async function adminListPosts(filter: AdminPostFilter) {
+  return prisma.post.findMany({
+    where: adminPostListWhere(filter),
+    orderBy: { createdAt: "desc" },
+  });
+}

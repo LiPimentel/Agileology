@@ -16,12 +16,14 @@ export function InboxRow({
   const [pending, startTransition] = useTransition();
 
   return (
-    <div className={`rounded-lg border p-4 ${status === "new" ? "border-violet-300 bg-violet-50/40" : "border-slate-200 bg-white"}`}>
+    <div
+      className={`rounded-lg border p-4 ${status === "new" ? "border-violet-300 bg-violet-50/40 dark:border-violet-700 dark:bg-violet-950/30" : "border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"}`}
+    >
       <div className="flex items-start justify-between gap-4">
-        <div className="flex-1 text-sm text-slate-700">{children}</div>
+        <div className="flex-1 text-sm text-slate-700 dark:text-slate-300">{children}</div>
         <div className="flex shrink-0 gap-3 text-xs">
           {status === "new" && (
-            <button disabled={pending} onClick={() => startTransition(onMarkRead)} className="text-violet-700 hover:underline">
+            <button disabled={pending} onClick={() => startTransition(onMarkRead)} className="text-violet-700 hover:underline dark:text-sky-400">
               Marcar leído
             </button>
           )}
@@ -30,7 +32,7 @@ export function InboxRow({
             onClick={() => {
               if (confirm("¿Eliminar este mensaje de forma permanente?")) startTransition(onDelete);
             }}
-            className="text-red-600 hover:underline"
+            className="text-red-600 hover:underline dark:text-red-400"
           >
             Eliminar
           </button>

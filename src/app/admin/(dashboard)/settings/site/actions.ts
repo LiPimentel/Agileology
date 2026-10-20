@@ -27,6 +27,11 @@ export async function updateSiteSettings(_prev: SiteSettingsState, formData: For
     phone: String(formData.get("phone") ?? "").trim() || null,
     whatsapp: String(formData.get("whatsapp") ?? "").trim() || null,
     cookieNoticeEnabled: formData.get("cookieNoticeEnabled") === "on",
+    // Just the content value of the <meta name="google-site-verification">
+    // tag -- sanitizePlainText is enough here (it's rendered as an
+    // attribute value, never as HTML), and this field alone is what
+    // Search Console needs to confirm domain ownership.
+    googleSiteVerification: sanitizePlainText(String(formData.get("googleSiteVerification") ?? "")).trim() || null,
   };
 
   const logo = formData.get("logo");
@@ -38,6 +43,19 @@ export async function updateSiteSettings(_prev: SiteSettingsState, formData: For
   if (favicon instanceof File && favicon.size > 0) {
     const saved = await saveUploadedImage(favicon);
     data.faviconUrl = saved.url;
+  }
+
+  for (const [field, column] of [
+    ["facebookIcon", "facebookIconUrl"],
+    ["twitterIcon", "twitterIconUrl"],
+    ["linkedinIcon", "linkedinIconUrl"],
+    ["instagramIcon", "instagramIconUrl"],
+  ] as const) {
+    const file = formData.get(field);
+    if (file instanceof File && file.size > 0) {
+      const saved = await saveUploadedImage(file);
+      data[column] = saved.url;
+    }
   }
 
   await prisma.siteSettings.upsert({

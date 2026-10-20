@@ -22,12 +22,21 @@ export async function submitContactForm(_prev: ContactFormState, formData: FormD
   }
 
   const pageId = String(formData.get("pageId") ?? "") || null;
-  const name = sanitizePlainText(String(formData.get("name") ?? "")).slice(0, 200);
-  const email = sanitizePlainText(String(formData.get("email") ?? "")).slice(0, 200);
-  const message = sanitizePlainText(String(formData.get("message") ?? "")).slice(0, 5000);
+  // ContactForm.tsx only renders the fields the admin enabled for this
+  // block (enabledFields) -- a disabled field is never in the FormData at
+  // all, so formData.has() distinguishes "this field isn't part of the
+  // form" from "it's part of the form but was left empty". Without this,
+  // disabling e.g. "Mensaje" made every submission fail with "completa
+  // todos los campos requeridos", since the message field could never be
+  // filled in.
+  const name = formData.has("name") ? sanitizePlainText(String(formData.get("name") ?? "")).slice(0, 200) : "";
+  const email = formData.has("email") ? sanitizePlainText(String(formData.get("email") ?? "")).slice(0, 200) : "";
+  const message = formData.has("message") ? sanitizePlainText(String(formData.get("message") ?? "")).slice(0, 5000) : "";
 
-  if (!name || !email || !message) return { error: "Completa todos los campos requeridos." };
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "Email inválido." };
+  if ((formData.has("name") && !name) || (formData.has("email") && !email) || (formData.has("message") && !message)) {
+    return { error: "Completa todos los campos requeridos." };
+  }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "Email inválido." };
 
   await prisma.contactFormSubmission.create({
     data: { pageId, name, email, message },
@@ -36,9 +45,9 @@ export async function submitContactForm(_prev: ContactFormState, formData: FormD
   const comms = await getCommunicationSettings();
   await sendMail({
     to: comms.contactFormDestinationEmail,
-    subject: `Nuevo mensaje de contacto de ${name}`,
-    text: `Nombre: ${name}\nEmail: ${email}\n\n${message}`,
-    replyTo: email,
+    subject: name ? `Nuevo mensaje de contacto de ${name}` : "Nuevo mensaje de contacto",
+    text: `Nombre: ${name || "(no incluido)"}\nEmail: ${email || "(no incluido)"}\n\n${message}`,
+    replyTo: email || undefined,
   });
 
   return { success: true };

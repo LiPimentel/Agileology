@@ -12,7 +12,27 @@ import { slugify } from "@/lib/slugify";
 
 export type PageFormState = { error?: string; pageId?: string; savedAt?: number };
 
-type SubmittedBlock = { id: string; type: "text" | "image" | "link" | "video"; content: unknown };
+type SubmittedBlock = {
+  id: string;
+  type: "text" | "image" | "link" | "video" | "map" | "contactForm" | "customForm";
+  content: unknown;
+  position?: number;
+  columnIndex?: number;
+  columnWidth?: number;
+  blockOrder?: number;
+  sectionBgImageUrl?: string;
+  sectionBgColor?: string;
+  sectionBgOpacity?: number;
+  sectionBgVideoUrl?: string;
+  sectionBgGradientEnd?: string;
+  sectionLayoutMode?: string;
+  sectionFreeHeight?: number;
+  freeX?: number;
+  freeY?: number;
+  freeWidth?: number;
+  freeHeight?: number;
+  freeZIndex?: number;
+};
 
 function parseBlocks(raw: string): SubmittedBlock[] {
   try {
@@ -22,6 +42,35 @@ function parseBlocks(raw: string): SubmittedBlock[] {
   } catch {
     return [];
   }
+}
+
+/** Clamp a client-submitted column width to a sane range (defensive -- this is only ever layout, not sensitive data). */
+function sanitizeColumnWidth(width: unknown) {
+  const n = Number(width);
+  if (!Number.isFinite(n)) return 100;
+  return Math.min(100, Math.max(10, Math.round(n)));
+}
+
+function sanitizeOpacity(opacity: unknown) {
+  const n = Number(opacity);
+  if (!Number.isFinite(n)) return 0;
+  return Math.min(1, Math.max(0, n));
+}
+
+const HEX_COLOR = /^#[0-9a-fA-F]{3,8}$/;
+function sanitizeHexColor(color: unknown, fallback: string) {
+  const s = String(color ?? "");
+  return HEX_COLOR.test(s) ? s : fallback;
+}
+
+/** Clamps a free-layout percentage (position or size) to a sane range -- defensive only, layout data isn't sensitive. */
+function sanitizePercent(value: unknown, fallback: number) {
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : fallback;
+}
+function sanitizeFreeHeight(value: unknown) {
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.min(3000, Math.max(100, Math.round(n))) : 400;
 }
 
 async function upsertPageContent(pageId: string, formData: FormData) {
@@ -37,31 +86,55 @@ async function upsertPageContent(pageId: string, formData: FormData) {
 
   const seoTitle = sanitizePlainText(String(formData.get("seoTitle") ?? "")) || null;
   const seoDescription = sanitizePlainText(String(formData.get("seoDescription") ?? "")) || null;
-  const menuOrder = Number(formData.get("menuOrder") ?? 0) || 0;
-  const showInMenu = formData.get("showInMenu") === "on";
-  const menuVisible = formData.get("menuVisible") === "on";
+  // menuOrder/showInMenu/menuVisible used to control the public nav; that's
+  // now handled explicitly via MenuItem (/admin/settings/menu) instead, and
+  // the page editor no longer submits these fields. Deliberately NOT read
+  // from formData here anymore -- doing so would silently reset them to
+  // false/0 on every save (the form fields are gone, so they'd always read
+  // as absent) for columns nothing reads anymore anyway.
 
   const overlayColor = String(formData.get("overlayColor") ?? "#3B0764");
   const overlayOpacity = Math.min(1, Math.max(0, Number(formData.get("overlayOpacity") ?? 0.5)));
   const backgroundImageUrl = String(formData.get("backgroundImageUrl") ?? "") || null;
+  const bannerImageUrl = String(formData.get("bannerImageUrl") ?? "") || null;
+  const showBanner = formData.get("showBanner") === "on";
+  const showTitle = formData.get("showTitle") === "on";
 
-  const includeMap = formData.get("includeMap") === "on";
-  const mapAddress = sanitizePlainText(String(formData.get("mapAddress") ?? ""));
-
-  const includeContactForm = formData.get("includeContactForm") === "on";
-  const contactFields = formData.getAll("contactFields").map(String);
-
+  // Map/contact form used to be separate page-level singletons (own
+  // formData fields, own DB tables) -- they're regular blocks now (see
+  // blocks.ts), so they flow through the same blocksJson path as every
+  // other block type below. No special-casing needed here anymore.
   const blocksRaw = parseBlocks(String(formData.get("blocksJson") ?? "[]"));
+  // Sections editor sends position (shared by every block/column in one
+  // section = one row) and columnIndex/columnWidth (this block's slot and
+  // width within that row) directly -- fall back to a linear index for
+  // anything malformed/missing so a bad payload still saves sensibly rather
+  // than throwing.
   const blocks = blocksRaw.map((b, i) => ({
     type: b.type,
     content: sanitizeBlockContent(b.type, b.content) as object,
-    position: i,
+    position: Number.isFinite(b.position) ? Number(b.position) : i,
+    columnIndex: Number.isFinite(b.columnIndex) ? Number(b.columnIndex) : 0,
+    columnWidth: sanitizeColumnWidth(b.columnWidth),
+    blockOrder: Number.isFinite(b.blockOrder) ? Number(b.blockOrder) : 0,
+    sectionBgImageUrl: String(b.sectionBgImageUrl ?? "") || null,
+    sectionBgColor: sanitizeHexColor(b.sectionBgColor, "#000000"),
+    sectionBgOpacity: sanitizeOpacity(b.sectionBgOpacity),
+    sectionBgVideoUrl: String(b.sectionBgVideoUrl ?? "") || null,
+    sectionBgGradientEnd: String(b.sectionBgGradientEnd ?? "") || null,
+    sectionLayoutMode: b.sectionLayoutMode === "free" ? "free" : "grid",
+    sectionFreeHeight: sanitizeFreeHeight(b.sectionFreeHeight),
+    freeX: sanitizePercent(b.freeX, 10),
+    freeY: sanitizePercent(b.freeY, 10),
+    freeWidth: sanitizePercent(b.freeWidth, 30),
+    freeHeight: sanitizePercent(b.freeHeight, 30),
+    freeZIndex: Number.isFinite(b.freeZIndex) ? Number(b.freeZIndex) : 0,
   }));
 
   await prisma.$transaction(async (tx) => {
     await tx.page.update({
       where: { id: pageId },
-      data: { title, slug, seoTitle, seoDescription, menuOrder, showInMenu, menuVisible },
+      data: { title, slug, seoTitle, seoDescription },
     });
 
     await tx.contentBlock.deleteMany({ where: { pageId } });
@@ -71,29 +144,9 @@ async function upsertPageContent(pageId: string, formData: FormData) {
 
     await tx.background.upsert({
       where: { pageId },
-      update: { overlayColor, overlayOpacity, imageUrl: backgroundImageUrl },
-      create: { pageId, overlayColor, overlayOpacity, imageUrl: backgroundImageUrl },
+      update: { overlayColor, overlayOpacity, imageUrl: backgroundImageUrl, bannerImageUrl, showBanner, showTitle },
+      create: { pageId, overlayColor, overlayOpacity, imageUrl: backgroundImageUrl, bannerImageUrl, showBanner, showTitle },
     });
-
-    if (includeMap && mapAddress) {
-      await tx.mapComponent.upsert({
-        where: { pageId },
-        update: { address: mapAddress },
-        create: { pageId, address: mapAddress },
-      });
-    } else {
-      await tx.mapComponent.deleteMany({ where: { pageId } });
-    }
-
-    if (includeContactForm) {
-      await tx.contactFormComponent.upsert({
-        where: { pageId },
-        update: { enabledFields: contactFields.length ? contactFields : ["name", "email", "message"] },
-        create: { pageId, enabledFields: contactFields.length ? contactFields : ["name", "email", "message"] },
-      });
-    } else {
-      await tx.contactFormComponent.deleteMany({ where: { pageId } });
-    }
   });
 
   return slug;
@@ -157,7 +210,7 @@ export async function duplicatePage(pageId: string) {
   const admin = await requireAdmin();
   const source = await prisma.page.findUnique({
     where: { id: pageId },
-    include: { blocks: true, background: true, mapComponent: true, contactFormComponent: true },
+    include: { blocks: true, background: true },
   });
   if (!source) throw new Error("Página no encontrada.");
 
@@ -174,14 +227,40 @@ export async function duplicatePage(pageId: string) {
       seoTitle: source.seoTitle,
       seoDescription: source.seoDescription,
       showInMenu: false,
-      blocks: { create: source.blocks.map((b) => ({ type: b.type, content: b.content as object, position: b.position })) },
+      blocks: {
+        create: source.blocks.map((b) => ({
+          type: b.type,
+          content: b.content as object,
+          position: b.position,
+          columnIndex: b.columnIndex,
+          columnWidth: b.columnWidth,
+          blockOrder: b.blockOrder,
+          sectionBgImageUrl: b.sectionBgImageUrl,
+          sectionBgColor: b.sectionBgColor,
+          sectionBgOpacity: b.sectionBgOpacity,
+          sectionBgVideoUrl: b.sectionBgVideoUrl,
+          sectionBgGradientEnd: b.sectionBgGradientEnd,
+          sectionLayoutMode: b.sectionLayoutMode,
+          sectionFreeHeight: b.sectionFreeHeight,
+          freeX: b.freeX,
+          freeY: b.freeY,
+          freeWidth: b.freeWidth,
+          freeHeight: b.freeHeight,
+          freeZIndex: b.freeZIndex,
+        })),
+      },
       background: source.background
-        ? { create: { imageUrl: source.background.imageUrl, overlayColor: source.background.overlayColor, overlayOpacity: source.background.overlayOpacity } }
+        ? {
+            create: {
+              imageUrl: source.background.imageUrl,
+              overlayColor: source.background.overlayColor,
+              overlayOpacity: source.background.overlayOpacity,
+              bannerImageUrl: source.background.bannerImageUrl,
+              showBanner: source.background.showBanner,
+              showTitle: source.background.showTitle,
+            },
+          }
         : { create: {} },
-      mapComponent: source.mapComponent ? { create: { address: source.mapComponent.address } } : undefined,
-      contactFormComponent: source.contactFormComponent
-        ? { create: { enabledFields: source.contactFormComponent.enabledFields } }
-        : undefined,
     },
   });
 
@@ -203,12 +282,55 @@ export async function restorePageVersion(pageId: string, versionId: string) {
     await tx.contentBlock.deleteMany({ where: { pageId } });
     if (snapshot.blocks?.length) {
       await tx.contentBlock.createMany({
-        data: snapshot.blocks.map((b: { type: string; content: object }, i: number) => ({
-          pageId,
-          type: b.type,
-          content: b.content,
-          position: i,
-        })),
+        data: snapshot.blocks.map(
+          (
+            b: {
+              type: string;
+              content: object;
+              position?: number;
+              columnIndex?: number;
+              columnWidth?: number;
+              blockOrder?: number;
+              sectionBgImageUrl?: string | null;
+              sectionBgColor?: string;
+              sectionBgOpacity?: number;
+              sectionBgVideoUrl?: string | null;
+              sectionBgGradientEnd?: string | null;
+              sectionLayoutMode?: string;
+              sectionFreeHeight?: number;
+              freeX?: number;
+              freeY?: number;
+              freeWidth?: number;
+              freeHeight?: number;
+              freeZIndex?: number;
+            },
+            i: number,
+          ) => ({
+            pageId,
+            type: b.type,
+            content: b.content,
+            // Older snapshots (published before sections/section
+            // backgrounds/multi-block columns/free layout existed) have
+            // none of these -- fall back to one block per single-column,
+            // background-less, grid-mode section, i.e. today's flat layout.
+            position: b.position ?? i,
+            columnIndex: b.columnIndex ?? 0,
+            columnWidth: b.columnWidth ?? 100,
+            blockOrder: b.blockOrder ?? 0,
+            sectionBgImageUrl: b.sectionBgImageUrl ?? null,
+            sectionBgColor: b.sectionBgColor ?? "#000000",
+            sectionBgVideoUrl: b.sectionBgVideoUrl ?? null,
+            sectionBgGradientEnd: b.sectionBgGradientEnd ?? null,
+            sectionBgOpacity: b.sectionBgOpacity ?? 0,
+            sectionLayoutMode: b.sectionLayoutMode ?? "grid",
+            sectionFreeHeight: b.sectionFreeHeight ?? 400,
+            freeX: b.freeX ?? 10,
+            freeY: b.freeY ?? 10,
+            freeWidth: b.freeWidth ?? 30,
+            freeHeight: b.freeHeight ?? 30,
+            freeZIndex: b.freeZIndex ?? 0,
+          }),
+        ),
       });
     }
     await tx.background.upsert({
@@ -217,12 +339,18 @@ export async function restorePageVersion(pageId: string, versionId: string) {
         imageUrl: snapshot.background?.imageUrl ?? null,
         overlayColor: snapshot.background?.overlayColor ?? "#3B0764",
         overlayOpacity: snapshot.background?.overlayOpacity ?? 0.5,
+        bannerImageUrl: snapshot.background?.bannerImageUrl ?? null,
+        showBanner: snapshot.background?.showBanner ?? true,
+        showTitle: snapshot.background?.showTitle ?? true,
       },
       create: {
         pageId,
         imageUrl: snapshot.background?.imageUrl ?? null,
         overlayColor: snapshot.background?.overlayColor ?? "#3B0764",
         overlayOpacity: snapshot.background?.overlayOpacity ?? 0.5,
+        bannerImageUrl: snapshot.background?.bannerImageUrl ?? null,
+        showBanner: snapshot.background?.showBanner ?? true,
+        showTitle: snapshot.background?.showTitle ?? true,
       },
     });
   });

@@ -15,10 +15,38 @@ const geistMono = Geist_Mono({
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  const description = settings.defaultMetaDescription ?? "Coaching y gestión ágil.";
+
   return {
+    // Lets relative URLs elsewhere in metadata (e.g. an openGraph image
+    // set per-page) resolve to absolute ones -- required for social/search
+    // previews to actually load the image. Guarded: an unset/invalid URL
+    // must not crash metadata generation for the whole site.
+    metadataBase: siteUrl && URL.canParse(siteUrl) ? new URL(siteUrl) : undefined,
     title: { default: settings.siteTitle, template: `%s — ${settings.siteTitle}` },
-    description: settings.defaultMetaDescription ?? "Coaching y gestión ágil.",
+    description,
     icons: settings.faviconUrl ? { icon: settings.faviconUrl } : undefined,
+    // Default social/search preview -- individual pages/posts override
+    // title/description/images via their own generateMetadata.
+    openGraph: {
+      siteName: settings.siteTitle,
+      title: settings.siteTitle,
+      description,
+      images: settings.logoUrl ? [settings.logoUrl] : undefined,
+      locale: "es",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: settings.siteTitle,
+      description,
+      images: settings.logoUrl ? [settings.logoUrl] : undefined,
+    },
+    // The <meta name="google-site-verification" content="..."> tag Search
+    // Console needs to confirm domain ownership -- set from Ajustes del
+    // sitio; absent entirely (no empty tag rendered) until an admin fills
+    // it in.
+    verification: settings.googleSiteVerification ? { google: settings.googleSiteVerification } : undefined,
   };
 }
 
@@ -28,6 +56,26 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="es"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        {/*
+          Content fonts for the text block editor's font picker
+          (TextBlockEditor.tsx / FONT_OPTIONS) -- deliberately a plain
+          Google Fonts stylesheet link, NOT next/font/google like the two
+          fixed UI fonts above. next/font generates a build-hashed,
+          non-portable family name (e.g. '__Playfair_Display_a1b2c3'); that
+          name would get baked verbatim into saved block content
+          (style="font-family: ...") and go stale/silently stop rendering
+          on the next rebuild, since the hash changes every build. A real,
+          stable Google Fonts family name ("Playfair Display") persists
+          correctly across rebuilds -- this is content data, not static UI.
+        */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Open+Sans:wght@400;700&family=Montserrat:wght@400;700&family=Lato:wght@400;700&family=Poppins:wght@400;700&family=Playfair+Display:wght@400;700&family=Merriweather:wght@400;700&family=Oswald:wght@400;700&family=Raleway:wght@400;700&family=Nunito:wght@400;700&family=Bebas+Neue&display=swap"
+        />
+      </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

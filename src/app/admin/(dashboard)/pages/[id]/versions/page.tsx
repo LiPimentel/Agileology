@@ -17,8 +17,8 @@ export default async function PageVersionsPage({ params }: { params: Promise<{ i
 
   return (
     <div>
-      <h1 className="mb-1 text-2xl font-semibold text-slate-900">Historial de versiones</h1>
-      <p className="mb-6 text-sm text-slate-500">{page.title}</p>
+      <h1 className="mb-1 text-2xl font-semibold text-slate-900 dark:text-slate-100">Historial de versiones</h1>
+      <p className="mb-6 text-sm text-slate-500 dark:text-slate-400">{page.title}</p>
       <VersionsList pageId={id} versions={versions.map((v) => ({ id: v.id, createdAt: v.createdAt.toISOString() }))} />
     </div>
   );

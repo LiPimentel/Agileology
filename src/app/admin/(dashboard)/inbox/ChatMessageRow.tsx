@@ -10,11 +10,12 @@ export function ChatMessageRow({
 }) {
   return (
     <InboxRow status={message.status} onMarkRead={() => markChatRead(message.id)} onDelete={() => deleteChatMessage(message.id)}>
-      <p className="font-medium text-slate-900">
-        {message.visitorName ?? "Anónimo"} {message.visitorEmail && <span className="font-normal text-slate-500">· {message.visitorEmail}</span>}
+      <p className="font-medium text-slate-900 dark:text-slate-100">
+        {message.visitorName ?? "Anónimo"}{" "}
+        {message.visitorEmail && <span className="font-normal text-slate-500 dark:text-slate-400">· {message.visitorEmail}</span>}
       </p>
       <p className="mt-1">{message.message}</p>
-      <p className="mt-1 text-xs text-slate-400">{new Date(message.receivedAt).toLocaleString("es")}</p>
+      <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">{new Date(message.receivedAt).toLocaleString("es")}</p>
     </InboxRow>
   );
 }

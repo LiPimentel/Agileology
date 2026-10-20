@@ -14,7 +14,7 @@ export function PageRowActions({ pageId, isSystem }: { pageId: string; isSystem:
         type="button"
         disabled={pending}
         onClick={() => startTransition(() => duplicatePage(pageId))}
-        className="text-slate-600 hover:text-violet-700"
+        className="text-slate-600 hover:text-violet-700 dark:text-slate-400 dark:hover:text-sky-400"
       >
         Duplicar
       </button>
@@ -30,7 +30,7 @@ export function PageRowActions({ pageId, isSystem }: { pageId: string; isSystem:
               });
             }
           }}
-          className="text-red-600 hover:underline"
+          className="text-red-600 hover:underline dark:text-red-400"
         >
           Eliminar
         </button>

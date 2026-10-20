@@ -1,56 +1,229 @@
 import { BlockRenderer, type RenderableBlock } from "@/components/blocks/BlockRenderer";
 import { BackgroundOverlay } from "@/components/public/BackgroundOverlay";
-import { MapEmbed } from "@/components/public/MapEmbed";
-import { ContactForm } from "@/components/public/ContactForm";
 
 export type PageRenderData = {
   id: string;
   title: string;
   blocks: RenderableBlock[];
-  background?: { imageUrl?: string | null; overlayColor?: string | null; overlayOpacity?: number | null } | null;
-  mapComponent?: { address: string } | null;
-  contactFormComponent?: { enabledFields: string[] } | null;
+  background?: {
+    imageUrl?: string | null;
+    overlayColor?: string | null;
+    overlayOpacity?: number | null;
+    // A real image (logo, hero photo) shown in the banner above the
+    // title -- distinct from imageUrl, which is a full-bleed CSS
+    // background-cover behind everything.
+    bannerImageUrl?: string | null;
+    // Whether the banner block below renders at all. undefined (snapshots
+    // published before this existed) defaults to true, matching the old,
+    // always-on behavior exactly.
+    showBanner?: boolean;
+    // Whether the title TEXT shows inside the banner -- independent of
+    // showBanner (which hides the whole block). Also defaults true for old
+    // snapshots.
+    showTitle?: boolean;
+  } | null;
 };
 
+/**
+ * Groups the flat, already `position`/`columnIndex`/`blockOrder`-ordered
+ * block list into sections: blocks sharing the same `position` are one
+ * section's columns, rendered side by side; blocks within a section that
+ * also share the same `columnIndex` stack top to bottom in one column
+ * ("quiero 2 textos y 1 imagen" in one side of a section). `position` is
+ * absent on snapshots published before sections existed -- treat each of
+ * those blocks as its own single-column section (today's flat layout,
+ * unchanged).
+ */
+function groupIntoSections(blocks: RenderableBlock[]) {
+  const sections: RenderableBlock[][] = [];
+  let currentPosition: number | undefined;
+  let hasCurrentSection = false;
+  for (const block of blocks) {
+    const isNewSection = block.position === undefined || !hasCurrentSection || block.position !== currentPosition;
+    if (isNewSection) {
+      sections.push([]);
+      currentPosition = block.position;
+      hasCurrentSection = true;
+    }
+    sections[sections.length - 1].push(block);
+  }
+  return sections;
+}
+
+/** Groups one section's blocks (already columnIndex-ordered) into columns, preserving block order within each. */
+function groupIntoColumns(section: RenderableBlock[]) {
+  const columns: RenderableBlock[][] = [];
+  let currentColumnIndex: number | undefined;
+  let hasCurrentColumn = false;
+  for (const block of section) {
+    const isNewColumn = block.columnIndex === undefined || !hasCurrentColumn || block.columnIndex !== currentColumnIndex;
+    if (isNewColumn) {
+      columns.push([]);
+      currentColumnIndex = block.columnIndex;
+      hasCurrentColumn = true;
+    }
+    columns[columns.length - 1].push(block);
+  }
+  return columns;
+}
+
+/**
+ * Free-mode blocks still carry their own width%/alignment (image/video
+ * blocks always have these, even ones added in a grid section before being
+ * switched to free) -- but in a free section the BOX itself (from
+ * freeWidth/freeHeight) already defines the block's size, so the block's
+ * own internal width/alignment would just double up with it. Force those
+ * back to "fill the box" (100%/center) for rendering here only -- the
+ * stored values on the block itself are untouched, so switching a section
+ * back to grid mode doesn't lose whatever was configured before.
+ */
+function forFreeBox(block: RenderableBlock): RenderableBlock {
+  if (block.type !== "image" && block.type !== "video") return block;
+  return { ...block, content: { ...block.content, width: 100, alignment: "center" } };
+}
+
 export function PageRenderer({ page }: { page: PageRenderData }) {
+  // "eso no puede estar fijo como obligatorio en cada página" -- this
+  // banner used to render unconditionally on every page (even with no
+  // image/color set, just a flat purple bar), leaving no way to put a
+  // video/slideshow section directly under the header instead. Defaults to
+  // true so every page published before this existed keeps its exact
+  // current look.
+  const showBanner = page.background?.showBanner ?? true;
+  // "habrán secciones o partes donde no quiero que se vea el nombre de la
+  // página" -- independent of showBanner: a page can keep its background
+  // image/logo but skip repeating the title as text over it.
+  const showTitle = page.background?.showTitle ?? true;
+  // Exactly one <h1> always exists (accessibility/SEO), visible only when
+  // both the banner and the title text are turned on for this page.
+  const titleVisible = showBanner && showTitle;
+
   return (
     <article>
-      <BackgroundOverlay
-        imageUrl={page.background?.imageUrl}
-        overlayColor={page.background?.overlayColor}
-        overlayOpacity={page.background?.overlayOpacity}
-      >
-        <div className="mx-auto max-w-4xl px-6 py-16">
-          <h1
-            className={
-              page.background?.imageUrl
-                ? "text-4xl font-bold text-white"
-                : "text-4xl font-bold text-slate-900"
-            }
-          >
-            {page.title}
-          </h1>
-        </div>
-      </BackgroundOverlay>
-
-      <div className="mx-auto max-w-3xl space-y-8 px-6 py-12">
-        {page.blocks.map((block, i) => (
-          <BlockRenderer key={block.id ?? i} block={block} />
-        ))}
-
-        {page.mapComponent && (
-          <div>
-            <h2 className="mb-3 text-xl font-semibold text-slate-900">Ubicación</h2>
-            <MapEmbed address={page.mapComponent.address} />
+      {showBanner ? (
+        <BackgroundOverlay
+          imageUrl={page.background?.imageUrl}
+          overlayColor={page.background?.overlayColor}
+          overlayOpacity={page.background?.overlayOpacity}
+        >
+          <div className={`mx-auto max-w-4xl px-6 py-16 ${page.background?.bannerImageUrl ? "text-center" : ""}`}>
+            {page.background?.bannerImageUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={page.background.bannerImageUrl} alt="" className="mx-auto mb-4 max-h-24 max-w-full object-contain" />
+            )}
+            <h1
+              className={
+                titleVisible
+                  ? page.background?.imageUrl
+                    ? "text-4xl font-bold text-white"
+                    : "text-4xl font-bold text-slate-900"
+                  : "sr-only"
+              }
+            >
+              {page.title}
+            </h1>
           </div>
-        )}
+        </BackgroundOverlay>
+      ) : (
+        // Banner turned off for this page -- still need exactly one <h1>
+        // for accessibility/SEO, just not shown visually (the page's own
+        // first section takes over immediately below the nav instead).
+        <h1 className="sr-only">{page.title}</h1>
+      )}
 
-        {page.contactFormComponent && (
-          <div>
-            <h2 className="mb-3 text-xl font-semibold text-slate-900">Contáctanos</h2>
-            <ContactForm pageId={page.id} enabledFields={page.contactFormComponent.enabledFields} />
-          </div>
-        )}
+      {/*
+        Grid sections stay in the narrow, centered, readable-width column
+        (below) like any article/page body -- but a free section is meant
+        to be used like Wix's canvas, "yo debería ser la que defina hasta
+        dónde queda [el contenido], no una limitante impuesta": it breaks
+        out of that column entirely and spans the full page width instead
+        of being boxed into the same ~768px column as regular text
+        content. Each section picks its own wrapper below (isFree), so a
+        page can freely mix narrow article-style sections with full-width
+        ones.
+      */}
+      <div className="space-y-8 py-12">
+        {groupIntoSections(page.blocks).map((section, i) => {
+          const first = section[0];
+          const isFree = first?.sectionLayoutMode === "free";
+          const columns = groupIntoColumns(section);
+          const row = isFree ? (
+            // Free ("Wix-style") canvas: every block is its own absolutely
+            // positioned box (percentages of this canvas, see
+            // sections.ts's comment on why percentages and not pixels) --
+            // no columns at all. Opt-in per section; every other section
+            // on the page renders through the grid path below, unchanged.
+            <div key={first?.id ?? i} className="relative w-full" style={{ height: `${first?.sectionFreeHeight ?? 400}px` }}>
+              {section.map((block, j) => (
+                <div
+                  key={block.id ?? j}
+                  className="absolute overflow-hidden [&_iframe]:h-full [&_iframe]:w-full [&_img]:h-full [&_img]:w-full [&_img]:object-cover"
+                  style={{
+                    left: `${block.freeX ?? 10}%`,
+                    top: `${block.freeY ?? 10}%`,
+                    width: `${block.freeWidth ?? 30}%`,
+                    height: `${block.freeHeight ?? 30}%`,
+                    zIndex: block.freeZIndex ?? 0,
+                  }}
+                >
+                  <BlockRenderer block={forFreeBox(block)} pageId={page.id} />
+                </div>
+              ))}
+            </div>
+          ) : columns.length <= 1 ? (
+              // Single-column section: no flex row needed, matches the
+              // pre-sections layout exactly. Multiple blocks stacked in
+              // that one column still stack vertically.
+              <div key={first?.id ?? i} className="flex flex-col gap-6">
+                {(columns[0] ?? [first]).map((block, j) => (
+                  <BlockRenderer key={block?.id ?? j} block={block} pageId={page.id} />
+                ))}
+              </div>
+            ) : (
+              <div key={first?.id ?? i} className="flex flex-col gap-6 sm:flex-row">
+                {columns.map((col, j) => (
+                  <div
+                    key={col[0]?.id ?? j}
+                    className="flex min-w-0 flex-col gap-6"
+                    style={{ flexBasis: `${col[0]?.columnWidth ?? Math.round(100 / columns.length)}%` }}
+                  >
+                    {col.map((block, k) => (
+                      <BlockRenderer key={block.id ?? k} block={block} pageId={page.id} />
+                    ))}
+                  </div>
+                ))}
+              </div>
+            );
+
+          // A section's own background (separate from the page's overall
+          // one) -- same imageUrl/color/opacity/videoUrl fields duplicated
+          // across every block in this section (see ContentBlock schema
+          // comment).
+          const hasSectionBg =
+            Boolean(first?.sectionBgImageUrl) || Boolean(first?.sectionBgVideoUrl) || (first?.sectionBgOpacity ?? 0) > 0;
+          const content = hasSectionBg ? (
+            <BackgroundOverlay
+              imageUrl={first?.sectionBgImageUrl}
+              overlayColor={first?.sectionBgColor}
+              overlayOpacity={first?.sectionBgOpacity}
+              videoUrl={first?.sectionBgVideoUrl}
+              gradientEnd={first?.sectionBgGradientEnd}
+            >
+              <div className={isFree ? "" : "rounded-md p-6"}>{row}</div>
+            </BackgroundOverlay>
+          ) : (
+            row
+          );
+
+          // Free sections span the full page width; grid sections stay in
+          // the centered ~768px readable column, same as before this
+          // existed -- see the comment on the outer wrapper above.
+          return (
+            <div key={first?.id ?? i} className={isFree ? "w-full" : "mx-auto max-w-3xl px-6"}>
+              {content}
+            </div>
+          );
+        })}
       </div>
     </article>
   );

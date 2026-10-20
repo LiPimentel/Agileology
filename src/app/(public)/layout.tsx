@@ -3,12 +3,12 @@ import { Footer } from "@/components/public/Footer";
 import { CookieNotice } from "@/components/public/CookieNotice";
 import { VisitTracker } from "@/components/public/VisitTracker";
 import { ChatWidget } from "@/components/public/ChatWidget";
-import { getSiteSettings } from "@/lib/settings";
+import { getCommunicationSettings, getSiteSettings } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
-  const settings = await getSiteSettings();
+  const [settings, comms] = await Promise.all([getSiteSettings(), getCommunicationSettings()]);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -17,7 +17,12 @@ export default async function PublicLayout({ children }: { children: React.React
       <Footer />
       {settings.cookieNoticeEnabled && <CookieNotice />}
       <VisitTracker />
-      <ChatWidget />
+      <ChatWidget
+        title={comms.chatWidgetTitle}
+        buttonLabel={comms.chatWidgetButtonLabel}
+        placeholder={comms.chatWidgetPlaceholder}
+        successMessage={comms.chatWidgetSuccessMessage}
+      />
     </div>
   );
 }
