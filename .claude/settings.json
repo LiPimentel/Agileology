@@ -1,0 +1,11 @@
+{
+  "extraKnownMarketplaces": {
+    "lipimentel": {
+      "source": { "source": "github", "repo": "LiPimentel/claude-plugins" }
+    }
+  },
+  "enabledPlugins": {
+    "review-agents@lipimentel": true,
+    "code-quality@lipimentel": true
+  }
+}
