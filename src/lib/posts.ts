@@ -1,6 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import type { RenderableBlock } from "@/components/blocks/BlockRenderer";
+import { dayRange } from "@/lib/listFilters";
 
 export type PostSnapshot = {
   id: string;
@@ -91,36 +92,53 @@ export async function listPublishedPosts(opts: { q?: string; skip?: number; take
   return { posts, total };
 }
 
-export type AdminPostFilter = { q?: string; from?: string; to?: string };
+export type AdminPostFilter = {
+  q?: string;
+  from?: string; // created from (day, Santo Domingo)
+  to?: string; // created to
+  pfrom?: string; // published from
+  pto?: string; // published to
+  status?: "draft" | "published" | "";
+  tag?: string;
+};
 
 /**
- * Shared filter for the admin posts list AND its CSV export -- both need
- * the exact same query so "download CSV" reflects whatever's currently
- * filtered/visible, not the full unfiltered table. Date range is on
- * createdAt (always set, unlike publishedAt which is null for drafts) so
- * it works the same for drafts and published posts alike.
+ * Shared filter for the admin posts list AND its CSV export -- both need the exact same query
+ * so "download CSV" reflects whatever is currently filtered, not the full table. Day ranges are
+ * Santo Domingo days (see lib/listFilters.ts).
  */
 export function adminPostListWhere(filter: AdminPostFilter) {
-  const from = filter.from ? new Date(filter.from) : null;
-  // Push "to" to the end of that calendar day so a same-day range (from=to)
-  // actually includes posts created that day, not just at midnight.
-  const to = filter.to ? new Date(`${filter.to}T23:59:59.999`) : null;
-
+  const created = dayRange(filter.from ?? "", filter.to ?? "");
+  const published = dayRange(filter.pfrom ?? "", filter.pto ?? "");
   return {
     title: filter.q ? { contains: filter.q, mode: "insensitive" as const } : undefined,
-    createdAt:
-      from || to
-        ? {
-            ...(from && !isNaN(from.getTime()) ? { gte: from } : {}),
-            ...(to && !isNaN(to.getTime()) ? { lte: to } : {}),
-          }
-        : undefined,
+    status: filter.status === "draft" || filter.status === "published" ? filter.status : undefined,
+    tags: filter.tag ? { has: filter.tag } : undefined,
+    createdAt: created,
+    publishedAt: published,
   };
 }
 
-export async function adminListPosts(filter: AdminPostFilter) {
-  return prisma.post.findMany({
-    where: adminPostListWhere(filter),
-    orderBy: { createdAt: "desc" },
-  });
+export type AdminPostPaging = { skip?: number; take?: number; sort?: "title" | "status" | "createdAt" | "publishedAt" | ""; dir?: "asc" | "desc" };
+
+export async function adminListPosts(filter: AdminPostFilter, paging: AdminPostPaging = {}) {
+  const dir = paging.dir ?? "desc";
+  // Default: drafts first (the ones being worked on), then newest created. An explicit sort wins.
+  const orderBy =
+    !paging.sort
+      ? [{ status: "asc" as const }, { createdAt: "desc" as const }]
+      : paging.sort === "publishedAt"
+        ? [{ publishedAt: { sort: dir, nulls: "last" as const } }, { createdAt: "desc" as const }]
+        : [{ [paging.sort]: dir }, { createdAt: "desc" as const }];
+  return prisma.post.findMany({ where: adminPostListWhere(filter), orderBy, skip: paging.skip, take: paging.take });
+}
+
+export async function adminCountPosts(filter: AdminPostFilter) {
+  return prisma.post.count({ where: adminPostListWhere(filter) });
+}
+
+/** Every tag in use, for the tag filter. */
+export async function adminPostTags(): Promise<string[]> {
+  const rows = await prisma.$queryRaw<Array<{ tag: string }>>`select distinct unnest(tags) as tag from "Post" order by 1`;
+  return rows.map((r) => r.tag);
 }

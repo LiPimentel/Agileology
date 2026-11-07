@@ -16,13 +16,18 @@ export async function GET(request: NextRequest) {
     q: searchParams.get("q") ?? undefined,
     from: searchParams.get("from") ?? undefined,
     to: searchParams.get("to") ?? undefined,
+    pfrom: searchParams.get("pfrom") ?? undefined,
+    pto: searchParams.get("pto") ?? undefined,
+    status: (searchParams.get("status") as "draft" | "published" | null) ?? undefined,
+    tag: searchParams.get("tag") ?? undefined,
   });
 
   const rows = [
-    ["Título", "Estado", "Fecha publicada"],
+    ["Título", "Estado", "Fecha creada", "Fecha publicada"],
     ...posts.map((p) => [
       p.title,
       STATUS_LABEL[p.status] ?? p.status,
+      toAstInput(p.createdAt).slice(0, 10),
       p.publishedAt ? toAstInput(p.publishedAt).slice(0, 10) : "",
     ]),
   ];

@@ -24,7 +24,9 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./public/uploads:/app/public/uploads
+      # Outside public/ on purpose: Next serves anything under public/ as a plain static file,
+      # which would bypass the /uploads route (Range handling, nosniff + sandbox headers).
+      - ./uploads:/app/uploads
 
 volumes:
   agileology_db_data:
