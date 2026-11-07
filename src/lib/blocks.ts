@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { isSafeHref } from "@/lib/href";
+import { parseVideoEmbed } from "@/lib/video";
 import { sanitizeRichText, sanitizePlainText } from "@/lib/sanitize";
 
 export const textBlockSchema = z.object({ html: z.string() });
@@ -60,6 +61,31 @@ export const contactFormBlockSchema = z.object({
 // /admin/forms, not here.
 export const customFormBlockSchema = z.object({ formId: z.string() });
 
+// Image/video slideshow. Images are site-relative or http(s) URLs; videos are limited to
+// YouTube/Vimeo links (same rule as the video block), so nothing else can be embedded.
+export const MAX_CAROUSEL_SLIDES = 20;
+export const carouselSlideSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("image"),
+    url: z.string().refine(isSafeHref, "La imagen debe ser una ruta del sitio o un enlace http(s)."),
+    altText: z.string().default(""),
+  }),
+  z.object({
+    kind: z.literal("video"),
+    url: z.string().refine((u) => parseVideoEmbed(u) !== null, "El video debe ser un enlace de YouTube o Vimeo."),
+  }),
+]);
+export const carouselBlockSchema = z.object({
+  slides: z.array(carouselSlideSchema).max(MAX_CAROUSEL_SLIDES).default([]),
+  aspect: z.enum(["16/9", "4/3", "1/1"]).default("16/9"),
+  showArrows: z.boolean().default(true),
+  showDots: z.boolean().default(true),
+  // Off by default; never advances while a video slide is showing.
+  autoplay: z.boolean().default(false),
+  intervalSeconds: z.number().min(3).max(15).default(6),
+  width: z.number().min(20).max(100).default(100),
+});
+
 export type EditorBlock =
   | { id: string; type: "text"; content: z.infer<typeof textBlockSchema> }
   | { id: string; type: "image"; content: z.infer<typeof imageBlockSchema> }
@@ -67,7 +93,8 @@ export type EditorBlock =
   | { id: string; type: "video"; content: z.infer<typeof videoBlockSchema> }
   | { id: string; type: "map"; content: z.infer<typeof mapBlockSchema> }
   | { id: string; type: "contactForm"; content: z.infer<typeof contactFormBlockSchema> }
-  | { id: string; type: "customForm"; content: z.infer<typeof customFormBlockSchema> };
+  | { id: string; type: "customForm"; content: z.infer<typeof customFormBlockSchema> }
+  | { id: string; type: "carousel"; content: z.infer<typeof carouselBlockSchema> };
 
 /** Sanitizes a block's content before it's persisted (RS-06). */
 export function sanitizeBlockContent(type: string, content: unknown) {
@@ -99,6 +126,13 @@ export function sanitizeBlockContent(type: string, content: unknown) {
     case "customForm": {
       const parsed = customFormBlockSchema.parse(content);
       return parsed;
+    }
+    case "carousel": {
+      const parsed = carouselBlockSchema.parse(content);
+      return {
+        ...parsed,
+        slides: parsed.slides.map((s) => (s.kind === "image" ? { ...s, altText: sanitizePlainText(s.altText) } : s)),
+      };
     }
     default:
       throw new Error(`Unknown block type: ${type}`);

@@ -13,7 +13,7 @@ import { fromAstInput, toAstInput } from "@/lib/date";
 
 export type PostFormState = { error?: string; postId?: string; savedAt?: number };
 
-type SubmittedBlock = { type: "text" | "image" | "link" | "video"; content: unknown };
+type SubmittedBlock = { type: "text" | "image" | "link" | "video" | "carousel"; content: unknown };
 
 function parseBlocks(raw: string): SubmittedBlock[] {
   try {

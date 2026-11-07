@@ -7,18 +7,21 @@ import { TextBlockEditor } from "@/components/admin/blocks/TextBlockEditor";
 import { ImageBlockEditor, type ImageBlockValue } from "@/components/admin/blocks/ImageBlockEditor";
 import { LinkBlockEditor, type LinkBlockValue } from "@/components/admin/blocks/LinkBlockEditor";
 import { VideoBlockEditor, type VideoBlockValue } from "@/components/admin/blocks/VideoBlockEditor";
+import { CarouselBlockEditor, EMPTY_CAROUSEL, type CarouselBlockValue } from "@/components/admin/blocks/CarouselBlockEditor";
 
 export type EditorBlock =
   | { id: string; type: "text"; content: { html: string } }
   | { id: string; type: "image"; content: ImageBlockValue }
   | { id: string; type: "link"; content: LinkBlockValue }
-  | { id: string; type: "video"; content: VideoBlockValue };
+  | { id: string; type: "video"; content: VideoBlockValue }
+  | { id: string; type: "carousel"; content: CarouselBlockValue };
 
 const BLOCK_LABELS: Record<EditorBlock["type"], string> = {
   text: "Texto",
   image: "Imagen",
   link: "Enlace",
   video: "Video",
+  carousel: "Carrusel",
 };
 const BLOCK_TYPE_OPTIONS = (Object.keys(BLOCK_LABELS) as EditorBlock["type"][]).map((type) => ({ type, label: BLOCK_LABELS[type] }));
 
@@ -45,6 +48,8 @@ function emptyBlock(type: EditorBlock["type"]): EditorBlock {
       return { id, type, content: { label: "", href: "", internal: true, newTab: false } };
     case "video":
       return { id, type, content: { url: "", alignment: "center", shape: "none", width: 100 } };
+    case "carousel":
+      return { id, type, content: { ...EMPTY_CAROUSEL, slides: [] } };
   }
 }
 
@@ -119,6 +124,9 @@ export function BlockEditor({
           )}
           {block.type === "video" && (
             <VideoBlockEditor value={block.content} onChange={(v) => update(block.id, v)} />
+          )}
+          {block.type === "carousel" && (
+            <CarouselBlockEditor value={block.content} onChange={(v) => update(block.id, v)} mediaLibrary={mediaLibrary} />
           )}
         </div>
       ))}

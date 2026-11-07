@@ -10,6 +10,7 @@ import { TextBlockEditor } from "@/components/admin/blocks/TextBlockEditor";
 import { ImageBlockEditor } from "@/components/admin/blocks/ImageBlockEditor";
 import { LinkBlockEditor } from "@/components/admin/blocks/LinkBlockEditor";
 import { VideoBlockEditor } from "@/components/admin/blocks/VideoBlockEditor";
+import { CarouselBlockEditor } from "@/components/admin/blocks/CarouselBlockEditor";
 import { MapBlockEditor } from "@/components/admin/blocks/MapBlockEditor";
 import { ContactFormBlockEditor } from "@/components/admin/blocks/ContactFormBlockEditor";
 import { CustomFormBlockEditor } from "@/components/admin/blocks/CustomFormBlockEditor";
@@ -36,6 +37,7 @@ const BLOCK_LABELS: Record<BlockType, string> = {
   map: "Mapa",
   contactForm: "Formulario de contacto",
   customForm: "Formulario (biblioteca)",
+  carousel: "Carrusel",
 };
 const BLOCK_TYPE_OPTIONS = (Object.keys(BLOCK_LABELS) as BlockType[]).map((type) => ({ type, label: BLOCK_LABELS[type] }));
 
@@ -60,6 +62,8 @@ function hasContent(block: BlockValue): boolean {
       return true;
     case "customForm":
       return Boolean(block.content.formId);
+    case "carousel":
+      return block.content.slides.length > 0;
   }
 }
 
@@ -557,6 +561,8 @@ export function SectionBlockEditor({
         return <ContactFormBlockEditor value={item.block.content} onChange={onChange} />;
       case "customForm":
         return <CustomFormBlockEditor value={item.block.content} onChange={onChange} formDefinitions={formDefinitions} />;
+      case "carousel":
+        return <CarouselBlockEditor value={item.block.content} onChange={onChange} mediaLibrary={mediaLibrary} />;
     }
   }
 
@@ -578,6 +584,8 @@ export function SectionBlockEditor({
         return <ContactFormBlockEditor value={item.block.content} onChange={onChange} />;
       case "customForm":
         return <CustomFormBlockEditor value={item.block.content} onChange={onChange} formDefinitions={formDefinitions} />;
+      case "carousel":
+        return <CarouselBlockEditor value={item.block.content} onChange={onChange} mediaLibrary={mediaLibrary} />;
     }
   }
 

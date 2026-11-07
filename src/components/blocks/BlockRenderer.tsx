@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { Carousel, type CarouselValue } from "@/components/blocks/Carousel";
 import { parseVideoEmbed } from "@/lib/video";
 import { TrackedLink } from "@/components/public/TrackedLink";
 import {
@@ -16,7 +17,7 @@ import { CustomFormRenderer, type PublicFormField } from "@/components/public/Cu
 
 export type RenderableBlock = {
   id?: string;
-  type: "text" | "image" | "link" | "video" | "map" | "contactForm" | "customForm";
+  type: "text" | "image" | "link" | "video" | "map" | "contactForm" | "customForm" | "carousel";
   content: Record<string, unknown>;
   // Section/column layout (pages only -- see PageRenderer, which groups
   // blocks sharing the same `position` into one row and lays them out
@@ -133,6 +134,24 @@ export function BlockRenderer({ block, pageId }: { block: RenderableBlock; pageI
             />
           </div>
         </div>
+      );
+    }
+    case "carousel": {
+      const slides = Array.isArray(block.content.slides) ? (block.content.slides as CarouselValue["slides"]) : [];
+      if (slides.length === 0) return null;
+      const c = block.content as Partial<CarouselValue>;
+      return (
+        <Carousel
+          value={{
+            slides,
+            aspect: c.aspect ?? "16/9",
+            showArrows: c.showArrows ?? true,
+            showDots: c.showDots ?? true,
+            autoplay: c.autoplay ?? false,
+            intervalSeconds: c.intervalSeconds ?? 6,
+            width: c.width ?? 100,
+          }}
+        />
       );
     }
     case "map": {
