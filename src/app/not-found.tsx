@@ -13,7 +13,7 @@ export default async function NotFound() {
       <p className="mt-3 max-w-md text-white/70">
         El enlace que seguiste puede estar roto o la página fue movida. Vuelve al inicio de {settings.siteTitle}.
       </p>
-      <Link href="/" className="mt-6 rounded-md bg-violet-600 px-5 py-2 font-medium hover:bg-violet-500">
+      <Link href="/" className="mt-6 rounded-md bg-violet-600 px-5 py-2 font-medium hover:bg-violet-700">
         Ir al inicio
       </Link>
     </div>

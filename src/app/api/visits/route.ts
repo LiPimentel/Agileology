@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { HOME_SLUGS } from "@/lib/home";
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rateLimit";
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
   const label = typeof body?.label === "string" ? body.label.slice(0, 200) : null;
 
   const page = await prisma.page.findFirst({
-    where: { slug: path === "/" ? "home" : path.replace(/^\//, "") },
+    where: path === "/" ? { slug: { in: [...HOME_SLUGS] } } : { slug: path.replace(/^\//, "") },
     select: { id: true },
   });
 

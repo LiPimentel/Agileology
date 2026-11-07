@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { isHomeSlug } from "@/lib/home";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +13,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ]);
 
   const pageEntries = pages.map((p) => ({
-    url: p.slug === "home" ? siteUrl || "/" : `${siteUrl}/${p.slug}`,
+    url: isHomeSlug(p.slug) ? siteUrl || "/" : `${siteUrl}/${p.slug}`,
     lastModified: p.updatedAt,
   }));
 

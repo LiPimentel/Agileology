@@ -3,8 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { NavLink } from "@/lib/settings";
+import { safeHref } from "@/lib/href";
 
-function LinkItem({ link, className }: { link: NavLink; className?: string }) {
+function LinkItem({ link: rawLink, className }: { link: NavLink; className?: string }) {
+  const link = { ...rawLink, href: safeHref(rawLink.href) };
   const isExternal = /^https?:\/\//i.test(link.href);
   if (isExternal) {
     return (
@@ -48,7 +50,7 @@ export function NavItem({ link }: { link: NavLink }) {
   if (!link.children || link.children.length === 0) {
     return (
       <li>
-        <LinkItem link={link} className="hover:text-white" />
+        <LinkItem link={link} className="rounded-sm hover:text-white hover:underline focus-visible:text-white focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" />
       </li>
     );
   }
@@ -56,7 +58,7 @@ export function NavItem({ link }: { link: NavLink }) {
   return (
     <li ref={ref} className="relative">
       <span className="flex items-center gap-1">
-        <LinkItem link={link} className="hover:text-white" />
+        <LinkItem link={link} className="rounded-sm hover:text-white hover:underline focus-visible:text-white focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" />
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
@@ -73,7 +75,7 @@ export function NavItem({ link }: { link: NavLink }) {
         <ul className="absolute left-0 top-full z-10 mt-2 min-w-[10rem] rounded-md border border-white/10 bg-[#1F2A44] py-1 shadow-lg">
           {link.children.map((child, i) => (
             <li key={`${child.href}-${i}`}>
-              <LinkItem link={child} className="block px-4 py-2 hover:bg-white/10 hover:text-white" />
+              <LinkItem link={child} className="block px-4 py-2 hover:bg-white/10 hover:text-white focus-visible:bg-white/10 focus-visible:text-white focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white" />
             </li>
           ))}
         </ul>

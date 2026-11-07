@@ -25,8 +25,8 @@ export async function Footer() {
         {(settings.phone || settings.whatsapp) && (
           <div className="flex gap-4">
             {settings.phone && (
-              <TrackedLink href={`tel:${settings.phone}`} label="phone" internal={false} className="hover:text-white">
-                📞 {settings.phone}
+              <TrackedLink href={`tel:${settings.phone}`} label="phone" internal={false} className="hover:text-white hover:underline focus-visible:text-white focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+                <span aria-hidden="true">📞</span> {settings.phone}
               </TrackedLink>
             )}
             {settings.whatsapp && (
@@ -35,7 +35,7 @@ export async function Footer() {
                 label="whatsapp"
                 internal={false}
                 newTab
-                className="hover:text-white"
+                className="hover:text-white hover:underline focus-visible:text-white focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               >
                 WhatsApp
               </TrackedLink>
@@ -53,7 +53,7 @@ export async function Footer() {
                   label={`social:${s.urlKey.replace("Url", "")}`}
                   internal={false}
                   newTab
-                  className="text-[#E6E9EF] hover:text-white"
+                  className="text-[#E6E9EF] hover:text-white hover:underline focus-visible:text-white focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                 >
                   {customIcon ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -76,12 +76,12 @@ export async function Footer() {
                   href={l.href}
                   target={l.newTab ? "_blank" : undefined}
                   rel={l.newTab ? "noopener noreferrer" : undefined}
-                  className="text-[#B4B9C4] hover:text-white"
+                  className="text-[#B4B9C4] hover:text-white hover:underline focus-visible:text-white focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                 >
                   {l.label}
                 </a>
               ) : (
-                <Link key={`${l.href}-${i}`} href={l.href} target={l.newTab ? "_blank" : undefined} className="text-[#B4B9C4] hover:text-white">
+                <Link key={`${l.href}-${i}`} href={l.href} target={l.newTab ? "_blank" : undefined} className="text-[#B4B9C4] hover:text-white hover:underline focus-visible:text-white focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
                   {l.label}
                 </Link>
               ),
@@ -89,7 +89,7 @@ export async function Footer() {
           </div>
         )}
         <p>{settings.footerText ?? `© ${new Date().getFullYear()} ${settings.siteTitle}`}</p>
-        <Link href="/privacy-policy" className="text-xs text-[#B4B9C4] hover:text-white">
+        <Link href="/privacy-policy" className="text-xs text-[#B4B9C4] hover:text-white hover:underline focus-visible:text-white focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
           Política de privacidad
         </Link>
       </div>

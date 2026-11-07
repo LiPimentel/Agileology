@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { safeHref } from "@/lib/href";
 import { trackClick } from "@/lib/track-click";
 
 /**
@@ -26,6 +27,7 @@ export function TrackedLink({
   children: React.ReactNode;
 }) {
   const onClick = () => trackClick(label);
+  href = safeHref(href);
   if (internal) {
     return (
       <Link href={href} target={newTab ? "_blank" : undefined} className={className} onClick={onClick}>

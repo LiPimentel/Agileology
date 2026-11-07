@@ -3,12 +3,18 @@ import { test, expect } from "@playwright/test";
 const DRAFT_SLUGS = ["errores-que-puede-cometer-un-scrum-master", "echometer", "timbo-aplicacion-retrospectivas-agiles"];
 
 test.describe("sitio público", () => {
-  for (const path of ["/blog", "/blog/rss.xml", "/inicio", "/contacto", "/sobre-mi", "/admin/login"]) {
+  for (const path of ["/", "/blog", "/blog/rss.xml", "/inicio", "/contacto", "/sobre-mi", "/admin/login"]) {
     test(`${path} responde 200`, async ({ request }) => {
       const res = await request.get(path);
       expect(res.status()).toBe(200);
     });
   }
+
+  test("el logo del encabezado carga", async ({ page, request }) => {
+    await page.goto("/");
+    const logo = page.locator("header img").first();
+    if (await logo.count()) expect((await request.get((await logo.getAttribute("src"))!)).status()).toBe(200);
+  });
 
   test("una ruta inexistente da 404", async ({ request }) => {
     expect((await request.get("/esta-pagina-no-existe")).status()).toBe(404);

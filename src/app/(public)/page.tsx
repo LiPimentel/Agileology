@@ -1,13 +1,22 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getPublishedPageBySlug } from "@/lib/pages";
+import { HOME_SLUGS } from "@/lib/home";
 import { getSiteSettings } from "@/lib/settings";
 import { PageRenderer } from "@/components/public/PageRenderer";
 
 export const dynamic = "force-dynamic";
 
+async function getHomePage() {
+  for (const slug of HOME_SLUGS) {
+    const page = await getPublishedPageBySlug(slug);
+    if (page) return page;
+  }
+  return null;
+}
+
 export async function generateMetadata(): Promise<Metadata> {
-  const [page, settings] = await Promise.all([getPublishedPageBySlug("home"), getSiteSettings()]);
+  const [page, settings] = await Promise.all([getHomePage(), getSiteSettings()]);
   const title = page?.seoTitle ?? settings.siteTitle;
   const description = page?.seoDescription ?? settings.defaultMetaDescription ?? undefined;
   const ogImage = page?.snapshot.background?.bannerImageUrl ?? page?.snapshot.background?.imageUrl ?? undefined;
@@ -20,7 +29,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function HomePage() {
-  const page = await getPublishedPageBySlug("home");
+  const page = await getHomePage();
   if (!page) notFound();
   return <PageRenderer page={page.snapshot} />;
 }

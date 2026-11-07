@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isSafeHref } from "@/lib/href";
 import { sanitizeRichText, sanitizePlainText } from "@/lib/sanitize";
 
 export const textBlockSchema = z.object({ html: z.string() });
@@ -24,7 +25,7 @@ export const imageBlockSchema = z.object({
 });
 export const linkBlockSchema = z.object({
   label: z.string(),
-  href: z.string(),
+  href: z.string().refine(isSafeHref, "El enlace debe empezar por /, http(s)://, mailto: o tel:."),
   internal: z.boolean(),
   newTab: z.boolean(),
 });
