@@ -296,7 +296,11 @@ export function CarouselBlockEditor({
       <div className="flex flex-wrap gap-4">
         <div>
           <label htmlFor={`${uid}-shape`} className="block text-sm font-medium text-slate-700 dark:text-slate-300">Forma</label>
-          <select id={`${uid}-shape`} value={value.shape ?? "none"} onChange={(e) => onChange({ ...value, shape: e.target.value as ImageShape })} className={`${field} mt-1`}>
+          <select id={`${uid}-shape`} value={value.shape ?? "none"} onChange={(e) => {
+              const shape = e.target.value as ImageShape;
+              // A circle/oval carousel takes the same size as an oval image: 100 % of that frame.
+              onChange({ ...value, shape, width: shape === "circle" || shape === "oval" ? 100 : value.width });
+            }} className={`${field} mt-1`}>
             {(Object.keys(IMAGE_SHAPE_LABELS) as ImageShape[]).map((k) => (
               <option key={k} value={k}>{IMAGE_SHAPE_LABELS[k]}</option>
             ))}
@@ -315,6 +319,9 @@ export function CarouselBlockEditor({
         </div>
         <div>
           <label htmlFor={`${uid}-width`} className="block text-sm font-medium text-slate-700 dark:text-slate-300">Tamaño ({value.width}%)</label>
+          {(value.shape === "circle" || value.shape === "oval") && (
+            <p className="text-xs text-slate-600 dark:text-slate-400">100 % = mismo tamaño que una imagen en óvalo.</p>
+          )}
           <input id={`${uid}-width`} type="range" min={20} max={100} step={5} value={value.width} onChange={(e) => onChange({ ...value, width: Number(e.target.value) })} className="mt-3 w-40" />
         </div>
         <label className="mt-7 flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
