@@ -73,6 +73,12 @@ export const carouselSlideSchema = z.discriminatedUnion("kind", [
       .max(2048)
       .refine((u) => /^\/uploads\/[\w./-]+$/.test(u) || /^https:\/\/[^\s]+$/i.test(u), "La imagen debe ser un archivo de la biblioteca o un enlace https."),
     altText: z.string().max(300).default(""),
+    // Per-image framing: "cover" fills the frame (cropping), "contain" shows the whole image.
+    // focalX/focalY pick which part stays visible, zoom magnifies around that point.
+    fit: z.enum(["cover", "contain"]).default("cover"),
+    focalX: z.number().min(0).max(100).default(50),
+    focalY: z.number().min(0).max(100).default(50),
+    zoom: z.number().min(1).max(3).default(1),
   }),
   z.object({
     kind: z.literal("video"),
@@ -82,6 +88,8 @@ export const carouselSlideSchema = z.discriminatedUnion("kind", [
 export const carouselBlockSchema = z.object({
   slides: z.array(carouselSlideSchema).max(MAX_CAROUSEL_SLIDES).default([]),
   aspect: z.enum(["16/9", "4/3", "1/1"]).default("16/9"),
+  // Same frames as image blocks: circle / vertical oval force their own proportions.
+  shape: z.enum(["none", "rounded", "circle", "oval"]).default("none"),
   showArrows: z.boolean().default(true),
   showDots: z.boolean().default(true),
   // Off by default; never advances while a video slide is showing.

@@ -2,11 +2,22 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { parseVideoEmbed } from "@/lib/video";
+import { IMAGE_SHAPE_WRAPPER_CLASS, type ImageShape } from "@/lib/imageShape";
 
-export type CarouselSlide = { kind: "image"; url: string; altText?: string } | { kind: "video"; url: string };
+export type CarouselImageSlide = {
+  kind: "image";
+  url: string;
+  altText?: string;
+  fit?: "cover" | "contain";
+  focalX?: number;
+  focalY?: number;
+  zoom?: number;
+};
+export type CarouselSlide = CarouselImageSlide | { kind: "video"; url: string };
 export type CarouselValue = {
   slides: CarouselSlide[];
   aspect: "16/9" | "4/3" | "1/1";
+  shape?: ImageShape;
   showArrows: boolean;
   showDots: boolean;
   autoplay: boolean;
@@ -19,6 +30,27 @@ const ASPECT_CLASS: Record<CarouselValue["aspect"], string> = {
   "4/3": "aspect-[4/3]",
   "1/1": "aspect-square",
 };
+
+/** Frame classes: circle/oval carry their own proportions; the rest follow the chosen aspect. */
+export function carouselFrameClass(shape: ImageShape | undefined, aspect: CarouselValue["aspect"]): string {
+  const s = shape ?? "none";
+  if (s === "circle" || s === "oval") return IMAGE_SHAPE_WRAPPER_CLASS[s];
+  return `w-full overflow-hidden ${ASPECT_CLASS[aspect] ?? "aspect-video"} ${s === "rounded" ? "rounded-2xl" : "rounded-md"}`;
+}
+export function isRoundShape(shape: ImageShape | undefined) {
+  return shape === "circle" || shape === "oval";
+}
+/** Style that frames an image slide inside its frame (same maths as the editor preview). */
+export function slideImageStyle(s: CarouselImageSlide): React.CSSProperties {
+  const fx = s.focalX ?? 50;
+  const fy = s.focalY ?? 50;
+  return {
+    objectFit: s.fit === "contain" ? "contain" : "cover",
+    objectPosition: `${fx}% ${fy}%`,
+    transform: `scale(${s.zoom ?? 1})`,
+    transformOrigin: `${fx}% ${fy}%`,
+  };
+}
 
 const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
 function subscribeReducedMotion(cb: () => void) {
@@ -52,6 +84,7 @@ export function Carousel({ value }: { value: CarouselValue }) {
   const go = useCallback((i: number) => setIndex(((i % count) + count) % count), [count]);
 
   const slide = slides[current];
+  const round = isRoundShape(value.shape);
   const autoplaying = value.autoplay && count > 1 && !paused && !hovered && !focused && !reducedMotion && slide?.kind === "image";
   useEffect(() => {
     if (!autoplaying) return;
@@ -72,8 +105,8 @@ export function Carousel({ value }: { value: CarouselValue }) {
       aria-roledescription="carrusel"
       aria-label="Carrusel de imágenes y videos. Usa las flechas izquierda y derecha para cambiar de diapositiva."
       tabIndex={0}
-      className="relative mx-auto w-full overflow-hidden rounded-md bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3A3F7A]"
-      style={{ maxWidth: `${value.width}%` }}
+      className={`relative mx-auto ${round ? "max-w-xs" : "w-full"} focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3A3F7A] ${round ? "rounded-[2rem]" : "rounded-md"}`}
+      style={round ? { width: `${value.width}%` } : { maxWidth: `${value.width}%` }}
       onPointerEnter={(e) => e.pointerType === "mouse" && setHovered(true)}
       onPointerLeave={(e) => e.pointerType === "mouse" && setHovered(false)}
       onFocus={() => setFocused(true)}
@@ -105,10 +138,10 @@ export function Carousel({ value }: { value: CarouselValue }) {
       <p role="status" className="sr-only">
         {position}
       </p>
-      <div role="group" aria-roledescription="diapositiva" aria-label={`${current + 1} de ${count}`} className={`relative w-full ${ASPECT_CLASS[value.aspect] ?? "aspect-video"}`}>
+      <div role="group" aria-roledescription="diapositiva" aria-label={`${current + 1} de ${count}`} className={`relative bg-slate-100 ${carouselFrameClass(value.shape, value.aspect)}`}>
         {slide.kind === "image" ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={slide.url} alt={slide.altText ?? ""} className="h-full w-full object-cover" loading={current === 0 ? "eager" : "lazy"} />
+          <img src={slide.url} alt={slide.altText ?? ""} className="h-full w-full" style={slideImageStyle(slide)} loading={current === 0 ? "eager" : "lazy"} />
         ) : (
           (() => {
             const embed = parseVideoEmbed(slide.url);

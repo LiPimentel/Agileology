@@ -3,7 +3,8 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { MediaGrid, type MediaItem } from "@/components/admin/MediaGrid";
 import { MediaUploadForm } from "@/components/admin/MediaUploadForm";
-import { Carousel, type CarouselValue } from "@/components/blocks/Carousel";
+import { Carousel, carouselFrameClass, slideImageStyle, type CarouselImageSlide, type CarouselValue } from "@/components/blocks/Carousel";
+import { IMAGE_SHAPE_LABELS, type ImageShape } from "@/lib/imageShape";
 import { MAX_CAROUSEL_SLIDES } from "@/lib/carousel";
 import { parseVideoEmbed } from "@/lib/video";
 
@@ -12,6 +13,7 @@ export type CarouselBlockValue = CarouselValue;
 export const EMPTY_CAROUSEL: CarouselBlockValue = {
   slides: [],
   aspect: "16/9",
+  shape: "none",
   showArrows: true,
   showDots: true,
   autoplay: false,
@@ -21,6 +23,106 @@ export const EMPTY_CAROUSEL: CarouselBlockValue = {
 
 const field = "rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100";
 const small = "rounded-md border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50 disabled:opacity-40 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800";
+
+function clamp(n: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, n));
+}
+
+/**
+ * Framing controls for one image slide, shown inside the same frame (shape + proportion) the
+ * carousel uses. You can drag the picture, or use the sliders (keyboard friendly), zoom, and
+ * choose between filling the frame (cropping) or showing the whole image.
+ */
+function SlideAdjuster({
+  slide,
+  shape,
+  aspect,
+  uid,
+  onChange,
+}: {
+  slide: CarouselImageSlide;
+  shape: ImageShape;
+  aspect: CarouselBlockValue["aspect"];
+  uid: string;
+  onChange: (patch: Partial<CarouselImageSlide>) => void;
+}) {
+  const boxRef = useRef<HTMLDivElement>(null);
+  const dragging = useRef(false);
+  const fx = slide.focalX ?? 50;
+  const fy = slide.focalY ?? 50;
+  const zoom = slide.zoom ?? 1;
+  const fit = slide.fit ?? "cover";
+  const round = shape === "circle" || shape === "oval";
+
+  function onMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (!dragging.current || !boxRef.current) return;
+    const rect = boxRef.current.getBoundingClientRect();
+    // The zoom magnifies everything after object-position, so divide the drag by it.
+    const dx = (e.movementX / rect.width / zoom) * 100;
+    const dy = (e.movementY / rect.height / zoom) * 100;
+    // Dragging right/down moves the picture itself right/down.
+    onChange({ focalX: clamp(fx - dx, 0, 100), focalY: clamp(fy - dy, 0, 100) });
+  }
+  const sliderRow = "block text-xs font-medium text-slate-700 dark:text-slate-300";
+
+  return (
+    <div className="w-full space-y-3 rounded-md bg-slate-50 p-3 dark:bg-slate-800">
+      <div className={`mx-auto ${round ? "max-w-[14rem]" : "max-w-md"}`}>
+        <div
+          ref={boxRef}
+          onPointerDown={(e) => {
+            dragging.current = true;
+            e.currentTarget.setPointerCapture(e.pointerId);
+          }}
+          onPointerMove={onMove}
+          onPointerUp={(e) => {
+            dragging.current = false;
+            e.currentTarget.releasePointerCapture(e.pointerId);
+          }}
+          onPointerLeave={() => {
+            dragging.current = false;
+          }}
+          className={`relative cursor-move touch-none border border-slate-300 bg-slate-100 ${carouselFrameClass(shape, aspect)}`}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={slide.url} alt="" draggable={false} className="h-full w-full select-none" style={slideImageStyle(slide)} />
+        </div>
+      </div>
+      <p className="text-xs text-slate-600 dark:text-slate-400">
+        Arrastra la imagen dentro del marco, o usa los controles de abajo.
+      </p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <label htmlFor={`${uid}-fit`} className={sliderRow}>Ajuste</label>
+          <select
+            id={`${uid}-fit`}
+            value={fit}
+            onChange={(e) => onChange({ fit: e.target.value as "cover" | "contain" })}
+            className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+          >
+            <option value="cover">Llenar el marco (recorta)</option>
+            <option value="contain">Mostrar completa (puede dejar bordes)</option>
+          </select>
+        </div>
+        <div>
+          <label htmlFor={`${uid}-zoom`} className={sliderRow}>Zoom ({zoom.toFixed(1)}x)</label>
+          <input id={`${uid}-zoom`} type="range" min={1} max={3} step={0.1} value={zoom} onChange={(e) => onChange({ zoom: Number(e.target.value) })} className="mt-1 w-full" />
+        </div>
+        <div>
+          <label htmlFor={`${uid}-fx`} className={sliderRow}>Posición horizontal ({Math.round(fx)}%)</label>
+          <input id={`${uid}-fx`} type="range" min={0} max={100} step={1} value={fx} onChange={(e) => onChange({ focalX: Number(e.target.value) })} className="mt-1 w-full" />
+        </div>
+        <div>
+          <label htmlFor={`${uid}-fy`} className={sliderRow}>Posición vertical ({Math.round(fy)}%)</label>
+          <input id={`${uid}-fy`} type="range" min={0} max={100} step={1} value={fy} onChange={(e) => onChange({ focalY: Number(e.target.value) })} className="mt-1 w-full" />
+        </div>
+      </div>
+      <button type="button" onClick={() => onChange({ focalX: 50, focalY: 50, zoom: 1, fit: "cover" })} className="text-xs text-violet-700 underline dark:text-sky-400">
+        Restablecer encuadre
+      </button>
+    </div>
+  );
+}
 
 export function CarouselBlockEditor({
   value,
@@ -38,6 +140,7 @@ export function CarouselBlockEditor({
   // explicitly, and announce what happened to screen readers.
   const pendingFocus = useRef<string | null>(null);
   const [announcement, setAnnouncement] = useState("");
+  const [adjusting, setAdjusting] = useState<number | null>(null);
   useEffect(() => {
     if (!pendingFocus.current) return;
     document.getElementById(`${uid}-${pendingFocus.current}`)?.focus();
@@ -53,11 +156,13 @@ export function CarouselBlockEditor({
     if (j < 0 || j >= slides.length) return;
     const next = [...slides];
     [next[i], next[j]] = [next[j], next[i]];
+    setAdjusting(null);
     setSlides(next);
     pendingFocus.current = `${dir === -1 ? "up" : "down"}-${j}`;
     setAnnouncement(`Diapositiva movida a la posición ${j + 1} de ${slides.length}.`);
   };
   const removeAt = (i: number) => {
+    setAdjusting(null);
     setSlides(slides.filter((_, k) => k !== i));
     setAnnouncement(`Diapositiva ${i + 1} quitada.`);
     pendingFocus.current = slides.length > 1 ? `remove-${Math.min(i, slides.length - 2)}` : "add-image";
@@ -100,8 +205,30 @@ export function CarouselBlockEditor({
             <div className="flex gap-1">
               <button type="button" id={`${uid}-up-${i}`} className={small} disabled={i === 0} onClick={() => move(i, -1)} aria-label={`Subir diapositiva ${i + 1}`}>↑</button>
               <button type="button" id={`${uid}-down-${i}`} className={small} disabled={i === slides.length - 1} onClick={() => move(i, 1)} aria-label={`Bajar diapositiva ${i + 1}`}>↓</button>
+              {s.kind === "image" && (
+                <button
+                  type="button"
+                  className={small}
+                  aria-expanded={adjusting === i}
+                  aria-controls={`${uid}-adjust-${i}`}
+                  onClick={() => setAdjusting(adjusting === i ? null : i)}
+                >
+                  {adjusting === i ? "Cerrar ajuste" : "Ajustar"}
+                </button>
+              )}
               <button type="button" id={`${uid}-remove-${i}`} className={`${small} text-red-700 dark:text-red-400`} onClick={() => removeAt(i)} aria-label={`Quitar diapositiva ${i + 1}`}>Quitar</button>
             </div>
+            {s.kind === "image" && adjusting === i && (
+              <div id={`${uid}-adjust-${i}`} className="w-full">
+                <SlideAdjuster
+                  slide={s}
+                  shape={value.shape ?? "none"}
+                  aspect={value.aspect}
+                  uid={`${uid}-s${i}`}
+                  onChange={(patch) => setSlides(slides.map((x, k) => (k === i && x.kind === "image" ? { ...x, ...patch } : x)))}
+                />
+              </div>
+            )}
             {s.kind === "image" && !s.altText?.trim() && (
               <p className="w-full pl-9 text-xs text-amber-800 dark:text-amber-300">
                 Falta la descripción. Añádela para quien usa lector de pantalla; déjala vacía solo si la imagen es decorativa.
@@ -161,12 +288,23 @@ export function CarouselBlockEditor({
 
       <div className="flex flex-wrap gap-4">
         <div>
+          <label htmlFor={`${uid}-shape`} className="block text-sm font-medium text-slate-700 dark:text-slate-300">Forma</label>
+          <select id={`${uid}-shape`} value={value.shape ?? "none"} onChange={(e) => onChange({ ...value, shape: e.target.value as ImageShape })} className={`${field} mt-1`}>
+            {(Object.keys(IMAGE_SHAPE_LABELS) as ImageShape[]).map((k) => (
+              <option key={k} value={k}>{IMAGE_SHAPE_LABELS[k]}</option>
+            ))}
+          </select>
+        </div>
+        <div>
           <label htmlFor={`${uid}-aspect`} className="block text-sm font-medium text-slate-700 dark:text-slate-300">Proporción</label>
           <select id={`${uid}-aspect`} value={value.aspect} onChange={(e) => onChange({ ...value, aspect: e.target.value as CarouselBlockValue["aspect"] })} className={`${field} mt-1`}>
             <option value="16/9">Panorámica (16:9)</option>
             <option value="4/3">Clásica (4:3)</option>
             <option value="1/1">Cuadrada (1:1)</option>
           </select>
+          {(value.shape === "circle" || value.shape === "oval") && (
+            <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">En círculo u óvalo la proporción la fija la forma.</p>
+          )}
         </div>
         <div>
           <label htmlFor={`${uid}-width`} className="block text-sm font-medium text-slate-700 dark:text-slate-300">Tamaño ({value.width}%)</label>

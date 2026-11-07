@@ -33,6 +33,14 @@ bad("imagen fuera de /uploads", { slides: [{ kind: "image", url: "/admin/x.png",
 bad("YouTube escondido en otra URL", { slides: [{ kind: "video", url: "https://evil.com/?x=youtube.com/watch?v=AAAAAAAAAAA" }] });
 bad("URL de más de 2048 caracteres", { slides: [{ kind: "image", url: "https://x.com/" + "a".repeat(2100), altText: "" }] });
 bad("descripción de más de 300 caracteres", { slides: [{ kind: "image", url: "/uploads/a.webp", altText: "a".repeat(301) }] });
+ok({ shape: "oval", slides: [{ kind: "image", url: "/uploads/a.webp", altText: "x", fit: "contain", focalX: 20, focalY: 80, zoom: 2.5 }] });
+console.log("✔ acepta: forma óvalo y ajuste por imagen");
+const framed = sanitizeBlockContent("carousel", { slides: [{ kind: "image", url: "/uploads/a.webp" }] }) as { shape: string; slides: { fit: string; focalX: number; zoom: number }[] };
+console.log(framed.shape === "none" && framed.slides[0].fit === "cover" && framed.slides[0].focalX === 50 && framed.slides[0].zoom === 1 ? "✔ valores por defecto del encuadre" : "✘ valores por defecto incorrectos");
+bad("zoom mayor que 3", { slides: [{ kind: "image", url: "/uploads/a.webp", zoom: 5 }] });
+bad("posición fuera de 0-100", { slides: [{ kind: "image", url: "/uploads/a.webp", focalX: 150 }] });
+bad("ajuste desconocido", { slides: [{ kind: "image", url: "/uploads/a.webp", fit: "stretch" }] });
+bad("forma desconocida", { shape: "star", slides: [] });
 bad("más de 20 diapositivas", { slides: Array.from({ length: 21 }, () => ({ kind: "image", url: "/uploads/a.webp", altText: "" })) });
 bad("intervalo fuera de rango", { slides: [], intervalSeconds: 1 });
 bad("tipo de diapositiva desconocido", { slides: [{ kind: "html", url: "/a" }] });

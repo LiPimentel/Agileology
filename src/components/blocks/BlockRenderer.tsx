@@ -145,6 +145,7 @@ export function BlockRenderer({ block, pageId }: { block: RenderableBlock; pageI
           value={{
             slides,
             aspect: c.aspect ?? "16/9",
+            shape: c.shape ?? "none",
             showArrows: c.showArrows ?? true,
             showDots: c.showDots ?? true,
             autoplay: c.autoplay ?? false,
