@@ -223,7 +223,14 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
                   videoUrl={first?.sectionBgVideoUrl}
                   gradientEnd={first?.sectionBgGradientEnd}
                 >
-                  <div className={`mx-auto ${widthClass} px-6 py-10`}>{row}</div>
+                  {/* A section with a background video is a hero: tall (like Wix's first screen), content centred, bigger heading. */}
+                  <div
+                    className={`mx-auto ${widthClass} px-6 py-10 ${
+                      first?.sectionBgVideoUrl ? "flex min-h-[min(75vh,46rem)] items-center [&>*]:w-full [&_h2]:text-4xl sm:[&_h2]:text-6xl" : ""
+                    }`}
+                  >
+                    {row}
+                  </div>
                 </BackgroundOverlay>
               </div>
             );
