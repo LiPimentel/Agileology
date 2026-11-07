@@ -51,7 +51,7 @@ export function BlockRenderer({ block, pageId }: { block: RenderableBlock; pageI
       const html = String(block.content.html ?? "");
       return (
         <div
-          className="prose prose-slate max-w-none prose-headings:text-slate-900 prose-a:text-violet-700"
+          className="prose prose-slate max-w-none prose-headings:text-slate-900 prose-a:text-[#3A3F7A]"
           dangerouslySetInnerHTML={{ __html: html }}
         />
       );
@@ -105,7 +105,7 @@ export function BlockRenderer({ block, pageId }: { block: RenderableBlock; pageI
       const internal = Boolean(block.content.internal);
       const newTab = Boolean(block.content.newTab);
       if (!href) return null;
-      const className = "inline-block rounded-md bg-violet-700 px-5 py-2 text-white hover:bg-violet-800";
+      const className = "inline-block w-fit self-start rounded-full bg-[#3A3F7A] px-6 py-2 text-white hover:bg-[#1F2A44]";
       return (
         <TrackedLink href={href} label={`cta:${href}`} internal={internal} newTab={newTab} className={className}>
           {label}

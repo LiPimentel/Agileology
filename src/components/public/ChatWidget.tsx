@@ -64,7 +64,7 @@ export function ChatWidget({
                 <button
                   type="submit"
                   disabled={pending}
-                  className="w-full rounded-md bg-violet-700 px-4 py-2 text-sm font-medium text-white hover:bg-violet-800 disabled:opacity-60"
+                  className="w-full rounded-md bg-[#3A3F7A] px-4 py-2 text-sm font-medium text-white hover:bg-[#1F2A44] disabled:opacity-60"
                 >
                   {pending ? "Enviando..." : "Enviar"}
                 </button>
@@ -81,7 +81,7 @@ export function ChatWidget({
             return !v;
           });
         }}
-        className="flex items-center gap-2 rounded-full bg-violet-700 px-5 py-3 font-medium text-white shadow-lg hover:bg-violet-800"
+        className="flex items-center gap-2 rounded-full bg-[#3A3F7A] px-5 py-3 font-medium text-white shadow-lg hover:bg-[#1F2A44]"
       >
         {buttonLabel}
       </button>
