@@ -12,21 +12,26 @@ type FeedbackState = { error?: string; success?: boolean; savedAt?: number };
  */
 export function SaveFeedback({ state, successMessage = "Guardado correctamente." }: { state: FeedbackState; successMessage?: string }) {
   const [dismissed, setDismissed] = useState<FeedbackState | null>(null);
+  const [holding, setHolding] = useState(false); // hover/focus on the banner keeps it open
   const isError = Boolean(state.error);
   const isSaved = !isError && (Boolean(state.success) || Boolean(state.savedAt));
   const visible = (isError || isSaved) && dismissed !== state;
 
   useEffect(() => {
-    if (!visible || !isSaved) return;
-    const t = window.setTimeout(() => setDismissed(state), 4000);
+    if (!visible || !isSaved || holding) return;
+    const t = window.setTimeout(() => setDismissed(state), 9000);
     return () => window.clearTimeout(t);
-  }, [visible, isSaved, state]);
+  }, [visible, isSaved, state, holding]);
 
   return (
     <div aria-live="polite" className="pointer-events-none fixed inset-x-0 top-4 z-50 flex justify-center px-4">
       {visible && (
         <div
-          role={isError ? "alert" : "status"}
+          role={isError ? "alert" : undefined}
+          onMouseEnter={() => setHolding(true)}
+          onMouseLeave={() => setHolding(false)}
+          onFocus={() => setHolding(true)}
+          onBlur={() => setHolding(false)}
           className={`pointer-events-auto flex max-w-xl items-center gap-3 rounded-md px-4 py-3 text-sm font-medium text-white shadow-lg ${isError ? "bg-red-700" : "bg-green-700"}`}
         >
           <span aria-hidden="true">{isError ? "⚠" : "✓"}</span>

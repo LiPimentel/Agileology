@@ -261,20 +261,20 @@ export function CarouselBlockEditor({
         )}
         <div className="flex flex-wrap items-start gap-2">
           <div className="min-w-[14rem] flex-1">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300" htmlFor="carousel-video-url">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300" htmlFor={`${uid}-video-url`}>
               Añadir video (YouTube o Vimeo)
             </label>
             <input
-              id="carousel-video-url"
+              id={`${uid}-video-url`}
               value={videoUrl}
               onChange={(e) => setVideoUrl(e.target.value)}
               placeholder="https://www.youtube.com/watch?v=..."
               aria-invalid={!videoOk}
-              aria-describedby={!videoOk ? "carousel-video-error" : undefined}
+              aria-describedby={!videoOk ? `${uid}-video-error` : undefined}
               className={`${field} mt-1 w-full`}
             />
             {!videoOk && (
-              <p id="carousel-video-error" role="alert" className="mt-1 text-sm text-amber-800 dark:text-amber-300">
+              <p id={`${uid}-video-error`} role="alert" className="mt-1 text-sm text-amber-800 dark:text-amber-300">
                 No se reconoce como enlace de YouTube o Vimeo.
               </p>
             )}

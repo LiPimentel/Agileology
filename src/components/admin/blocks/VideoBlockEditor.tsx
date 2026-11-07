@@ -72,18 +72,20 @@ export function VideoBlockEditor({
             value={value.url}
             onChange={(e) => onChange({ ...value, url: e.target.value })}
             placeholder="https://www.youtube.com/watch?v=..."
+            aria-invalid={Boolean(value.url) && !embed}
+            aria-describedby={value.url && !embed ? `${uid}-url-error` : undefined}
             className={`${field} mt-1 w-full`}
           />
-          {value.url && !embed && <p role="alert" className="mt-1 text-sm text-amber-800 dark:text-amber-300">No se reconoce como enlace de YouTube o Vimeo.</p>}
+          {value.url && !embed && <p id={`${uid}-url-error`} role="alert" className="mt-1 text-sm text-amber-800 dark:text-amber-300">No se reconoce como enlace de YouTube o Vimeo.</p>}
         </div>
       ) : (
         <div className="space-y-2">
-          <button type="button" aria-expanded={pickerOpen} onClick={() => setPickerOpen((v) => !v)} className={small}>
+          <button type="button" aria-expanded={pickerOpen} aria-controls={`${uid}-picker`} onClick={() => setPickerOpen((v) => !v)} className={small}>
             {pickerOpen ? "Cerrar biblioteca" : uploaded ? "Cambiar video (subir o de la biblioteca)" : "Elegir de la biblioteca / subir un video"}
           </button>
-          <p className="text-xs text-slate-600 dark:text-slate-400">MP4 o WebM, máximo 25 MB. Se reproduce con controles (pausa, volumen y pantalla completa).</p>
+          <p className="text-xs text-slate-600 dark:text-slate-400">MP4 o WebM, máximo 25 MB. Se reproduce con controles (pausa, volumen y pantalla completa). Si el video tiene voz, añade en la página una transcripción o subtítulos: este reproductor no los genera.</p>
           {pickerOpen && (
-            <div className="rounded-md border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">
+            <div id={`${uid}-picker`} className="rounded-md border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">
               <MediaUploadForm accept="video/mp4,video/webm" label="Subir video" onUploaded={(m) => pick(m.url)} />
               <div className="mt-3">
                 {videos.length === 0 ? (

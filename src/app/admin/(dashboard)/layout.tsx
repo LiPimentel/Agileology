@@ -35,7 +35,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
-      <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col self-start overflow-y-auto border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+      <aside className="sticky top-0 flex h-dvh w-60 shrink-0 flex-col self-start overflow-y-auto border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
         <div className="flex items-center justify-between gap-2 border-b border-slate-200 px-4 py-5 dark:border-slate-800">
           <div className="min-w-0">
             {/* Real uploaded logo (Ajustes del sitio → Logo) when set. */}

@@ -119,7 +119,7 @@ export function LatestPosts({ value }: { value: LatestPostsValue }) {
       }}
     >
       {rotates && (
-        <p role="status" className="sr-only">
+        <p role="status" aria-live={autoplaying ? "off" : "polite"} className="sr-only">
           {announce}
         </p>
       )}

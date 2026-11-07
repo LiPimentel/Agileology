@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
 function subscribeReducedMotion(cb: () => void) {
@@ -21,13 +21,18 @@ export function BackgroundVideo({ src }: { src: string }) {
   const [userPlaying, setUserPlaying] = useState<boolean | null>(null);
   const playing = userPlaying ?? !reduced;
 
-  function toggle() {
-    const next = !playing;
-    setUserPlaying(next);
+  // The server never emits `autoplay`, so a visitor who prefers reduced motion never gets a
+  // video that starts before this code runs; play/pause always follows `playing`, also when the
+  // preference changes while the page is open.
+  useEffect(() => {
     const v = ref.current;
     if (!v) return;
-    if (next) void v.play().catch(() => setUserPlaying(false));
+    if (playing) void v.play().catch(() => setUserPlaying(false));
     else v.pause();
+  }, [playing]);
+
+  function toggle() {
+    setUserPlaying(!playing);
   }
 
   return (
@@ -35,7 +40,6 @@ export function BackgroundVideo({ src }: { src: string }) {
       <video
         ref={ref}
         src={src}
-        autoPlay={playing}
         muted
         loop
         playsInline

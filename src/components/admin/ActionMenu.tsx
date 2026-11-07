@@ -64,7 +64,7 @@ export function ActionMenu({
 
   const trigger =
     tone === "onDark"
-      ? "rounded px-2 py-0.5 text-base font-bold leading-none text-white hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-white"
+      ? "rounded px-2 py-1 text-base font-bold leading-none text-white hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-white"
       : "rounded-md px-2 py-1 text-lg font-bold leading-none text-slate-600 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-violet-600 dark:text-slate-300 dark:hover:bg-slate-800";
 
   return (
