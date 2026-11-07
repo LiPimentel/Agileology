@@ -7,18 +7,22 @@ import { TextBlockEditor } from "@/components/admin/blocks/TextBlockEditor";
 import { ImageBlockEditor, type ImageBlockValue } from "@/components/admin/blocks/ImageBlockEditor";
 import { LinkBlockEditor, type LinkBlockValue } from "@/components/admin/blocks/LinkBlockEditor";
 import { VideoBlockEditor, type VideoBlockValue } from "@/components/admin/blocks/VideoBlockEditor";
+import { CarouselBlockEditor, EMPTY_CAROUSEL, type CarouselBlockValue } from "@/components/admin/blocks/CarouselBlockEditor";
+import { ActionMenu } from "@/components/admin/ActionMenu";
 
 export type EditorBlock =
   | { id: string; type: "text"; content: { html: string } }
   | { id: string; type: "image"; content: ImageBlockValue }
   | { id: string; type: "link"; content: LinkBlockValue }
-  | { id: string; type: "video"; content: VideoBlockValue };
+  | { id: string; type: "video"; content: VideoBlockValue }
+  | { id: string; type: "carousel"; content: CarouselBlockValue };
 
 const BLOCK_LABELS: Record<EditorBlock["type"], string> = {
   text: "Texto",
   image: "Imagen",
   link: "Enlace",
   video: "Video",
+  carousel: "Carrusel",
 };
 const BLOCK_TYPE_OPTIONS = (Object.keys(BLOCK_LABELS) as EditorBlock["type"][]).map((type) => ({ type, label: BLOCK_LABELS[type] }));
 
@@ -45,6 +49,8 @@ function emptyBlock(type: EditorBlock["type"]): EditorBlock {
       return { id, type, content: { label: "", href: "", internal: true, newTab: false } };
     case "video":
       return { id, type, content: { url: "", alignment: "center", shape: "none", width: 100 } };
+    case "carousel":
+      return { id, type, content: { ...EMPTY_CAROUSEL, slides: [] } };
   }
 }
 
@@ -86,27 +92,14 @@ export function BlockEditor({
         <div key={block.id} className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
           <div className="mb-3 flex items-center justify-between">
             <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">{BLOCK_LABELS[block.type]}</span>
-            <div className="flex gap-2 text-sm">
-              <button
-                type="button"
-                disabled={i === 0}
-                onClick={() => move(block.id, -1)}
-                className="text-slate-500 hover:text-violet-700 disabled:opacity-30 dark:text-slate-400 dark:hover:text-sky-400"
-              >
-                ↑
-              </button>
-              <button
-                type="button"
-                disabled={i === blocks.length - 1}
-                onClick={() => move(block.id, 1)}
-                className="text-slate-500 hover:text-violet-700 disabled:opacity-30 dark:text-slate-400 dark:hover:text-sky-400"
-              >
-                ↓
-              </button>
-              <button type="button" onClick={() => remove(block.id)} className="text-red-600 hover:underline dark:text-red-400">
-                Eliminar
-              </button>
-            </div>
+            <ActionMenu
+              label={`Acciones del bloque ${BLOCK_LABELS[block.type]}`}
+              items={[
+                { label: "Mover arriba", disabled: i === 0, onSelect: () => move(block.id, -1) },
+                { label: "Mover abajo", disabled: i === blocks.length - 1, onSelect: () => move(block.id, 1) },
+                { label: "Eliminar", danger: true, onSelect: () => remove(block.id) },
+              ]}
+            />
           </div>
           {block.type === "text" && (
             <TextBlockEditor html={block.content.html} onChange={(html) => update(block.id, { html })} mediaLibrary={mediaLibrary} />
@@ -118,7 +111,10 @@ export function BlockEditor({
             <LinkBlockEditor value={block.content} onChange={(v) => update(block.id, v)} pages={pages} />
           )}
           {block.type === "video" && (
-            <VideoBlockEditor value={block.content} onChange={(v) => update(block.id, v)} />
+            <VideoBlockEditor value={block.content} onChange={(v) => update(block.id, v)} mediaLibrary={mediaLibrary} />
+          )}
+          {block.type === "carousel" && (
+            <CarouselBlockEditor value={block.content} onChange={(v) => update(block.id, v)} mediaLibrary={mediaLibrary} />
           )}
         </div>
       ))}

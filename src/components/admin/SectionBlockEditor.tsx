@@ -10,9 +10,13 @@ import { TextBlockEditor } from "@/components/admin/blocks/TextBlockEditor";
 import { ImageBlockEditor } from "@/components/admin/blocks/ImageBlockEditor";
 import { LinkBlockEditor } from "@/components/admin/blocks/LinkBlockEditor";
 import { VideoBlockEditor } from "@/components/admin/blocks/VideoBlockEditor";
+import { CarouselBlockEditor } from "@/components/admin/blocks/CarouselBlockEditor";
+import { LatestPostsBlockEditor } from "@/components/admin/blocks/LatestPostsBlockEditor";
 import { MapBlockEditor } from "@/components/admin/blocks/MapBlockEditor";
 import { ContactFormBlockEditor } from "@/components/admin/blocks/ContactFormBlockEditor";
 import { CustomFormBlockEditor } from "@/components/admin/blocks/CustomFormBlockEditor";
+import { ActionMenu } from "@/components/admin/ActionMenu";
+import { ArrowDownIcon, ArrowUpIcon, CheckIcon, ClipboardIcon } from "@/components/icons";
 import {
   type BlockType,
   type BlockValue,
@@ -36,6 +40,8 @@ const BLOCK_LABELS: Record<BlockType, string> = {
   map: "Mapa",
   contactForm: "Formulario de contacto",
   customForm: "Formulario (biblioteca)",
+  carousel: "Carrusel",
+  latestPosts: "Entradas recientes (rotan)",
 };
 const BLOCK_TYPE_OPTIONS = (Object.keys(BLOCK_LABELS) as BlockType[]).map((type) => ({ type, label: BLOCK_LABELS[type] }));
 
@@ -60,6 +66,10 @@ function hasContent(block: BlockValue): boolean {
       return true;
     case "customForm":
       return Boolean(block.content.formId);
+    case "carousel":
+      return block.content.slides.length > 0;
+    case "latestPosts":
+      return true;
   }
 }
 
@@ -82,7 +92,7 @@ function BlockPreview({ block, formDefinitions = [] }: { block: BlockValue; form
     const fields = block.content.enabledFields ?? [];
     return (
       <div className="rounded-md border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
-        📋 Formulario de contacto ({fields.length ? fields.join(", ") : "sin campos"}) — vista previa desactivada aquí
+        <ClipboardIcon size={16} className="mr-1 inline align-text-bottom" /> Formulario de contacto ({fields.length ? fields.join(", ") : "sin campos"}) — vista previa desactivada aquí
         para no generar envíos de prueba.
       </div>
     );
@@ -91,7 +101,7 @@ function BlockPreview({ block, formDefinitions = [] }: { block: BlockValue; form
     const form = formDefinitions.find((f) => f.id === block.content.formId);
     return (
       <div className="rounded-md border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
-        📋 {form ? `Formulario: ${form.name}` : "Sin formulario seleccionado"} — vista previa desactivada aquí para no
+        <ClipboardIcon size={16} className="mr-1 inline align-text-bottom" /> {form ? `Formulario: ${form.name}` : "Sin formulario seleccionado"} — vista previa desactivada aquí para no
         generar envíos de prueba.
       </div>
     );
@@ -550,13 +560,17 @@ export function SectionBlockEditor({
       case "link":
         return <LinkBlockEditor value={item.block.content} onChange={onChange} pages={pages} />;
       case "video":
-        return <VideoBlockEditor value={item.block.content} onChange={onChange} />;
+        return <VideoBlockEditor value={item.block.content} onChange={onChange} mediaLibrary={mediaLibrary} />;
       case "map":
         return <MapBlockEditor value={item.block.content} onChange={onChange} />;
       case "contactForm":
         return <ContactFormBlockEditor value={item.block.content} onChange={onChange} />;
       case "customForm":
         return <CustomFormBlockEditor value={item.block.content} onChange={onChange} formDefinitions={formDefinitions} />;
+      case "carousel":
+        return <CarouselBlockEditor value={item.block.content} onChange={onChange} mediaLibrary={mediaLibrary} />;
+      case "latestPosts":
+        return <LatestPostsBlockEditor value={item.block.content} onChange={onChange} />;
     }
   }
 
@@ -571,13 +585,17 @@ export function SectionBlockEditor({
       case "link":
         return <LinkBlockEditor value={item.block.content} onChange={onChange} pages={pages} />;
       case "video":
-        return <VideoBlockEditor value={item.block.content} onChange={onChange} />;
+        return <VideoBlockEditor value={item.block.content} onChange={onChange} mediaLibrary={mediaLibrary} />;
       case "map":
         return <MapBlockEditor value={item.block.content} onChange={onChange} />;
       case "contactForm":
         return <ContactFormBlockEditor value={item.block.content} onChange={onChange} />;
       case "customForm":
         return <CustomFormBlockEditor value={item.block.content} onChange={onChange} formDefinitions={formDefinitions} />;
+      case "carousel":
+        return <CarouselBlockEditor value={item.block.content} onChange={onChange} mediaLibrary={mediaLibrary} />;
+      case "latestPosts":
+        return <LatestPostsBlockEditor value={item.block.content} onChange={onChange} />;
     }
   }
 
@@ -622,33 +640,21 @@ export function SectionBlockEditor({
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-t-[4px] bg-violet-700 px-2 py-1 text-xs text-white">
           <span className="font-medium">{BLOCK_LABELS[item.block.type]}</span>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              disabled={bi === 0}
-              onClick={() => moveBlockInColumn(section.id, col.id, item.id, -1)}
-              className="hover:text-violet-200 disabled:opacity-40"
-              title="Mover arriba"
-            >
-              ↑
-            </button>
-            <button
-              type="button"
-              disabled={bi === col.blocks.length - 1}
-              onClick={() => moveBlockInColumn(section.id, col.id, item.id, 1)}
-              className="hover:text-violet-200 disabled:opacity-40"
-              title="Mover abajo"
-            >
-              ↓
-            </button>
-            <button type="button" onClick={() => removeBlockFromColumn(section.id, col.id, item.id)} className="hover:text-red-200">
-              Quitar
-            </button>
+            <ActionMenu
+              tone="onDark"
+              label={`Acciones del bloque ${BLOCK_LABELS[item.block.type]}`}
+              items={[
+                { label: "Mover arriba", disabled: bi === 0, onSelect: () => moveBlockInColumn(section.id, col.id, item.id, -1) },
+                { label: "Mover abajo", disabled: bi === col.blocks.length - 1, onSelect: () => moveBlockInColumn(section.id, col.id, item.id, 1) },
+                { label: "Quitar", danger: true, onSelect: () => removeBlockFromColumn(section.id, col.id, item.id) },
+              ]}
+            />
             <button
               type="button"
               onClick={() => setSelectedBlockId(null)}
               className="rounded bg-white/20 px-2 py-0.5 font-medium hover:bg-white/30"
             >
-              Listo ✓
+              Listo <CheckIcon size={14} className="ml-1 inline align-text-bottom" />
             </button>
           </div>
         </div>
@@ -721,16 +727,18 @@ export function SectionBlockEditor({
                             onClick={() => moveFreeBlockZ(section.id, item.id, "back")}
                             className="hover:text-violet-200"
                             title="Enviar atrás"
+                            aria-label="Enviar atrás"
                           >
-                            ⬇
+                            <ArrowDownIcon size={14} />
                           </button>
                           <button
                             type="button"
                             onClick={() => moveFreeBlockZ(section.id, item.id, "front")}
                             className="hover:text-violet-200"
                             title="Traer al frente"
+                            aria-label="Traer al frente"
                           >
-                            ⬆
+                            <ArrowUpIcon size={14} />
                           </button>
                           <button type="button" onClick={() => removeFreeBlock(section.id, item.id)} className="hover:text-red-200">
                             Quitar
@@ -740,7 +748,7 @@ export function SectionBlockEditor({
                             onClick={() => setSelectedBlockId(null)}
                             className="rounded bg-white/20 px-2 py-0.5 font-medium hover:bg-white/30"
                           >
-                            Listo ✓
+                            Listo <CheckIcon size={14} className="ml-1 inline align-text-bottom" />
                           </button>
                         </div>
                       </div>
@@ -842,18 +850,18 @@ export function SectionBlockEditor({
                   Libre
                 </button>
               </div>
-              <button type="button" disabled={i === 0} onClick={() => moveSection(section.id, -1)} className="pointer-events-auto hover:text-violet-300 disabled:opacity-30">
-                ↑
-              </button>
-              <button type="button" disabled={i === sections.length - 1} onClick={() => moveSection(section.id, 1)} className="pointer-events-auto hover:text-violet-300 disabled:opacity-30">
-                ↓
-              </button>
-              <button type="button" onClick={() => toggleSectionBgPicker(section.id)} className="pointer-events-auto hover:text-violet-300">
-                Fondo{hasBg && " •"}
-              </button>
-              <button type="button" onClick={() => removeSection(section.id)} className="pointer-events-auto hover:text-red-300">
-                Eliminar
-              </button>
+              <span className="pointer-events-auto">
+                <ActionMenu
+                  tone="onDark"
+                  label="Acciones de la sección"
+                  items={[
+                    { label: "Mover sección arriba", disabled: i === 0, onSelect: () => moveSection(section.id, -1) },
+                    { label: "Mover sección abajo", disabled: i === sections.length - 1, onSelect: () => moveSection(section.id, 1) },
+                    { label: hasBg ? "Fondo de la sección (activo)" : "Fondo de la sección", onSelect: () => toggleSectionBgPicker(section.id) },
+                    { label: "Eliminar sección", danger: true, onSelect: () => removeSection(section.id) },
+                  ]}
+                />
+              </span>
             </div>
 
             {openBgPickers[section.id] && (

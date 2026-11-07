@@ -98,6 +98,16 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
   // both the banner and the title text are turned on for this page.
   const titleVisible = showBanner && showTitle;
 
+  // Sections with their own background render as full-width bands (like Wix's coloured
+  // strips); in that case the sections butt up against each other instead of floating
+  // in white gaps.
+  const sections = groupIntoSections(page.blocks);
+  const sectionHasBg = (s: (typeof sections)[number]) => {
+    const f = s[0];
+    return f?.sectionLayoutMode !== "free" && (Boolean(f?.sectionBgImageUrl) || Boolean(f?.sectionBgVideoUrl) || (f?.sectionBgOpacity ?? 0) > 0);
+  };
+  const hasBands = sections.some(sectionHasBg);
+
   return (
     <article>
       {showBanner ? (
@@ -142,8 +152,8 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
         page can freely mix narrow article-style sections with full-width
         ones.
       */}
-      <div className="space-y-8 py-12">
-        {groupIntoSections(page.blocks).map((section, i) => {
+      <div className={hasBands ? "" : "space-y-8 py-12"}>
+        {sections.map((section, i) => {
           const first = section[0];
           const isFree = first?.sectionLayoutMode === "free";
           const columns = groupIntoColumns(section);
@@ -201,6 +211,30 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
           // comment).
           const hasSectionBg =
             Boolean(first?.sectionBgImageUrl) || Boolean(first?.sectionBgVideoUrl) || (first?.sectionBgOpacity ?? 0) > 0;
+          // Multi-column sections get a wider container than single-column reading text.
+          const widthClass = columns.length > 1 ? "max-w-5xl" : "max-w-3xl";
+          if (hasSectionBg && !isFree) {
+            return (
+              <div key={first?.id ?? i} className="w-full">
+                <BackgroundOverlay
+                  imageUrl={first?.sectionBgImageUrl}
+                  overlayColor={first?.sectionBgColor}
+                  overlayOpacity={first?.sectionBgOpacity}
+                  videoUrl={first?.sectionBgVideoUrl}
+                  gradientEnd={first?.sectionBgGradientEnd}
+                >
+                  {/* A section with a background video is a hero: tall (like Wix's first screen), content centred, bigger heading. */}
+                  <div
+                    className={`mx-auto ${widthClass} px-6 py-10 ${
+                      first?.sectionBgVideoUrl ? "flex min-h-[min(75vh,46rem)] items-center [&>*]:w-full [&_h2]:text-4xl sm:[&_h2]:text-6xl" : ""
+                    }`}
+                  >
+                    {row}
+                  </div>
+                </BackgroundOverlay>
+              </div>
+            );
+          }
           const content = hasSectionBg ? (
             <BackgroundOverlay
               imageUrl={first?.sectionBgImageUrl}
@@ -219,7 +253,7 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
           // the centered ~768px readable column, same as before this
           // existed -- see the comment on the outer wrapper above.
           return (
-            <div key={first?.id ?? i} className={isFree ? "w-full" : "mx-auto max-w-3xl px-6"}>
+            <div key={first?.id ?? i} className={isFree ? "w-full" : `mx-auto ${widthClass} px-6${hasBands ? " py-8" : ""}`}>
               {content}
             </div>
           );

@@ -7,6 +7,7 @@ import { savePost, type PostFormState } from "../actions";
 import { BlockEditor, type EditorBlock } from "@/components/admin/BlockEditor";
 import { MediaGrid, type MediaItem } from "@/components/admin/MediaGrid";
 import { MediaUploadForm } from "@/components/admin/MediaUploadForm";
+import { SaveFeedback } from "@/components/admin/SaveFeedback";
 
 const initialState: PostFormState = {};
 const inputClass =
@@ -136,8 +137,7 @@ export function PostEditorForm({
         <BlockEditor initialBlocks={post.blocks} mediaLibrary={mediaLibrary} pages={pages} />
       </section>
 
-      {state.error && <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p>}
-      {state.savedAt && !state.error && <p className="text-sm text-green-700 dark:text-green-400">Guardado.</p>}
+      <SaveFeedback state={state} />
 
       <div className="sticky bottom-0 flex gap-3 border-t border-slate-200 bg-slate-50/95 p-4 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
         <button

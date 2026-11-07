@@ -52,3 +52,17 @@ const astDateFormat = new Intl.DateTimeFormat("es", {
 export function formatAstDate(date: Date | string): string {
   return astDateFormat.format(new Date(date)).replace(/\./g, "");
 }
+
+const astDateTimeFormat = new Intl.DateTimeFormat("es", {
+  timeZone: "America/Santo_Domingo",
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+  hour12: true,
+});
+/** "2 nov 2020, 5:41 p. m.", always in Santo Domingo time. */
+export function formatAstDateTime(date: Date | string): string {
+  return astDateTimeFormat.format(new Date(date));
+}

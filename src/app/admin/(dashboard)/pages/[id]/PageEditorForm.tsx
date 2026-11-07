@@ -7,6 +7,7 @@ import { savePage, type PageFormState } from "../actions";
 import { BackgroundPicker } from "@/components/admin/BackgroundPicker";
 import { SectionBlockEditor, type EditorSection } from "@/components/admin/SectionBlockEditor";
 import type { MediaItem } from "@/components/admin/MediaGrid";
+import { SaveFeedback } from "@/components/admin/SaveFeedback";
 
 const initialState: PageFormState = {};
 const inputClass =
@@ -192,8 +193,7 @@ export function PageEditorForm({
         <SectionBlockEditor initialSections={page.sections} mediaLibrary={mediaLibrary} pages={pages} formDefinitions={formDefinitions} />
       </section>
 
-      {state.error && <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p>}
-      {state.savedAt && !state.error && <p className="text-sm text-green-700 dark:text-green-400">Guardado.</p>}
+      <SaveFeedback state={state} />
 
       <div className="sticky bottom-0 flex gap-3 border-t border-slate-200 bg-slate-50/95 p-4 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
         <button

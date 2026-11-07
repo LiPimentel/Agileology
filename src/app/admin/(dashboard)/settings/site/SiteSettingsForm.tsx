@@ -3,6 +3,8 @@
 import { useActionState } from "react";
 import { updateSiteSettings, type SiteSettingsState } from "./actions";
 import type { SiteSettings } from "@/generated/prisma/client";
+import { SaveFeedback } from "@/components/admin/SaveFeedback";
+import { AlertTriangleIcon } from "@/components/icons";
 
 const initialState: SiteSettingsState = {};
 
@@ -47,7 +49,7 @@ export function SiteSettingsForm({ settings, siteUrl }: { settings: SiteSettings
           </p>
         ) : (
           <p className="text-sm text-red-600 dark:text-red-400">
-            ⚠️ No hay una URL pública configurada (variable de entorno <code className="font-mono">NEXT_PUBLIC_SITE_URL</code>{" "}
+            <AlertTriangleIcon size={16} className="mr-1 inline align-text-bottom" /> No hay una URL pública configurada (variable de entorno <code className="font-mono">NEXT_PUBLIC_SITE_URL</code>{" "}
             en el servidor). Sin ella, el mapa del sitio y robots.txt no incluyen la dirección completa y Google no puede
             usarlos correctamente -- esto se corrige en la configuración del servidor/Docker, no aquí.
           </p>
@@ -142,12 +144,15 @@ export function SiteSettingsForm({ settings, siteUrl }: { settings: SiteSettings
           </div>
         ))}
       </div>
+      <div className="max-w-md">
+        <label htmlFor="telegramUrl" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Telegram URL</label>
+        <input id="telegramUrl" name="telegramUrl" defaultValue={settings.telegramUrl ?? ""} placeholder="https://t.me/tu_canal" className={inputClass} />
+      </div>
       <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
         <input type="checkbox" name="cookieNoticeEnabled" defaultChecked={settings.cookieNoticeEnabled} />
         Mostrar aviso de cookies
       </label>
-      {state.error && <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p>}
-      {state.success && <p className="text-sm text-green-700 dark:text-green-400">Guardado.</p>}
+      <SaveFeedback state={state} />
       <button
         type="submit"
         disabled={pending}

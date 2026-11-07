@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getPublishedPageBySlug } from "@/lib/pages";
 import { HOME_SLUGS } from "@/lib/home";
+import { resolveDynamicBlocks } from "@/lib/dynamicBlocks";
 import { getSiteSettings } from "@/lib/settings";
 import { PageRenderer } from "@/components/public/PageRenderer";
 
@@ -31,5 +32,6 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function HomePage() {
   const page = await getHomePage();
   if (!page) notFound();
-  return <PageRenderer page={page.snapshot} />;
+  const blocks = await resolveDynamicBlocks(page.snapshot.blocks);
+  return <PageRenderer page={{ ...page.snapshot, blocks }} />;
 }

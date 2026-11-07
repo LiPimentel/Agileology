@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { FormSubmissionRow } from "./FormSubmissionRow";
+import { ArrowLeftIcon } from "@/components/icons";
 
 export const metadata = { title: "Envíos del formulario — Backoffice" };
 export const dynamic = "force-dynamic";
@@ -23,7 +24,7 @@ export default async function FormSubmissionsPage({ params }: { params: Promise<
     <div>
       <div className="mb-1 flex items-center gap-2">
         <Link href={`/admin/forms/${id}`} className="text-sm text-violet-700 hover:underline dark:text-sky-400">
-          ← {form.name}
+          <ArrowLeftIcon size={14} className="mr-1 inline align-text-bottom" />{form.name}
         </Link>
       </div>
       <h1 className="mb-6 text-2xl font-semibold text-slate-900 dark:text-slate-100">Envíos</h1>

@@ -4,8 +4,9 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { logAudit } from "@/lib/audit";
+import { logAudit, safely } from "@/lib/audit";
 import { sanitizePlainText } from "@/lib/sanitize";
+import { diffFields } from "@/lib/auditDetail";
 
 export type FormFormState = { error?: string; formId?: string; savedAt?: number };
 
@@ -34,7 +35,7 @@ export async function createForm(_prev: FormFormState, formData: FormData): Prom
   const admin = await requireAdmin();
   const name = sanitizePlainText(String(formData.get("name") ?? "")).slice(0, 200) || "Nuevo formulario";
   const form = await prisma.formDefinition.create({ data: { name } });
-  await logAudit({ adminId: admin.id, action: "create_form", entityType: "FormDefinition", entityId: form.id });
+  await logAudit({ adminId: admin.id, action: "create_form", entityType: "FormDefinition", entityId: form.id, detail: { entity: `Formulario «${form.name}»` } });
   redirect(`/admin/forms/${form.id}`);
 }
 
@@ -52,6 +53,7 @@ export async function saveForm(_prev: FormFormState, formData: FormData): Promis
     return { error: "El email de destino no es válido." };
   }
 
+  const beforeForm = (await safely(() => prisma.formDefinition.findUnique({ where: { id: formId }, include: { fields: { orderBy: { order: "asc" } } } }))) ?? null;
   try {
     await prisma.$transaction([
       prisma.formDefinition.update({
@@ -75,7 +77,26 @@ export async function saveForm(_prev: FormFormState, formData: FormData): Promis
     return { error: err instanceof Error ? err.message : "No se pudo guardar." };
   }
 
-  await logAudit({ adminId: admin.id, action: "save_form", entityType: "FormDefinition", entityId: formId });
+  const fieldList = (rows: Array<{ label: string; fieldType: string; required: boolean }>) => rows.map((f) => `${f.label} (${f.fieldType}${f.required ? ", obligatorio" : ""})`).join(" · ") || "—";
+  await logAudit({
+    adminId: admin.id,
+    action: "save_form",
+    entityType: "FormDefinition",
+    entityId: formId,
+    detail: {
+      entity: `Formulario «${name}»`,
+      changes: [
+        ...diffFields(
+          { name: "Nombre", destinationEmail: "Correo de destino", successMessage: "Mensaje de éxito" },
+          beforeForm ?? {},
+          { name, destinationEmail: destinationEmailRaw || null, successMessage },
+        ),
+        ...(beforeForm && fieldList(beforeForm.fields) !== fieldList(fields.map((f) => ({ label: f.label, fieldType: f.fieldType, required: Boolean(f.required) })))
+          ? [{ field: "Campos", from: fieldList(beforeForm.fields), to: fieldList(fields.map((f) => ({ label: f.label, fieldType: f.fieldType, required: Boolean(f.required) }))) }]
+          : []),
+      ],
+    },
+  });
   // Forms are resolved at render time (see lib/forms.ts), so every page
   // using this form needs its cache cleared too -- there's no per-page
   // list of "who uses this form" to target individually, so this
@@ -88,8 +109,9 @@ export async function saveForm(_prev: FormFormState, formData: FormData): Promis
 
 export async function deleteForm(formId: string) {
   const admin = await requireAdmin();
+  const form = await prisma.formDefinition.findUnique({ where: { id: formId }, select: { name: true } });
   await prisma.formDefinition.delete({ where: { id: formId } });
-  await logAudit({ adminId: admin.id, action: "delete_form", entityType: "FormDefinition", entityId: formId });
+  await logAudit({ adminId: admin.id, action: "delete_form", entityType: "FormDefinition", entityId: formId, detail: form ? { entity: `Formulario «${form.name}»`, summary: "Se eliminó el formulario y sus envíos" } : undefined });
   revalidatePath("/admin/forms");
   revalidatePath("/", "layout");
 }

@@ -1,5 +1,7 @@
 import Image from "next/image";
-import { parseVideoEmbed } from "@/lib/video";
+import { Carousel, type CarouselValue } from "@/components/blocks/Carousel";
+import { LatestPosts, type LatestPostsValue } from "@/components/blocks/LatestPosts";
+import { isUploadedVideo, parseVideoEmbed } from "@/lib/video";
 import { TrackedLink } from "@/components/public/TrackedLink";
 import {
   IMAGE_SHAPE_WRAPPER_CLASS,
@@ -16,7 +18,7 @@ import { CustomFormRenderer, type PublicFormField } from "@/components/public/Cu
 
 export type RenderableBlock = {
   id?: string;
-  type: "text" | "image" | "link" | "video" | "map" | "contactForm" | "customForm";
+  type: "text" | "image" | "link" | "video" | "map" | "contactForm" | "customForm" | "carousel" | "latestPosts";
   content: Record<string, unknown>;
   // Section/column layout (pages only -- see PageRenderer, which groups
   // blocks sharing the same `position` into one row and lays them out
@@ -51,7 +53,7 @@ export function BlockRenderer({ block, pageId }: { block: RenderableBlock; pageI
       const html = String(block.content.html ?? "");
       return (
         <div
-          className="prose prose-slate max-w-none prose-headings:text-slate-900 prose-a:text-violet-700"
+          className="prose prose-slate max-w-none prose-headings:text-slate-900 prose-a:text-[#3A3F7A]"
           dangerouslySetInnerHTML={{ __html: html }}
         />
       );
@@ -105,7 +107,7 @@ export function BlockRenderer({ block, pageId }: { block: RenderableBlock; pageI
       const internal = Boolean(block.content.internal);
       const newTab = Boolean(block.content.newTab);
       if (!href) return null;
-      const className = "inline-block rounded-md bg-violet-700 px-5 py-2 text-white hover:bg-violet-800";
+      const className = "inline-block w-fit self-start rounded-full bg-[#3A3F7A] px-6 py-2 text-white hover:bg-[#1F2A44]";
       return (
         <TrackedLink href={href} label={`cta:${href}`} internal={internal} newTab={newTab} className={className}>
           {label}
@@ -114,11 +116,23 @@ export function BlockRenderer({ block, pageId }: { block: RenderableBlock; pageI
     }
     case "video": {
       const url = String(block.content.url ?? "");
-      const embed = parseVideoEmbed(url);
-      if (!embed) return null;
       const alignment = String(block.content.alignment ?? "center");
       const shape = (block.content.shape as ImageShape | undefined) ?? "none";
       const width = Number(block.content.width ?? 100);
+      // A video file uploaded to this site: plays with the browser's own controls (pause, volume,
+      // full screen). circle/oval crop it to fill the frame; the other shapes show it whole.
+      if (isUploadedVideo(url)) {
+        const fit = shape === "circle" || shape === "oval" ? "object-cover" : "object-contain bg-black";
+        return (
+          <div className={`max-w-3xl ${ALIGN_CLASS[alignment] ?? "mx-auto"}`} style={{ width: `${width}%` }}>
+            <div className={VIDEO_SHAPE_WRAPPER_CLASS[shape]}>
+              <video src={url} controls playsInline preload="metadata" className={`h-full w-full ${fit}`} />
+            </div>
+          </div>
+        );
+      }
+      const embed = parseVideoEmbed(url);
+      if (!embed) return null;
       return (
         <div className={`max-w-3xl ${ALIGN_CLASS[alignment] ?? "mx-auto"}`} style={{ width: `${width}%` }}>
           <div className={VIDEO_SHAPE_WRAPPER_CLASS[shape]}>
@@ -133,6 +147,47 @@ export function BlockRenderer({ block, pageId }: { block: RenderableBlock; pageI
             />
           </div>
         </div>
+      );
+    }
+    case "carousel": {
+      const slides = Array.isArray(block.content.slides) ? (block.content.slides as CarouselValue["slides"]) : [];
+      if (slides.length === 0) return null;
+      const c = block.content as Partial<CarouselValue>;
+      return (
+        <Carousel
+          value={{
+            slides,
+            aspect: c.aspect ?? "16/9",
+            shape: c.shape ?? "none",
+            showArrows: c.showArrows ?? true,
+            showDots: c.showDots ?? true,
+            autoplay: c.autoplay ?? false,
+            intervalSeconds: c.intervalSeconds ?? 6,
+            width: c.width ?? 100,
+          }}
+        />
+      );
+    }
+    case "latestPosts": {
+      const posts = block.content.posts;
+      // Not resolved (the editor canvas has no database access): show where it will appear.
+      if (!Array.isArray(posts)) {
+        return (
+          <div className="rounded-md border-2 border-dashed border-slate-300 p-6 text-center text-sm text-slate-600">
+            Entradas recientes: aquí rotan automáticamente tus últimas entradas publicadas.
+          </div>
+        );
+      }
+      if (posts.length === 0) return null;
+      return (
+        <LatestPosts
+          value={{
+            posts: posts as LatestPostsValue["posts"],
+            autoplay: block.content.autoplay !== false,
+            intervalSeconds: Number(block.content.intervalSeconds ?? 6),
+            author: String(block.content.author ?? "Lissette Pimentel Sosa"),
+          }}
+        />
       );
     }
     case "map": {

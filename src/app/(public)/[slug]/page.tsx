@@ -3,7 +3,7 @@ import { isHomeSlug } from "@/lib/home";
 import { notFound } from "next/navigation";
 import { getPublishedPageBySlug } from "@/lib/pages";
 import { getSiteSettings } from "@/lib/settings";
-import { resolveCustomFormBlocks } from "@/lib/forms";
+import { resolveDynamicBlocks } from "@/lib/dynamicBlocks";
 import { PageRenderer } from "@/components/public/PageRenderer";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +27,6 @@ export default async function GenericPage({ params }: { params: Promise<{ slug: 
   const { slug } = await params;
   const page = await getPublishedPageBySlug(slug);
   if (!page) notFound();
-  const blocks = await resolveCustomFormBlocks(page.snapshot.blocks);
+  const blocks = await resolveDynamicBlocks(page.snapshot.blocks);
   return <PageRenderer page={{ ...page.snapshot, blocks }} />;
 }

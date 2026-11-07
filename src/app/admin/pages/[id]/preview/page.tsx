@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { buildPageSnapshot } from "@/lib/pages";
-import { resolveCustomFormBlocks } from "@/lib/forms";
+import { resolveDynamicBlocks } from "@/lib/dynamicBlocks";
 import { PageRenderer } from "@/components/public/PageRenderer";
 
 export const metadata = { title: "Vista previa" };
@@ -12,7 +12,7 @@ export default async function PagePreview({ params }: { params: Promise<{ id: st
   const { id } = await params;
   const snapshot = await buildPageSnapshot(id);
   if (!snapshot) notFound();
-  const blocks = await resolveCustomFormBlocks(snapshot.blocks);
+  const blocks = await resolveDynamicBlocks(snapshot.blocks);
 
   return (
     <div>

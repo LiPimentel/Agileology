@@ -33,6 +33,10 @@ enum BlockType {
   // using it immediately, the same way swapping a Media Library image
   // updates every page referencing that URL.
   customForm
+  // Image/video slideshow ("carrusel"): slides are stored in content, so no extra table.
+  carousel
+  // Rotating cards of the most recent published posts; filled in at render time (lib/latestPosts.ts).
+  latestPosts
 }
 
 enum BlogLayout {
@@ -403,6 +407,7 @@ model SiteSettings {
   twitterUrl            String?
   linkedinUrl           String?
   instagramUrl          String?
+  telegramUrl           String?
   // Optional custom icon per network, uploaded from /admin/settings/site --
   // when unset, the footer falls back to a built-in Facebook/X/LinkedIn/
   // Instagram SVG icon instead of the old plain-text link.

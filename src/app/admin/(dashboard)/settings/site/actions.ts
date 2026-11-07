@@ -3,9 +3,32 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { logAudit } from "@/lib/audit";
+import { logAudit, safely } from "@/lib/audit";
 import { saveUploadedImage } from "@/lib/image";
 import { sanitizePlainText } from "@/lib/sanitize";
+import { diffFields } from "@/lib/auditDetail";
+
+const SITE_LABELS = {
+  siteTitle: "Nombre del sitio",
+  tagline: "Lema",
+  defaultMetaDescription: "Descripción para buscadores",
+  footerText: "Texto del pie",
+  logoUrl: "Logo",
+  faviconUrl: "Favicon",
+  facebookUrl: "Facebook",
+  twitterUrl: "Twitter/X",
+  linkedinUrl: "LinkedIn",
+  instagramUrl: "Instagram",
+  telegramUrl: "Telegram",
+  facebookIconUrl: "Icono de Facebook",
+  twitterIconUrl: "Icono de Twitter/X",
+  linkedinIconUrl: "Icono de LinkedIn",
+  instagramIconUrl: "Icono de Instagram",
+  phone: "Teléfono",
+  whatsapp: "WhatsApp",
+  cookieNoticeEnabled: "Aviso de cookies",
+  googleSiteVerification: "Verificación de Google",
+};
 
 export type SiteSettingsState = { error?: string; success?: boolean };
 
@@ -14,6 +37,11 @@ export async function updateSiteSettings(_prev: SiteSettingsState, formData: For
 
   const siteTitle = sanitizePlainText(String(formData.get("siteTitle") ?? "")).slice(0, 120);
   if (!siteTitle) return { error: "El nombre del sitio es requerido." };
+
+  const telegramUrl = String(formData.get("telegramUrl") ?? "").trim();
+  if (telegramUrl && !/^https:\/\/[^\s]+$/i.test(telegramUrl)) {
+    return { error: "El enlace de Telegram debe empezar por https:// (por ejemplo https://t.me/tu_canal)." };
+  }
 
   const data: Record<string, unknown> = {
     siteTitle,
@@ -24,6 +52,7 @@ export async function updateSiteSettings(_prev: SiteSettingsState, formData: For
     twitterUrl: String(formData.get("twitterUrl") ?? "").trim() || null,
     linkedinUrl: String(formData.get("linkedinUrl") ?? "").trim() || null,
     instagramUrl: String(formData.get("instagramUrl") ?? "").trim() || null,
+    telegramUrl: telegramUrl || null,
     phone: String(formData.get("phone") ?? "").trim() || null,
     whatsapp: String(formData.get("whatsapp") ?? "").trim() || null,
     cookieNoticeEnabled: formData.get("cookieNoticeEnabled") === "on",
@@ -58,13 +87,20 @@ export async function updateSiteSettings(_prev: SiteSettingsState, formData: For
     }
   }
 
-  await prisma.siteSettings.upsert({
+  const before = (await safely(() => prisma.siteSettings.findUnique({ where: { id: "singleton" } }))) ?? null;
+  const after = await prisma.siteSettings.upsert({
     where: { id: "singleton" },
     update: data,
     create: { id: "singleton", ...data },
   });
 
-  await logAudit({ adminId: admin.id, action: "update_site_settings", entityType: "SiteSettings", entityId: "singleton" });
+  await logAudit({
+    adminId: admin.id,
+    action: "update_site_settings",
+    entityType: "SiteSettings",
+    entityId: "singleton",
+    detail: await safely(() => ({ entity: "Ajustes del sitio", changes: diffFields(SITE_LABELS, before ?? {}, after) })),
+  });
   revalidatePath("/", "layout");
 
   return { success: true };

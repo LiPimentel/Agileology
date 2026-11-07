@@ -2,22 +2,26 @@
 
 import { useTransition } from "react";
 import { deleteForm } from "@/app/admin/(dashboard)/forms/actions";
+import { ActionMenu } from "@/components/admin/ActionMenu";
 
 export function FormRowActions({ formId }: { formId: string }) {
   const [pending, startTransition] = useTransition();
 
   return (
-    <button
-      type="button"
+    <ActionMenu
+      label="Acciones del formulario"
       disabled={pending}
-      onClick={() => {
-        if (confirm("¿Eliminar este formulario? También se borrarán sus envíos recibidos. Esta acción no se puede deshacer.")) {
-          startTransition(() => deleteForm(formId));
-        }
-      }}
-      className="text-sm text-red-600 hover:underline dark:text-red-400"
-    >
-      Eliminar
-    </button>
+      items={[
+        {
+          label: "Eliminar",
+          danger: true,
+          onSelect: () => {
+            if (confirm("¿Eliminar este formulario? También se borrarán sus envíos recibidos. Esta acción no se puede deshacer.")) {
+              startTransition(() => deleteForm(formId));
+            }
+          },
+        },
+      ]}
+    />
   );
 }

@@ -15,11 +15,19 @@ const NAV = [
   { href: "/admin/forms", label: "Formularios" },
   { href: "/admin/inbox", label: "Bandeja de entrada" },
   { href: "/admin/analytics", label: "Analítica" },
+];
+
+// Everything under /admin/settings, grouped so it is easy to find.
+const SETTINGS_NAV = [
   { href: "/admin/settings/site", label: "Ajustes del sitio" },
   { href: "/admin/settings/menu", label: "Menú del sitio" },
+  { href: "/admin/settings/blog", label: "Diseño del blog" },
   { href: "/admin/settings/communications", label: "Comunicaciones" },
   { href: "/admin/settings/audit", label: "Auditoría" },
 ];
+
+const LINK =
+  "rounded-md px-3 py-2 text-sm text-slate-700 hover:bg-violet-50 hover:text-violet-800 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-sky-300";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [admin, settings] = await Promise.all([requireAdmin(), getSiteSettings()]);
@@ -27,7 +35,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
-      <aside className="flex w-60 shrink-0 flex-col border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+      <aside className="sticky top-0 flex h-dvh w-60 shrink-0 flex-col self-start overflow-y-auto border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
         <div className="flex items-center justify-between gap-2 border-b border-slate-200 px-4 py-5 dark:border-slate-800">
           <div className="min-w-0">
             {/* Real uploaded logo (Ajustes del sitio → Logo) when set. */}
@@ -41,13 +49,19 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </div>
           <ThemeToggle />
         </div>
-        <nav className="flex flex-col gap-1 p-3">
+        <nav aria-label="Principal" className="flex flex-col gap-1 p-3">
           {NAV.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="rounded-md px-3 py-2 text-sm text-slate-700 hover:bg-violet-50 hover:text-violet-800 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-sky-300"
-            >
+            <Link key={item.href} href={item.href} className={LINK}>
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+        <nav aria-labelledby="settings-heading" className="flex flex-col gap-1 border-t border-slate-200 p-3 dark:border-slate-800">
+          <p id="settings-heading" className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">
+            Configuración
+          </p>
+          {SETTINGS_NAV.map((item) => (
+            <Link key={item.href} href={item.href} className={LINK}>
               {item.label}
             </Link>
           ))}

@@ -24,6 +24,13 @@ export async function saveUploadedVideo(file: File) {
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
+  // The browser-declared type can be faked: check the real container signature too
+  // (MP4/MOV "ftyp" box, or the EBML header every WebM/Matroska file starts with).
+  const isMp4 = buffer.length > 12 && buffer.subarray(4, 8).toString("latin1") === "ftyp";
+  const isWebm = buffer.length > 4 && buffer[0] === 0x1a && buffer[1] === 0x45 && buffer[2] === 0xdf && buffer[3] === 0xa3;
+  if ((ext === "mp4" && !isMp4) || (ext === "webm" && !isWebm)) {
+    throw new Error("El archivo no parece un video válido del tipo indicado.");
+  }
   const filename = `${randomUUID()}.${ext}`;
 
   await mkdir(UPLOAD_DIR, { recursive: true });

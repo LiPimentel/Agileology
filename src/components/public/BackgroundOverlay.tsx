@@ -1,3 +1,5 @@
+import { BackgroundVideo } from "@/components/public/BackgroundVideo";
+
 export function BackgroundOverlay({
   imageUrl,
   overlayColor,
@@ -29,15 +31,7 @@ export function BackgroundOverlay({
   return (
     <div className="relative">
       {videoUrl ? (
-        <video
-          src={videoUrl}
-          autoPlay
-          muted
-          loop
-          playsInline
-          className="absolute inset-0 h-full w-full object-cover"
-          aria-hidden
-        />
+        <BackgroundVideo src={videoUrl} />
       ) : (
         imageUrl && (
           <div

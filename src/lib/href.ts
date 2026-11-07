@@ -3,6 +3,8 @@
  * "javascript:" or "data:". Only site-relative paths, http(s), mailto and tel are allowed.
  */
 export function isSafeHref(href: string): boolean {
+  // Browsers drop tabs/newlines inside URLs, so "/<TAB>/host" would become "//host".
+  if (/[\u0000-\u001f\u007f]/.test(href)) return false;
   const value = href.trim();
   if (value.startsWith("//") || value.startsWith("/\\")) return false; // protocol-relative: another site
   if (/^[/#?]/.test(value)) return true;

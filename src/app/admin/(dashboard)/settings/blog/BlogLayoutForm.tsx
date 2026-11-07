@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { updateBlogLayout, type BlogSettingsState } from "./actions";
+import { SaveFeedback } from "@/components/admin/SaveFeedback";
 
 const initialState: BlogSettingsState = {};
 
@@ -20,7 +21,7 @@ export function BlogLayoutForm({ layoutType }: { layoutType: "grid" | "list" }) 
           Lista
         </label>
       </div>
-      {state.success && <p className="text-sm text-green-700 dark:text-green-400">Guardado.</p>}
+      <SaveFeedback state={state} />
       <button
         type="submit"
         disabled={pending}

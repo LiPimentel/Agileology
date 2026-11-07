@@ -11,6 +11,8 @@ import type { VideoBlockValue } from "@/components/admin/blocks/VideoBlockEditor
 import type { MapBlockValue } from "@/components/admin/blocks/MapBlockEditor";
 import type { ContactFormBlockValue } from "@/components/admin/blocks/ContactFormBlockEditor";
 import type { CustomFormBlockValue } from "@/components/admin/blocks/CustomFormBlockEditor";
+import { EMPTY_CAROUSEL, type CarouselBlockValue } from "@/components/admin/blocks/CarouselBlockEditor";
+import { EMPTY_LATEST_POSTS, type LatestPostsBlockValue } from "@/components/admin/blocks/LatestPostsBlockEditor";
 
 // Pages only (posts keep the simpler, single-column BlockEditor -- blog
 // posts have their own format per the client's explicit call).
@@ -29,7 +31,7 @@ import type { CustomFormBlockValue } from "@/components/admin/blocks/CustomFormB
 // section needs at least one filled column for its background to have
 // somewhere to be saved; a fully empty section has no rows to carry it.
 
-export type BlockType = "text" | "image" | "link" | "video" | "map" | "contactForm" | "customForm";
+export type BlockType = "text" | "image" | "link" | "video" | "map" | "contactForm" | "customForm" | "carousel" | "latestPosts";
 
 export type BlockValue =
   | { type: "text"; content: { html: string } }
@@ -43,7 +45,9 @@ export type BlockValue =
   // One form picked from the reusable library (FormDefinition) -- see
   // lib/forms.ts's comment on why its fields are resolved at render time
   // instead of being stored here.
-  | { type: "customForm"; content: CustomFormBlockValue };
+  | { type: "customForm"; content: CustomFormBlockValue }
+  | { type: "carousel"; content: CarouselBlockValue }
+  | { type: "latestPosts"; content: LatestPostsBlockValue };
 
 // One entry in a column's stack -- `id` is the ContentBlock row's id (or a
 // generated placeholder for a not-yet-saved block), separate from the
@@ -142,6 +146,10 @@ export function emptyContent(type: BlockType): BlockValue {
       return { type, content: { enabledFields: ["name", "email", "message"] } };
     case "customForm":
       return { type, content: { formId: "" } };
+    case "carousel":
+      return { type, content: { ...EMPTY_CAROUSEL, slides: [] } };
+    case "latestPosts":
+      return { type, content: { ...EMPTY_LATEST_POSTS } };
   }
 }
 

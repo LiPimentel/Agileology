@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { groupBlocksIntoSections } from "@/lib/sections";
 import { PageEditorForm } from "./PageEditorForm";
+import { loadMediaLibrary } from "@/lib/mediaLibrary";
 
 export const metadata = { title: "Editar página — Backoffice" };
 export const dynamic = "force-dynamic";
@@ -17,7 +18,7 @@ export default async function PageEditorPage({ params }: { params: Promise<{ id:
         background: true,
       },
     }),
-    prisma.media.findMany({ orderBy: { createdAt: "desc" }, take: 60 }),
+    loadMediaLibrary(),
     prisma.page.findMany({ select: { id: true, slug: true, title: true }, orderBy: { title: "asc" } }),
     prisma.formDefinition.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);

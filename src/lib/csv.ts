@@ -5,6 +5,9 @@
  * when opened in Excel/Sheets.
  */
 function escapeCsvCell(value: string): string {
+  // A cell starting with = + - @ (or a tab/CR) is run as a formula by Excel/Sheets, and titles are
+  // free text: prefix an apostrophe so it is read as plain text, never as a formula.
+  if (/^[=+\-@\t\r]/.test(value)) value = `'${value}`;
   if (/[",\r\n]/.test(value)) {
     return `"${value.replace(/"/g, '""')}"`;
   }
