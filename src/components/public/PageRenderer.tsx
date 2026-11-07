@@ -152,7 +152,7 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
         page can freely mix narrow article-style sections with full-width
         ones.
       */}
-      <div className={hasBands ? "pb-12" : "space-y-8 py-12"}>
+      <div className={hasBands ? "" : "space-y-8 py-12"}>
         {sections.map((section, i) => {
           const first = section[0];
           const isFree = first?.sectionLayoutMode === "free";
