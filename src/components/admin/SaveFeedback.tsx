@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AlertTriangleIcon, CheckCircleIcon, CloseIcon } from "@/components/icons";
 
 type FeedbackState = { error?: string; success?: boolean; savedAt?: number };
 
@@ -34,15 +35,15 @@ export function SaveFeedback({ state, successMessage = "Guardado correctamente."
           onBlur={() => setHolding(false)}
           className={`pointer-events-auto flex max-w-xl items-center gap-3 rounded-md px-4 py-3 text-sm font-medium text-white shadow-lg ${isError ? "bg-red-700" : "bg-green-700"}`}
         >
-          <span aria-hidden="true">{isError ? "⚠" : "✓"}</span>
+          {isError ? <AlertTriangleIcon size={20} className="shrink-0" /> : <CheckCircleIcon size={20} className="shrink-0" />}
           <span>{isError ? state.error : successMessage}</span>
           <button
             type="button"
             onClick={() => setDismissed(state)}
             aria-label="Cerrar aviso"
-            className="ml-1 rounded px-1.5 text-white/90 hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-white"
+            className="ml-1 rounded p-1 text-white/90 hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-white"
           >
-            ✕
+            <CloseIcon size={16} />
           </button>
         </div>
       )}

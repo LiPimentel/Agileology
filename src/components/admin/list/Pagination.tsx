@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { buildQuery } from "@/lib/listFilters";
+import { ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
 
 /** "Mostrando 1–25 de 140" plus previous/next and numbered links (with gaps), keeping all filters. */
 export function Pagination({
@@ -29,7 +30,7 @@ export function Pagination({
       <p role="status">{total === 0 ? "Sin resultados." : `Mostrando ${from}–${to} de ${total}`}</p>
       {pages > 1 && (
         <ul className="flex flex-wrap items-center gap-1">
-          <li>{page > 1 ? <Link href={href(page - 1)} className={link} rel="prev">‹ Anterior</Link> : null}</li>
+          <li>{page > 1 ? <Link href={href(page - 1)} className={link} rel="prev"><ChevronLeftIcon size={16} className="mr-1 inline align-text-bottom" />Anterior</Link> : null}</li>
           {shown.map((p, i) => (
             <li key={p} className="flex items-center gap-1">
               {i > 0 && p - shown[i - 1] > 1 && <span aria-hidden="true">…</span>}
@@ -40,7 +41,7 @@ export function Pagination({
               )}
             </li>
           ))}
-          <li>{page < pages ? <Link href={href(page + 1)} className={link} rel="next">Siguiente ›</Link> : null}</li>
+          <li>{page < pages ? <Link href={href(page + 1)} className={link} rel="next">Siguiente<ChevronRightIcon size={16} className="ml-1 inline align-text-bottom" /></Link> : null}</li>
         </ul>
       )}
     </nav>

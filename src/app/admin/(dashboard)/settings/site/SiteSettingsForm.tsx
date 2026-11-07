@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { updateSiteSettings, type SiteSettingsState } from "./actions";
 import type { SiteSettings } from "@/generated/prisma/client";
 import { SaveFeedback } from "@/components/admin/SaveFeedback";
+import { AlertTriangleIcon } from "@/components/icons";
 
 const initialState: SiteSettingsState = {};
 
@@ -48,7 +49,7 @@ export function SiteSettingsForm({ settings, siteUrl }: { settings: SiteSettings
           </p>
         ) : (
           <p className="text-sm text-red-600 dark:text-red-400">
-            ⚠️ No hay una URL pública configurada (variable de entorno <code className="font-mono">NEXT_PUBLIC_SITE_URL</code>{" "}
+            <AlertTriangleIcon size={16} className="mr-1 inline align-text-bottom" /> No hay una URL pública configurada (variable de entorno <code className="font-mono">NEXT_PUBLIC_SITE_URL</code>{" "}
             en el servidor). Sin ella, el mapa del sitio y robots.txt no incluyen la dirección completa y Google no puede
             usarlos correctamente -- esto se corrige en la configuración del servidor/Docker, no aquí.
           </p>

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { parseVideoEmbed } from "@/lib/video";
 import { IMAGE_SHAPE_WRAPPER_CLASS, type ImageShape } from "@/lib/imageShape";
+import { ChevronLeftIcon, ChevronRightIcon, PauseIcon, PlayIcon } from "@/components/icons";
 
 export type CarouselImageSlide = {
   kind: "image";
@@ -163,10 +164,10 @@ export function Carousel({ value }: { value: CarouselValue }) {
       {count > 1 && showArrows && (
         <>
           <button type="button" aria-label="Diapositiva anterior" className={`${arrow} absolute left-2 top-1/2 -translate-y-1/2`} onClick={() => go(current - 1)}>
-            <span aria-hidden="true">‹</span>
+            <ChevronLeftIcon size={22} />
           </button>
           <button type="button" aria-label="Diapositiva siguiente" className={`${arrow} absolute right-2 top-1/2 -translate-y-1/2`} onClick={() => go(current + 1)}>
-            <span aria-hidden="true">›</span>
+            <ChevronRightIcon size={22} />
           </button>
         </>
       )}
@@ -181,7 +182,7 @@ export function Carousel({ value }: { value: CarouselValue }) {
                 className={`flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-xs text-white ${FOCUS}`}
                 onClick={() => setPaused((p) => !p)}
               >
-                <span aria-hidden="true">{paused ? "▶" : "❚❚"}</span>
+                {paused ? <PlayIcon size={14} /> : <PauseIcon size={14} />}
               </button>
             )}
             {value.showDots &&

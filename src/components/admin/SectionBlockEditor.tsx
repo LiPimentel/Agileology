@@ -16,6 +16,7 @@ import { MapBlockEditor } from "@/components/admin/blocks/MapBlockEditor";
 import { ContactFormBlockEditor } from "@/components/admin/blocks/ContactFormBlockEditor";
 import { CustomFormBlockEditor } from "@/components/admin/blocks/CustomFormBlockEditor";
 import { ActionMenu } from "@/components/admin/ActionMenu";
+import { ArrowDownIcon, CheckIcon } from "@/components/icons";
 import {
   type BlockType,
   type BlockValue,
@@ -653,7 +654,7 @@ export function SectionBlockEditor({
               onClick={() => setSelectedBlockId(null)}
               className="rounded bg-white/20 px-2 py-0.5 font-medium hover:bg-white/30"
             >
-              Listo ✓
+              Listo <CheckIcon size={14} className="ml-1 inline align-text-bottom" />
             </button>
           </div>
         </div>
@@ -727,7 +728,7 @@ export function SectionBlockEditor({
                             className="hover:text-violet-200"
                             title="Enviar atrás"
                           >
-                            ⬇
+                            <ArrowDownIcon size={14} />
                           </button>
                           <button
                             type="button"
@@ -745,7 +746,7 @@ export function SectionBlockEditor({
                             onClick={() => setSelectedBlockId(null)}
                             className="rounded bg-white/20 px-2 py-0.5 font-medium hover:bg-white/30"
                           >
-                            Listo ✓
+                            Listo <CheckIcon size={14} className="ml-1 inline align-text-bottom" />
                           </button>
                         </div>
                       </div>

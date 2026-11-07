@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import { THEME_STORAGE_KEY } from "@/lib/theme";
+import { MoonIcon, SunIcon } from "@/components/icons";
 
 // Module-level, not component state: the class lives on <html>, outside
 // React entirely, so "did it change" has to be told to every mounted
@@ -62,9 +63,10 @@ export function ThemeToggle() {
       onClick={() => setDark(!isDark)}
       title={isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
       aria-label={isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
-      className="flex h-8 w-8 items-center justify-center rounded-md text-lg text-slate-500 hover:bg-violet-50 hover:text-violet-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-sky-300"
+      className="flex h-9 w-9 items-center justify-center rounded-md text-slate-600 hover:bg-violet-50 hover:text-violet-700 focus-visible:outline-2 focus-visible:outline-violet-600 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-sky-300 dark:focus-visible:outline-sky-300"
     >
-      {isDark ? "☀️" : "🌙"}
+      {/* Shows the mode you would switch TO: the sun while dark, the moon while light. */}
+      {isDark ? <SunIcon size={20} /> : <MoonIcon size={20} />}
     </button>
   );
 }

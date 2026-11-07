@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { daysAgo } from "@/lib/date";
+import { DownloadIcon } from "@/components/icons";
 
 export const metadata = { title: "Analítica — Backoffice" };
 export const dynamic = "force-dynamic";
@@ -117,9 +118,9 @@ export default async function AnalyticsPage({
           ))}
           <a
             href={`/admin/analytics/export${rangeQuery}`}
-            className="rounded-md border border-slate-300 px-3 py-1.5 font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+            className="inline-flex items-center gap-2 rounded-md border border-slate-300 px-3 py-1.5 font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
           >
-            ⬇ Descargar CSV
+            <DownloadIcon size={16} /> Descargar CSV
           </a>
         </div>
       </div>

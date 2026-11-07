@@ -8,6 +8,7 @@ import { IMAGE_SHAPE_LABELS, type ImageShape } from "@/lib/imageShape";
 import { MAX_CAROUSEL_SLIDES } from "@/lib/carousel";
 import { parseVideoEmbed } from "@/lib/video";
 import { ActionMenu } from "@/components/admin/ActionMenu";
+import { PlayIcon } from "@/components/icons";
 
 export type CarouselBlockValue = CarouselValue;
 
@@ -201,7 +202,7 @@ export function CarouselBlockEditor({
                 />
               </>
             ) : (
-              <span className="min-w-[12rem] flex-1 truncate text-sm text-slate-700 dark:text-slate-300">▶ Video: {s.url}</span>
+              <span className="min-w-[12rem] flex-1 truncate text-sm text-slate-700 dark:text-slate-300"><PlayIcon size={14} className="mr-1 inline align-text-bottom" /> Video: {s.url}</span>
             )}
             <div className="flex gap-1">
               {s.kind === "image" && (

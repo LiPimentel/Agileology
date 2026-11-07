@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { PauseIcon, PlayIcon } from "@/components/icons";
 
 const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
 function subscribeReducedMotion(cb: () => void) {
@@ -53,7 +54,7 @@ export function BackgroundVideo({ src }: { src: string }) {
         aria-label={playing ? "Pausar video de fondo" : "Reproducir video de fondo"}
         className="absolute bottom-3 right-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-[#1F2A44]/85 text-sm text-white hover:bg-[#1F2A44] focus-visible:outline-2 focus-visible:outline-white focus-visible:shadow-[0_0_0_5px_#1F2A44]"
       >
-        <span aria-hidden="true">{playing ? "❚❚" : "▶"}</span>
+        {playing ? <PauseIcon size={16} /> : <PlayIcon size={16} />}
       </button>
     </>
   );

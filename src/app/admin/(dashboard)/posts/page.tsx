@@ -6,6 +6,7 @@ import { ListFilterBar, type FilterField } from "@/components/admin/list/ListFil
 import { Pagination } from "@/components/admin/list/Pagination";
 import { SortableTh } from "@/components/admin/list/SortableTh";
 import { PAGE_SIZE, buildQuery, oneOf, pageNumber, pick, type SearchParams } from "@/lib/listFilters";
+import { DownloadIcon } from "@/components/icons";
 
 export const metadata = { title: "Blog — Backoffice" };
 export const dynamic = "force-dynamic";
@@ -99,9 +100,9 @@ export default async function PostsListPage({ searchParams }: { searchParams: Pr
       <ListFilterBar fields={fields} values={values} resetHref="/admin/posts" hidden={{ sort: params.sort, dir: params.dir }}>
         <a
           href={exportHref}
-          className="ml-auto rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+          className="ml-auto inline-flex items-center gap-2 rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
         >
-          ⬇ Descargar CSV
+          <DownloadIcon size={16} /> Descargar CSV
         </a>
       </ListFilterBar>
 

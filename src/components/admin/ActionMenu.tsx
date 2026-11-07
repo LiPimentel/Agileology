@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { DotsIcon } from "@/components/icons";
 
 export type ActionMenuItem = { label: string; onSelect: () => void; danger?: boolean; disabled?: boolean };
 
@@ -64,8 +65,8 @@ export function ActionMenu({
 
   const trigger =
     tone === "onDark"
-      ? "rounded px-2 py-1 text-base font-bold leading-none text-white hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-white"
-      : "rounded-md px-2 py-1 text-lg font-bold leading-none text-slate-600 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-violet-600 dark:text-slate-300 dark:hover:bg-slate-800";
+      ? "rounded px-1.5 py-1.5 text-white hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-white"
+      : "rounded-md px-1.5 py-1.5 text-slate-600 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-violet-600 dark:text-slate-300 dark:hover:bg-slate-800";
 
   return (
     <div ref={wrapRef} className="relative inline-block text-left">
@@ -85,7 +86,7 @@ export function ActionMenu({
         }}
         className={`${trigger} disabled:opacity-40`}
       >
-        <span aria-hidden="true">⋯</span>
+        <DotsIcon size={18} />
       </button>
       {open && (
         <div

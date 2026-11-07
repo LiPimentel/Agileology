@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { ChevronLeftIcon, ChevronRightIcon, PauseIcon, PlayIcon } from "@/components/icons";
 
 export type LatestPost = { slug: string; title: string; image: string | null; publishedAt: string; minutes: number };
 export type LatestPostsValue = { posts: LatestPost[]; autoplay: boolean; intervalSeconds: number; author: string };
@@ -132,11 +133,11 @@ export function LatestPosts({ value }: { value: LatestPostsValue }) {
       {rotates && (
         <div className="mt-5 flex items-center justify-center gap-3">
           <button type="button" aria-label="Entradas anteriores" className={NAV} onClick={() => go(current - 1)}>
-            <span aria-hidden="true">‹</span>
+            <ChevronLeftIcon size={22} />
           </button>
           {value.autoplay && !reduced && (
             <button type="button" aria-label={paused ? "Reanudar rotación" : "Pausar rotación"} className={NAV} onClick={() => setPaused((p) => !p)}>
-              <span aria-hidden="true" className="text-xs">{paused ? "▶" : "❚❚"}</span>
+              {paused ? <PlayIcon size={14} /> : <PauseIcon size={14} />}
             </button>
           )}
           <div className="flex items-center">
@@ -154,7 +155,7 @@ export function LatestPosts({ value }: { value: LatestPostsValue }) {
             ))}
           </div>
           <button type="button" aria-label="Entradas siguientes" className={NAV} onClick={() => go(current + 1)}>
-            <span aria-hidden="true">›</span>
+            <ChevronRightIcon size={22} />
           </button>
         </div>
       )}

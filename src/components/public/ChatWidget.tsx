@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { submitChatMessage, type ChatFormState } from "@/lib/actions/chat";
 import { trackClick } from "@/lib/track-click";
+import { CloseIcon } from "@/components/icons";
 
 const initialState: ChatFormState = {};
 
@@ -30,7 +31,7 @@ export function ChatWidget({
           <div className="flex items-center justify-between rounded-t-lg bg-[#1F2A44] px-4 py-3 text-white">
             <span className="font-medium">{title}</span>
             <button type="button" onClick={() => setOpen(false)} aria-label="Cerrar chat">
-              ✕
+              <CloseIcon size={18} />
             </button>
           </div>
           <div className="p-4">
