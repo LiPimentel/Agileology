@@ -23,9 +23,9 @@ async function main() {
   const meta = await sharp(SRC).metadata();
   console.log(`logo origen: ${meta.width}x${meta.height} ${meta.format}`);
   if (!meta.width || !meta.height) throw new Error("No es una imagen válida");
-  const emblemSide = Math.min(meta.height, Math.round(meta.width * 0.22)); // emblem is the left ~22%
+  const emblemWidth = Math.min(meta.width, Math.round(meta.width * 0.33)); // the emblem is the left third of the wordmark
   if (!APPLY) {
-    console.log(`(dry run) crearía logo.webp y favicon (recorte ${emblemSide}x${emblemSide}) en ${UPLOAD_DIR} y actualizaría SiteSettings`);
+    console.log(`(dry run) crearía logo.webp y favicon (recorte ${emblemWidth}x${meta.height}) en ${UPLOAD_DIR} y actualizaría SiteSettings`);
     return;
   }
   await mkdir(UPLOAD_DIR, { recursive: true });
@@ -45,7 +45,7 @@ async function main() {
     };
     const logoUrl = await make(await sharp(SRC).toBuffer(), "logo");
     const faviconUrl = await make(
-      await sharp(SRC).extract({ left: 0, top: 0, width: emblemSide, height: emblemSide }).resize(256, 256, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } }).png().toBuffer(),
+      await sharp(SRC).extract({ left: 0, top: 0, width: emblemWidth, height: meta.height }).resize(256, 256, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } }).png().toBuffer(),
       "favicon",
     );
     const settings = await prisma.siteSettings.findFirst();
