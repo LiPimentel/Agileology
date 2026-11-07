@@ -104,9 +104,13 @@ export function diffBlocks(before: BlockLike[], after: BlockLike[]): { summary: 
   return { summary: parts.length ? `Bloques: ${parts.join(", ")} (de ${before.length} a ${after.length})` : "", changes };
 }
 
+/** Bounded text: one audit row can never grow without limit, whatever an admin types. */
+export const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n)}…` : s);
+
 export function capChanges(changes: AuditChange[]): AuditChange[] {
-  if (changes.length <= MAX_CHANGES) return changes;
-  return [...changes.slice(0, MAX_CHANGES), { field: "…", from: "", to: `y ${changes.length - MAX_CHANGES} cambios más` }];
+  const bounded = changes.map((c) => ({ field: clip(c.field, 200), from: clip(c.from, 600), to: clip(c.to, 600) }));
+  if (bounded.length <= MAX_CHANGES) return bounded;
+  return [...bounded.slice(0, MAX_CHANGES), { field: "…", from: "", to: `y ${bounded.length - MAX_CHANGES} cambios más` }];
 }
 
 /** Old rows hold plain text (or nothing); new ones hold JSON. */

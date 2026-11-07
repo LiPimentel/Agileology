@@ -1,5 +1,6 @@
 /** Sanity checks for audit-log detail helpers (run: npx tsx scripts/check-audit-detail.ts). */
 import { diffBlocks, diffFields, parseAuditDetail, fmt, capChanges } from "../src/lib/auditDetail";
+import { toCsv } from "../src/lib/csv";
 
 let fails = 0;
 const check = (name: string, ok: boolean, extra = "") => { console.log(`${ok ? "✔" : "✘"} ${name}${extra ? ` — ${extra}` : ""}`); if (!ok) fails++; };
@@ -21,4 +22,8 @@ check("parseAuditDetail acepta texto antiguo", parseAuditDetail("abc123").text =
 check("parseAuditDetail con null", Object.keys(parseAuditDetail(null)).length === 0);
 const many = Array.from({ length: 70 }, (_, i) => ({ field: `f${i}`, from: "a", to: "b" }));
 check("capChanges limita a 60 más un aviso", capChanges(many).length === 61 && /10 cambios más/.test(capChanges(many)[60].to));
+check("capChanges recorta valores larguísimos", capChanges([{ field: "x", from: "a".repeat(5000), to: "b".repeat(5000) }])[0].from.length === 601);
+const csv = toCsv([['=HYPERLINK("http://evil","x")', "+1", "-2", "@SUM(A1)", "normal", "con, coma", "2020-11-02"]]);
+check("CSV neutraliza fórmulas (= + - @)", csv.startsWith(`"\'=HYPERLINK`) && csv.includes(",'+1,'-2,'@SUM(A1),normal,"), csv);
+check("CSV no toca fechas ni texto normal", csv.endsWith(',"con, coma",2020-11-02'));
 process.exit(fails ? 1 : 0);

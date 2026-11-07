@@ -9,7 +9,9 @@ const STATUS_LABEL: Record<string, string> = { draft: "Borrador", published: "Pu
 
 /** CSV export for the admin posts list (RF-style: "descarga de csv que incluya nombre de la publicación, estatus, fecha publicada"). */
 export async function GET(request: NextRequest) {
-  await requireAdmin();
+  const admin = await requireAdmin();
+  // Route handlers skip the dashboard layout, which is what sends accounts without 2FA to set it up.
+  if (!admin.twoFactorEnabled) return new NextResponse("Activa la verificación en dos pasos para exportar.", { status: 403 });
 
   const { searchParams } = new URL(request.url);
   const posts = await adminListPosts({

@@ -1,6 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
-import { capChanges, type AuditDetail } from "@/lib/auditDetail";
+import { capChanges, clip, type AuditDetail } from "@/lib/auditDetail";
 
 /** Records every content-changing backoffice action (RS-10). */
 export async function logAudit(params: {
@@ -14,7 +14,11 @@ export async function logAudit(params: {
   const detail =
     typeof params.detail === "string" || params.detail === undefined
       ? params.detail
-      : JSON.stringify({ ...params.detail, changes: params.detail.changes ? capChanges(params.detail.changes) : undefined });
+      : JSON.stringify({
+          entity: params.detail.entity ? clip(params.detail.entity, 300) : undefined,
+          summary: params.detail.summary ? clip(params.detail.summary, 800) : undefined,
+          changes: params.detail.changes ? capChanges(params.detail.changes) : undefined,
+        });
   await prisma.auditLog.create({
     data: {
       adminId: params.adminId ?? null,
