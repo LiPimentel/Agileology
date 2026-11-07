@@ -559,7 +559,7 @@ export function SectionBlockEditor({
       case "link":
         return <LinkBlockEditor value={item.block.content} onChange={onChange} pages={pages} />;
       case "video":
-        return <VideoBlockEditor value={item.block.content} onChange={onChange} />;
+        return <VideoBlockEditor value={item.block.content} onChange={onChange} mediaLibrary={mediaLibrary} />;
       case "map":
         return <MapBlockEditor value={item.block.content} onChange={onChange} />;
       case "contactForm":
@@ -584,7 +584,7 @@ export function SectionBlockEditor({
       case "link":
         return <LinkBlockEditor value={item.block.content} onChange={onChange} pages={pages} />;
       case "video":
-        return <VideoBlockEditor value={item.block.content} onChange={onChange} />;
+        return <VideoBlockEditor value={item.block.content} onChange={onChange} mediaLibrary={mediaLibrary} />;
       case "map":
         return <MapBlockEditor value={item.block.content} onChange={onChange} />;
       case "contactForm":

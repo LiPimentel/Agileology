@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import type { EditorBlock } from "@/components/admin/BlockEditor";
 import { toAstInput } from "@/lib/date";
 import { PostEditorForm } from "./PostEditorForm";
+import { loadMediaLibrary } from "@/lib/mediaLibrary";
 
 export const metadata = { title: "Editar post — Backoffice" };
 export const dynamic = "force-dynamic";
@@ -18,7 +19,7 @@ export default async function PostEditorPage({ params }: { params: Promise<{ id:
 
   const [post, mediaLibrary, pages] = await Promise.all([
     prisma.post.findUnique({ where: { id }, include: { blocks: { orderBy: { position: "asc" } } } }),
-    prisma.media.findMany({ orderBy: { createdAt: "desc" }, take: 60 }),
+    loadMediaLibrary(),
     prisma.page.findMany({ select: { slug: true, title: true }, orderBy: { title: "asc" } }),
   ]);
 

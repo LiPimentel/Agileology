@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { isSafeHref } from "@/lib/href";
-import { parseVideoEmbed } from "@/lib/video";
+import { isUploadedVideo, parseVideoEmbed } from "@/lib/video";
 import { MAX_CAROUSEL_SLIDES } from "@/lib/carousel";
 import { sanitizeRichText, sanitizePlainText } from "@/lib/sanitize";
 
@@ -32,7 +32,12 @@ export const linkBlockSchema = z.object({
   newTab: z.boolean(),
 });
 export const videoBlockSchema = z.object({
-  url: z.string(),
+  // A YouTube/Vimeo link, or a video file uploaded to this site. Empty is allowed (a block still
+  // being filled in). Anything else is rejected.
+  url: z
+    .string()
+    .max(2048)
+    .refine((u) => u.trim() === "" || parseVideoEmbed(u) !== null || isUploadedVideo(u), "El video debe ser un enlace de YouTube o Vimeo, o un archivo subido."),
   alignment: z.enum(["left", "center", "right"]).default("center"),
   // Same shape vocabulary as images (see imageShape.ts) -- circle/oval crop
   // the embed's iframe container into that frame. There's no pan/zoom for

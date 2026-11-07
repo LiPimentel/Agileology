@@ -111,7 +111,7 @@ export function BlockEditor({
             <LinkBlockEditor value={block.content} onChange={(v) => update(block.id, v)} pages={pages} />
           )}
           {block.type === "video" && (
-            <VideoBlockEditor value={block.content} onChange={(v) => update(block.id, v)} />
+            <VideoBlockEditor value={block.content} onChange={(v) => update(block.id, v)} mediaLibrary={mediaLibrary} />
           )}
           {block.type === "carousel" && (
             <CarouselBlockEditor value={block.content} onChange={(v) => update(block.id, v)} mediaLibrary={mediaLibrary} />

@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { Carousel, type CarouselValue } from "@/components/blocks/Carousel";
 import { LatestPosts, type LatestPostsValue } from "@/components/blocks/LatestPosts";
-import { parseVideoEmbed } from "@/lib/video";
+import { isUploadedVideo, parseVideoEmbed } from "@/lib/video";
 import { TrackedLink } from "@/components/public/TrackedLink";
 import {
   IMAGE_SHAPE_WRAPPER_CLASS,
@@ -116,11 +116,23 @@ export function BlockRenderer({ block, pageId }: { block: RenderableBlock; pageI
     }
     case "video": {
       const url = String(block.content.url ?? "");
-      const embed = parseVideoEmbed(url);
-      if (!embed) return null;
       const alignment = String(block.content.alignment ?? "center");
       const shape = (block.content.shape as ImageShape | undefined) ?? "none";
       const width = Number(block.content.width ?? 100);
+      // A video file uploaded to this site: plays with the browser's own controls (pause, volume,
+      // full screen). circle/oval crop it to fill the frame; the other shapes show it whole.
+      if (isUploadedVideo(url)) {
+        const fit = shape === "circle" || shape === "oval" ? "object-cover" : "object-contain bg-black";
+        return (
+          <div className={`max-w-3xl ${ALIGN_CLASS[alignment] ?? "mx-auto"}`} style={{ width: `${width}%` }}>
+            <div className={VIDEO_SHAPE_WRAPPER_CLASS[shape]}>
+              <video src={url} controls playsInline preload="metadata" className={`h-full w-full ${fit}`} />
+            </div>
+          </div>
+        );
+      }
+      const embed = parseVideoEmbed(url);
+      if (!embed) return null;
       return (
         <div className={`max-w-3xl ${ALIGN_CLASS[alignment] ?? "mx-auto"}`} style={{ width: `${width}%` }}>
           <div className={VIDEO_SHAPE_WRAPPER_CLASS[shape]}>
