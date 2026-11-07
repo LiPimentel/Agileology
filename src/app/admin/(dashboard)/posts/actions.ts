@@ -9,6 +9,7 @@ import { sanitizeBlockContent } from "@/lib/blocks";
 import { sanitizePlainText } from "@/lib/sanitize";
 import { publishPost } from "@/lib/posts";
 import { slugify } from "@/lib/slugify";
+import { fromAstInput } from "@/lib/date";
 
 export type PostFormState = { error?: string; postId?: string; savedAt?: number };
 
@@ -43,6 +44,14 @@ async function upsertPostContent(postId: string, formData: FormData) {
   const publishAtRaw = String(formData.get("publishAt") ?? "");
   const publishAt = publishAtRaw ? new Date(publishAtRaw) : null;
 
+  // Displayed publication date (separate from publishAt, which only schedules).
+  // Typed in Santo Domingo time, stored as UTC. Past dates are fine; a future
+  // one is rejected so it can't be confused with scheduling.
+  const publishedAt = fromAstInput(String(formData.get("publishedAt") ?? ""));
+  if (publishedAt && publishedAt.getTime() > Date.now()) {
+    throw new Error("La fecha de publicación no puede estar en el futuro. Para programar usa «Publicar el».");
+  }
+
   const blocksRaw = parseBlocks(String(formData.get("blocksJson") ?? "[]"));
   const blocks = blocksRaw.map((b, i) => ({
     type: b.type,
@@ -53,7 +62,7 @@ async function upsertPostContent(postId: string, formData: FormData) {
   await prisma.$transaction(async (tx) => {
     await tx.post.update({
       where: { id: postId },
-      data: { title, slug, excerpt, featuredImage, seoTitle, seoDescription, tags, publishAt },
+      data: { title, slug, excerpt, featuredImage, seoTitle, seoDescription, tags, publishAt, publishedAt },
     });
     await tx.contentBlock.deleteMany({ where: { postId } });
     if (blocks.length > 0) {

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PostRowActions } from "@/components/admin/PostRowActions";
 import { adminListPosts, type AdminPostFilter } from "@/lib/posts";
+import { formatAstDate } from "@/lib/date";
 
 export const metadata = { title: "Blog — Backoffice" };
 export const dynamic = "force-dynamic";
@@ -35,7 +36,7 @@ function PostsTable({ posts }: { posts: Awaited<ReturnType<typeof adminListPosts
               </span>
             </td>
             <td className="px-4 py-3 text-slate-500 dark:text-slate-400">
-              {p.publishedAt ? new Date(p.publishedAt).toLocaleDateString("es") : "—"}
+              {p.publishedAt ? formatAstDate(p.publishedAt) : "—"}
             </td>
             <td className="px-4 py-3">
               <PostRowActions postId={p.id} />

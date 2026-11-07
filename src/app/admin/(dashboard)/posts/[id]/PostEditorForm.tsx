@@ -23,6 +23,7 @@ export type PostEditorData = {
   seoTitle: string | null;
   seoDescription: string | null;
   publishAt: string | null;
+  publishedAt: string | null;
   blocks: EditorBlock[];
 };
 
@@ -81,6 +82,22 @@ export function PostEditorForm({
         <div>
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Publicar el (opcional, para agendar)</label>
           <input type="datetime-local" name="publishAt" defaultValue={post.publishAt ?? ""} className={inputClass} />
+        </div>
+        <div>
+          <label htmlFor="publishedAt" className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+            Fecha de publicación (hora de Santo Domingo)
+          </label>
+          <input
+            id="publishedAt"
+            type="datetime-local"
+            name="publishedAt"
+            defaultValue={post.publishedAt ?? ""}
+            aria-describedby="publishedAt-help"
+            className={inputClass}
+          />
+          <p id="publishedAt-help" className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            Es la fecha que se muestra en el blog y el RSS. Vacía: se usa la fecha en que pulses Publicar. No programa nada.
+          </p>
         </div>
         <div>
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Título SEO</label>
