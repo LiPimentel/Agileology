@@ -67,12 +67,16 @@ export const customFormBlockSchema = z.object({ formId: z.string() });
 export const carouselSlideSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("image"),
-    url: z.string().refine(isSafeHref, "La imagen debe ser una ruta del sitio o un enlace http(s)."),
-    altText: z.string().default(""),
+    // Only uploaded files (/uploads/...) or https images; no tabs/newlines, no protocol-relative.
+    url: z
+      .string()
+      .max(2048)
+      .refine((u) => /^\/uploads\/[\w./-]+$/.test(u) || /^https:\/\/[^\s]+$/i.test(u), "La imagen debe ser un archivo de la biblioteca o un enlace https."),
+    altText: z.string().max(300).default(""),
   }),
   z.object({
     kind: z.literal("video"),
-    url: z.string().refine((u) => parseVideoEmbed(u) !== null, "El video debe ser un enlace de YouTube o Vimeo."),
+    url: z.string().max(2048).refine((u) => parseVideoEmbed(u) !== null, "El video debe ser un enlace de YouTube o Vimeo."),
   }),
 ]);
 export const carouselBlockSchema = z.object({

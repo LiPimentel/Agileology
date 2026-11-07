@@ -14,6 +14,12 @@ export type CarouselValue = {
   width: number;
 };
 
+const ASPECT_CLASS: Record<CarouselValue["aspect"], string> = {
+  "16/9": "aspect-video",
+  "4/3": "aspect-[4/3]",
+  "1/1": "aspect-square",
+};
+
 const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
 function subscribeReducedMotion(cb: () => void) {
   const mq = window.matchMedia(REDUCED_MOTION);
@@ -21,24 +27,23 @@ function subscribeReducedMotion(cb: () => void) {
   return () => mq.removeEventListener("change", cb);
 }
 
-const ASPECT_CLASS: Record<CarouselValue["aspect"], string> = {
-  "16/9": "aspect-video",
-  "4/3": "aspect-[4/3]",
-  "1/1": "aspect-square",
-};
+// White ring + dark ring outside it, so focus stays visible over any photo (light or dark).
+const FOCUS = "focus-visible:outline-2 focus-visible:outline-white focus-visible:shadow-[0_0_0_5px_#1F2A44]";
 
 /**
  * Image/video slideshow. Accessible by design: a labelled group, previous/next and dot
- * buttons, Left/Right arrow keys, swipe on touch screens. Autoplay is opt-in, pauses on
- * hover/focus and with a visible pause button, is off when the visitor prefers reduced
- * motion, and never advances while a video is showing. Only the current slide is mounted, so
- * video iframes load on demand.
+ * buttons (at least one of the two kinds is always shown so every slide is reachable),
+ * Left/Right arrow keys, swipe on touch screens, and a polite status announcement of the
+ * current position. Autoplay is opt-in, pauses on mouse hover, on keyboard focus and with a
+ * visible pause button, is off when the visitor prefers reduced motion, and never advances
+ * while a video is showing. Only the current slide is mounted, so video iframes load on demand.
  */
 export function Carousel({ value }: { value: CarouselValue }) {
   const slides = value.slides ?? [];
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
   const reducedMotion = useSyncExternalStore(subscribeReducedMotion, () => window.matchMedia(REDUCED_MOTION).matches, () => false);
   const touchX = useRef<number | null>(null);
 
@@ -47,7 +52,7 @@ export function Carousel({ value }: { value: CarouselValue }) {
   const go = useCallback((i: number) => setIndex(((i % count) + count) % count), [count]);
 
   const slide = slides[current];
-  const autoplaying = value.autoplay && count > 1 && !paused && !hovered && !reducedMotion && slide?.kind === "image";
+  const autoplaying = value.autoplay && count > 1 && !paused && !hovered && !focused && !reducedMotion && slide?.kind === "image";
   useEffect(() => {
     if (!autoplaying) return;
     const t = window.setTimeout(() => go(current + 1), Math.max(3, value.intervalSeconds) * 1000);
@@ -56,22 +61,35 @@ export function Carousel({ value }: { value: CarouselValue }) {
 
   if (count === 0 || !slide) return null;
 
-  const btn =
-    "flex h-10 w-10 items-center justify-center rounded-full bg-[#1F2A44]/80 text-white hover:bg-[#1F2A44] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white";
+  // Never leave a multi-slide carousel without a visible way to move between slides.
+  const showArrows = value.showArrows || !value.showDots;
+  const arrow = `flex h-10 w-10 items-center justify-center rounded-full bg-[#1F2A44]/85 text-white hover:bg-[#1F2A44] ${FOCUS}`;
+  const position = `Diapositiva ${current + 1} de ${count}${slide.kind === "image" && slide.altText ? `: ${slide.altText}` : slide.kind === "video" ? ": video" : ""}`;
 
   return (
     <div
       role="group"
       aria-roledescription="carrusel"
-      aria-label="Carrusel de imágenes y videos"
+      aria-label="Carrusel de imágenes y videos. Usa las flechas izquierda y derecha para cambiar de diapositiva."
       tabIndex={0}
       className="relative mx-auto w-full overflow-hidden rounded-md bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3A3F7A]"
       style={{ maxWidth: `${value.width}%` }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onPointerEnter={(e) => e.pointerType === "mouse" && setHovered(true)}
+      onPointerLeave={(e) => e.pointerType === "mouse" && setHovered(false)}
+      onFocus={() => setFocused(true)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocused(false);
+      }}
       onKeyDown={(e) => {
-        if (e.key === "ArrowLeft") go(current - 1);
-        if (e.key === "ArrowRight") go(current + 1);
+        if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || count < 2) return;
+        if (e.key === "ArrowLeft") {
+          e.preventDefault();
+          go(current - 1);
+        }
+        if (e.key === "ArrowRight") {
+          e.preventDefault();
+          go(current + 1);
+        }
       }}
       onTouchStart={(e) => {
         touchX.current = e.touches[0]?.clientX ?? null;
@@ -84,13 +102,10 @@ export function Carousel({ value }: { value: CarouselValue }) {
         go(end < start ? current + 1 : current - 1);
       }}
     >
-      <div
-        role="group"
-        aria-roledescription="diapositiva"
-        aria-label={`${current + 1} de ${count}`}
-        aria-live={autoplaying ? "off" : "polite"}
-        className={`relative w-full ${ASPECT_CLASS[value.aspect] ?? "aspect-video"}`}
-      >
+      <p role="status" className="sr-only">
+        {position}
+      </p>
+      <div role="group" aria-roledescription="diapositiva" aria-label={`${current + 1} de ${count}`} className={`relative w-full ${ASPECT_CLASS[value.aspect] ?? "aspect-video"}`}>
         {slide.kind === "image" ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={slide.url} alt={slide.altText ?? ""} className="h-full w-full object-cover" loading={current === 0 ? "eager" : "lazy"} />
@@ -112,35 +127,44 @@ export function Carousel({ value }: { value: CarouselValue }) {
         )}
       </div>
 
-      {count > 1 && value.showArrows && (
+      {count > 1 && showArrows && (
         <>
-          <button type="button" aria-label="Diapositiva anterior" className={`${btn} absolute left-2 top-1/2 -translate-y-1/2`} onClick={() => go(current - 1)}>
+          <button type="button" aria-label="Diapositiva anterior" className={`${arrow} absolute left-2 top-1/2 -translate-y-1/2`} onClick={() => go(current - 1)}>
             <span aria-hidden="true">‹</span>
           </button>
-          <button type="button" aria-label="Diapositiva siguiente" className={`${btn} absolute right-2 top-1/2 -translate-y-1/2`} onClick={() => go(current + 1)}>
+          <button type="button" aria-label="Diapositiva siguiente" className={`${arrow} absolute right-2 top-1/2 -translate-y-1/2`} onClick={() => go(current + 1)}>
             <span aria-hidden="true">›</span>
           </button>
         </>
       )}
 
-      {count > 1 && (value.showDots || value.autoplay) && (
-        <div className="absolute inset-x-0 bottom-2 flex items-center justify-center gap-2">
-          {value.autoplay && (
-            <button type="button" aria-label={paused ? "Reanudar avance automático" : "Pausar avance automático"} className={`${btn} h-8 w-8 text-xs`} onClick={() => setPaused((p) => !p)}>
-              <span aria-hidden="true">{paused ? "▶" : "❚❚"}</span>
-            </button>
-          )}
-          {value.showDots &&
-            slides.map((_, i) => (
+      {count > 1 && (value.showDots || (value.autoplay && !reducedMotion)) && (
+        <div className="absolute inset-x-0 bottom-2 flex justify-center">
+          <div className="flex items-center rounded-full bg-[#1F2A44]/85 px-1">
+            {value.autoplay && !reducedMotion && (
               <button
-                key={i}
                 type="button"
-                aria-label={`Ir a la diapositiva ${i + 1} de ${count}`}
-                aria-current={i === current ? "true" : undefined}
-                onClick={() => go(i)}
-                className={`h-3 w-3 rounded-full border border-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${i === current ? "bg-white" : "bg-[#1F2A44]/70"}`}
-              />
-            ))}
+                aria-label={paused ? "Reanudar avance automático" : "Pausar avance automático"}
+                className={`flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-xs text-white ${FOCUS}`}
+                onClick={() => setPaused((p) => !p)}
+              >
+                <span aria-hidden="true">{paused ? "▶" : "❚❚"}</span>
+              </button>
+            )}
+            {value.showDots &&
+              slides.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  aria-label={`Ir a la diapositiva ${i + 1} de ${count}`}
+                  aria-current={i === current ? "true" : undefined}
+                  onClick={() => go(i)}
+                  className={`flex h-6 w-6 items-center justify-center rounded-full ${FOCUS}`}
+                >
+                  <span className={`block h-3 w-3 rounded-full border border-white ${i === current ? "bg-white" : "bg-transparent"}`} />
+                </button>
+              ))}
+          </div>
         </div>
       )}
     </div>
