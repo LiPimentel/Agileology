@@ -14,6 +14,7 @@ import { CarouselBlockEditor } from "@/components/admin/blocks/CarouselBlockEdit
 import { MapBlockEditor } from "@/components/admin/blocks/MapBlockEditor";
 import { ContactFormBlockEditor } from "@/components/admin/blocks/ContactFormBlockEditor";
 import { CustomFormBlockEditor } from "@/components/admin/blocks/CustomFormBlockEditor";
+import { ActionMenu } from "@/components/admin/ActionMenu";
 import {
   type BlockType,
   type BlockValue,
@@ -630,27 +631,15 @@ export function SectionBlockEditor({
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-t-[4px] bg-violet-700 px-2 py-1 text-xs text-white">
           <span className="font-medium">{BLOCK_LABELS[item.block.type]}</span>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              disabled={bi === 0}
-              onClick={() => moveBlockInColumn(section.id, col.id, item.id, -1)}
-              className="hover:text-violet-200 disabled:opacity-40"
-              title="Mover arriba"
-            >
-              ↑
-            </button>
-            <button
-              type="button"
-              disabled={bi === col.blocks.length - 1}
-              onClick={() => moveBlockInColumn(section.id, col.id, item.id, 1)}
-              className="hover:text-violet-200 disabled:opacity-40"
-              title="Mover abajo"
-            >
-              ↓
-            </button>
-            <button type="button" onClick={() => removeBlockFromColumn(section.id, col.id, item.id)} className="hover:text-red-200">
-              Quitar
-            </button>
+            <ActionMenu
+              tone="onDark"
+              label={`Acciones del bloque ${BLOCK_LABELS[item.block.type]}`}
+              items={[
+                { label: "Mover arriba", disabled: bi === 0, onSelect: () => moveBlockInColumn(section.id, col.id, item.id, -1) },
+                { label: "Mover abajo", disabled: bi === col.blocks.length - 1, onSelect: () => moveBlockInColumn(section.id, col.id, item.id, 1) },
+                { label: "Quitar", danger: true, onSelect: () => removeBlockFromColumn(section.id, col.id, item.id) },
+              ]}
+            />
             <button
               type="button"
               onClick={() => setSelectedBlockId(null)}
@@ -850,18 +839,18 @@ export function SectionBlockEditor({
                   Libre
                 </button>
               </div>
-              <button type="button" disabled={i === 0} onClick={() => moveSection(section.id, -1)} className="pointer-events-auto hover:text-violet-300 disabled:opacity-30">
-                ↑
-              </button>
-              <button type="button" disabled={i === sections.length - 1} onClick={() => moveSection(section.id, 1)} className="pointer-events-auto hover:text-violet-300 disabled:opacity-30">
-                ↓
-              </button>
-              <button type="button" onClick={() => toggleSectionBgPicker(section.id)} className="pointer-events-auto hover:text-violet-300">
-                Fondo{hasBg && " •"}
-              </button>
-              <button type="button" onClick={() => removeSection(section.id)} className="pointer-events-auto hover:text-red-300">
-                Eliminar
-              </button>
+              <span className="pointer-events-auto">
+                <ActionMenu
+                  tone="onDark"
+                  label="Acciones de la sección"
+                  items={[
+                    { label: "Mover sección arriba", disabled: i === 0, onSelect: () => moveSection(section.id, -1) },
+                    { label: "Mover sección abajo", disabled: i === sections.length - 1, onSelect: () => moveSection(section.id, 1) },
+                    { label: hasBg ? "Fondo de la sección (activo)" : "Fondo de la sección", onSelect: () => toggleSectionBgPicker(section.id) },
+                    { label: "Eliminar sección", danger: true, onSelect: () => removeSection(section.id) },
+                  ]}
+                />
+              </span>
             </div>
 
             {openBgPickers[section.id] && (

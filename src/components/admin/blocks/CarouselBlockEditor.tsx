@@ -7,6 +7,7 @@ import { Carousel, carouselFrameClass, slideImageStyle, type CarouselImageSlide,
 import { IMAGE_SHAPE_LABELS, type ImageShape } from "@/lib/imageShape";
 import { MAX_CAROUSEL_SLIDES } from "@/lib/carousel";
 import { parseVideoEmbed } from "@/lib/video";
+import { ActionMenu } from "@/components/admin/ActionMenu";
 
 export type CarouselBlockValue = CarouselValue;
 
@@ -158,14 +159,14 @@ export function CarouselBlockEditor({
     [next[i], next[j]] = [next[j], next[i]];
     setAdjusting(null);
     setSlides(next);
-    pendingFocus.current = `${dir === -1 ? "up" : "down"}-${j}`;
+    pendingFocus.current = `menu-${j}`;
     setAnnouncement(`Diapositiva movida a la posición ${j + 1} de ${slides.length}.`);
   };
   const removeAt = (i: number) => {
     setAdjusting(null);
     setSlides(slides.filter((_, k) => k !== i));
     setAnnouncement(`Diapositiva ${i + 1} quitada.`);
-    pendingFocus.current = slides.length > 1 ? `remove-${Math.min(i, slides.length - 2)}` : "add-image";
+    pendingFocus.current = slides.length > 1 ? `menu-${Math.min(i, slides.length - 2)}` : "add-image";
   };
   const addImage = (url: string, altText = "") => {
     if (full) return;
@@ -203,8 +204,6 @@ export function CarouselBlockEditor({
               <span className="min-w-[12rem] flex-1 truncate text-sm text-slate-700 dark:text-slate-300">▶ Video: {s.url}</span>
             )}
             <div className="flex gap-1">
-              <button type="button" id={`${uid}-up-${i}`} className={small} disabled={i === 0} onClick={() => move(i, -1)} aria-label={`Subir diapositiva ${i + 1}`}>↑</button>
-              <button type="button" id={`${uid}-down-${i}`} className={small} disabled={i === slides.length - 1} onClick={() => move(i, 1)} aria-label={`Bajar diapositiva ${i + 1}`}>↓</button>
               {s.kind === "image" && (
                 <button
                   type="button"
@@ -216,7 +215,15 @@ export function CarouselBlockEditor({
                   {adjusting === i ? "Cerrar ajuste" : "Ajustar"}
                 </button>
               )}
-              <button type="button" id={`${uid}-remove-${i}`} className={`${small} text-red-700 dark:text-red-400`} onClick={() => removeAt(i)} aria-label={`Quitar diapositiva ${i + 1}`}>Quitar</button>
+              <ActionMenu
+                id={`${uid}-menu-${i}`}
+                label={`Acciones de la diapositiva ${i + 1}`}
+                items={[
+                  { label: "Mover arriba", disabled: i === 0, onSelect: () => move(i, -1) },
+                  { label: "Mover abajo", disabled: i === slides.length - 1, onSelect: () => move(i, 1) },
+                  { label: "Quitar", danger: true, onSelect: () => removeAt(i) },
+                ]}
+              />
             </div>
             {s.kind === "image" && adjusting === i && (
               <div id={`${uid}-adjust-${i}`} className="w-full">

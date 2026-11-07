@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { saveMenuItems, type MenuFormState } from "./actions";
+import { SaveFeedback } from "@/components/admin/SaveFeedback";
 
 const initialState: MenuFormState = {};
 
@@ -244,8 +245,7 @@ export function MenuForm({
         </button>
       </div>
 
-      {state.error && <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p>}
-      {state.success && !state.error && <p className="text-sm text-green-700 dark:text-green-400">Guardado.</p>}
+      <SaveFeedback state={state} />
 
       <div>
         <button

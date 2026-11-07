@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { updateCommunicationSettings, type CommsState } from "./actions";
+import { SaveFeedback } from "@/components/admin/SaveFeedback";
 
 const initialState: CommsState = {};
 const inputClass =
@@ -55,8 +56,7 @@ export function CommunicationsForm({
         </div>
       </fieldset>
 
-      {state.error && <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p>}
-      {state.success && <p className="text-sm text-green-700 dark:text-green-400">Guardado.</p>}
+      <SaveFeedback state={state} />
       <button
         type="submit"
         disabled={pending}

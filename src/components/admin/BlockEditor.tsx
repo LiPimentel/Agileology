@@ -8,6 +8,7 @@ import { ImageBlockEditor, type ImageBlockValue } from "@/components/admin/block
 import { LinkBlockEditor, type LinkBlockValue } from "@/components/admin/blocks/LinkBlockEditor";
 import { VideoBlockEditor, type VideoBlockValue } from "@/components/admin/blocks/VideoBlockEditor";
 import { CarouselBlockEditor, EMPTY_CAROUSEL, type CarouselBlockValue } from "@/components/admin/blocks/CarouselBlockEditor";
+import { ActionMenu } from "@/components/admin/ActionMenu";
 
 export type EditorBlock =
   | { id: string; type: "text"; content: { html: string } }
@@ -91,27 +92,14 @@ export function BlockEditor({
         <div key={block.id} className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
           <div className="mb-3 flex items-center justify-between">
             <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">{BLOCK_LABELS[block.type]}</span>
-            <div className="flex gap-2 text-sm">
-              <button
-                type="button"
-                disabled={i === 0}
-                onClick={() => move(block.id, -1)}
-                className="text-slate-500 hover:text-violet-700 disabled:opacity-30 dark:text-slate-400 dark:hover:text-sky-400"
-              >
-                ↑
-              </button>
-              <button
-                type="button"
-                disabled={i === blocks.length - 1}
-                onClick={() => move(block.id, 1)}
-                className="text-slate-500 hover:text-violet-700 disabled:opacity-30 dark:text-slate-400 dark:hover:text-sky-400"
-              >
-                ↓
-              </button>
-              <button type="button" onClick={() => remove(block.id)} className="text-red-600 hover:underline dark:text-red-400">
-                Eliminar
-              </button>
-            </div>
+            <ActionMenu
+              label={`Acciones del bloque ${BLOCK_LABELS[block.type]}`}
+              items={[
+                { label: "Mover arriba", disabled: i === 0, onSelect: () => move(block.id, -1) },
+                { label: "Mover abajo", disabled: i === blocks.length - 1, onSelect: () => move(block.id, 1) },
+                { label: "Eliminar", danger: true, onSelect: () => remove(block.id) },
+              ]}
+            />
           </div>
           {block.type === "text" && (
             <TextBlockEditor html={block.content.html} onChange={(html) => update(block.id, { html })} mediaLibrary={mediaLibrary} />
