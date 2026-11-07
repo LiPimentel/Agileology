@@ -4,7 +4,7 @@ import { useState } from "react";
 import { MediaGrid, type MediaItem } from "@/components/admin/MediaGrid";
 import { MediaUploadForm } from "@/components/admin/MediaUploadForm";
 import { Carousel, type CarouselValue } from "@/components/blocks/Carousel";
-import { MAX_CAROUSEL_SLIDES } from "@/lib/blocks";
+import { MAX_CAROUSEL_SLIDES } from "@/lib/carousel";
 import { parseVideoEmbed } from "@/lib/video";
 
 export type CarouselBlockValue = CarouselValue;

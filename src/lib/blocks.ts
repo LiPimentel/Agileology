@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { isSafeHref } from "@/lib/href";
 import { parseVideoEmbed } from "@/lib/video";
+import { MAX_CAROUSEL_SLIDES } from "@/lib/carousel";
 import { sanitizeRichText, sanitizePlainText } from "@/lib/sanitize";
 
 export const textBlockSchema = z.object({ html: z.string() });
@@ -63,7 +64,6 @@ export const customFormBlockSchema = z.object({ formId: z.string() });
 
 // Image/video slideshow. Images are site-relative or http(s) URLs; videos are limited to
 // YouTube/Vimeo links (same rule as the video block), so nothing else can be embedded.
-export const MAX_CAROUSEL_SLIDES = 20;
 export const carouselSlideSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("image"),
