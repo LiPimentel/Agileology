@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { saveMenuItems, type MenuFormState } from "./actions";
 import { SaveFeedback } from "@/components/admin/SaveFeedback";
+import { ArrowDownIcon, ArrowUpIcon, CornerDownRightIcon } from "@/components/icons";
 
 const initialState: MenuFormState = {};
 
@@ -101,25 +102,27 @@ export function MenuForm({
           >
             <div className="mb-3 flex items-center justify-between">
               <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                {item.parentId ? "↳ " : ""}Enlace {idx + 1}
+                {item.parentId && <CornerDownRightIcon size={14} className="mr-1 inline align-text-bottom" />}Enlace {idx + 1}
                 {item.location === "footer" && " · Pie de página"}
               </span>
               <div className="flex gap-2 text-sm">
                 <button
                   type="button"
                   disabled={idx === 0}
+                  aria-label={`Subir enlace ${idx + 1}`}
                   onClick={() => moveItem(item.id, -1)}
                   className="text-slate-500 hover:text-violet-700 disabled:opacity-30 dark:text-slate-400 dark:hover:text-sky-400"
                 >
-                  ↑
+                  <ArrowUpIcon size={16} />
                 </button>
                 <button
                   type="button"
                   disabled={idx === items.length - 1}
+                  aria-label={`Bajar enlace ${idx + 1}`}
                   onClick={() => moveItem(item.id, 1)}
                   className="text-slate-500 hover:text-violet-700 disabled:opacity-30 dark:text-slate-400 dark:hover:text-sky-400"
                 >
-                  ↓
+                  <ArrowDownIcon size={16} />
                 </button>
                 <button type="button" onClick={() => removeItem(item.id)} className="text-red-600 hover:underline dark:text-red-400">
                   Eliminar

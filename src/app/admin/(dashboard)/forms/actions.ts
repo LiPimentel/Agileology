@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { logAudit } from "@/lib/audit";
+import { logAudit, safely } from "@/lib/audit";
 import { sanitizePlainText } from "@/lib/sanitize";
 import { diffFields } from "@/lib/auditDetail";
 
@@ -53,7 +53,7 @@ export async function saveForm(_prev: FormFormState, formData: FormData): Promis
     return { error: "El email de destino no es válido." };
   }
 
-  const beforeForm = await prisma.formDefinition.findUnique({ where: { id: formId }, include: { fields: { orderBy: { order: "asc" } } } });
+  const beforeForm = (await safely(() => prisma.formDefinition.findUnique({ where: { id: formId }, include: { fields: { orderBy: { order: "asc" } } } }))) ?? null;
   try {
     await prisma.$transaction([
       prisma.formDefinition.update({

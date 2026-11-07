@@ -5,7 +5,7 @@ import { isHomeSlug } from "@/lib/home";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { logAudit } from "@/lib/audit";
+import { logAudit, safely } from "@/lib/audit";
 import { sanitizeBlockContent } from "@/lib/blocks";
 import { sanitizePlainText } from "@/lib/sanitize";
 import { publishPage } from "@/lib/pages";
@@ -217,7 +217,7 @@ export async function savePage(_prev: PageFormState, formData: FormData): Promis
   const pageId = String(formData.get("pageId") ?? "");
   const intent = String(formData.get("intent") ?? "draft");
 
-  const before = await loadPageForAudit(pageId);
+  const before = (await safely(() => loadPageForAudit(pageId))) ?? null;
   let slug: string;
   try {
     slug = await upsertPageContent(pageId, formData);
@@ -231,7 +231,7 @@ export async function savePage(_prev: PageFormState, formData: FormData): Promis
     action: intent === "publish" ? "publish_page" : "save_draft",
     entityType: "Page",
     entityId: pageId,
-    detail: describePageChange(before, await loadPageForAudit(pageId), intent === "publish" ? "Guardó y publicó" : "Guardó el borrador"),
+    detail: await safely(async () => describePageChange(before, await loadPageForAudit(pageId), intent === "publish" ? "Guardó y publicó" : "Guardó el borrador")),
   });
   revalidatePath("/admin/pages");
   if (intent === "publish") {

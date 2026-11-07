@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { logAudit } from "@/lib/audit";
+import { logAudit, safely } from "@/lib/audit";
 import { sanitizePlainText } from "@/lib/sanitize";
 
 export type MenuFormState = { error?: string; success?: boolean };
@@ -89,7 +89,7 @@ export async function saveMenuItems(_prev: MenuFormState, formData: FormData): P
   // other.
   const ordered = [...items].sort((a, b) => (a.parentId ? 1 : 0) - (b.parentId ? 1 : 0));
 
-  const beforeItems = await prisma.menuItem.findMany({ include: { page: { select: { slug: true } } }, orderBy: [{ location: "asc" }, { order: "asc" }] });
+  const beforeItems = (await safely(() => prisma.menuItem.findMany({ orderBy: [{ location: "asc" }, { order: "asc" }] }))) ?? [];
   await prisma.$transaction([
     prisma.menuItem.deleteMany({}),
     ...(ordered.length > 0

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { logAudit } from "@/lib/audit";
+import { logAudit, safely } from "@/lib/audit";
 import { sanitizePlainText } from "@/lib/sanitize";
 import { diffFields } from "@/lib/auditDetail";
 
@@ -36,7 +36,7 @@ export async function updateCommunicationSettings(_prev: CommsState, formData: F
     chatWidgetSuccessMessage,
   };
 
-  const before = await prisma.communicationSettings.findUnique({ where: { id: "singleton" } });
+  const before = (await safely(() => prisma.communicationSettings.findUnique({ where: { id: "singleton" } }))) ?? null;
   await prisma.communicationSettings.upsert({
     where: { id: "singleton" },
     update: data,
@@ -48,7 +48,7 @@ export async function updateCommunicationSettings(_prev: CommsState, formData: F
     action: "update_communication_settings",
     entityType: "CommunicationSettings",
     entityId: "singleton",
-    detail: {
+    detail: await safely(() => ({
       entity: "Comunicaciones",
       changes: diffFields(
         {
@@ -62,7 +62,7 @@ export async function updateCommunicationSettings(_prev: CommsState, formData: F
         before ?? {},
         data,
       ),
-    },
+    })),
   });
   revalidatePath("/admin/settings/communications");
   // Chat widget texts render on every public page (PublicLayout).

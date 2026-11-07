@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { logAudit } from "@/lib/audit";
+import { logAudit, safely } from "@/lib/audit";
 import { sanitizeBlockContent } from "@/lib/blocks";
 import { sanitizePlainText } from "@/lib/sanitize";
 import { publishPost } from "@/lib/posts";
@@ -132,7 +132,7 @@ export async function savePost(_prev: PostFormState, formData: FormData): Promis
   const postId = String(formData.get("postId") ?? "");
   const intent = String(formData.get("intent") ?? "draft");
 
-  const before = await loadPostForAudit(postId);
+  const before = (await safely(() => loadPostForAudit(postId))) ?? null;
   let slug: string;
   try {
     slug = await upsertPostContent(postId, formData);
@@ -146,7 +146,7 @@ export async function savePost(_prev: PostFormState, formData: FormData): Promis
     action: intent === "publish" ? "publish_post" : "save_draft",
     entityType: "Post",
     entityId: postId,
-    detail: describePostChange(before, await loadPostForAudit(postId), intent === "publish" ? "Guardó y publicó" : "Guardó el borrador"),
+    detail: await safely(async () => describePostChange(before, await loadPostForAudit(postId), intent === "publish" ? "Guardó y publicó" : "Guardó el borrador")),
   });
   revalidatePath("/admin/posts");
   if (intent === "publish") {

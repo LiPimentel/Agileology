@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { logAudit } from "@/lib/audit";
+import { logAudit, safely } from "@/lib/audit";
 import { saveUploadedImage } from "@/lib/image";
 import { sanitizePlainText } from "@/lib/sanitize";
 import { diffFields } from "@/lib/auditDetail";
@@ -87,7 +87,7 @@ export async function updateSiteSettings(_prev: SiteSettingsState, formData: For
     }
   }
 
-  const before = await prisma.siteSettings.findUnique({ where: { id: "singleton" } });
+  const before = (await safely(() => prisma.siteSettings.findUnique({ where: { id: "singleton" } }))) ?? null;
   const after = await prisma.siteSettings.upsert({
     where: { id: "singleton" },
     update: data,
@@ -99,7 +99,7 @@ export async function updateSiteSettings(_prev: SiteSettingsState, formData: For
     action: "update_site_settings",
     entityType: "SiteSettings",
     entityId: "singleton",
-    detail: { entity: "Ajustes del sitio", changes: diffFields(SITE_LABELS, before ?? {}, after) },
+    detail: await safely(() => ({ entity: "Ajustes del sitio", changes: diffFields(SITE_LABELS, before ?? {}, after) })),
   });
   revalidatePath("/", "layout");
 

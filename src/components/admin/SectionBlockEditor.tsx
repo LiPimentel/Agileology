@@ -16,7 +16,7 @@ import { MapBlockEditor } from "@/components/admin/blocks/MapBlockEditor";
 import { ContactFormBlockEditor } from "@/components/admin/blocks/ContactFormBlockEditor";
 import { CustomFormBlockEditor } from "@/components/admin/blocks/CustomFormBlockEditor";
 import { ActionMenu } from "@/components/admin/ActionMenu";
-import { ArrowDownIcon, CheckIcon } from "@/components/icons";
+import { ArrowDownIcon, ArrowUpIcon, CheckIcon, ClipboardIcon } from "@/components/icons";
 import {
   type BlockType,
   type BlockValue,
@@ -92,7 +92,7 @@ function BlockPreview({ block, formDefinitions = [] }: { block: BlockValue; form
     const fields = block.content.enabledFields ?? [];
     return (
       <div className="rounded-md border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
-        📋 Formulario de contacto ({fields.length ? fields.join(", ") : "sin campos"}) — vista previa desactivada aquí
+        <ClipboardIcon size={16} className="mr-1 inline align-text-bottom" /> Formulario de contacto ({fields.length ? fields.join(", ") : "sin campos"}) — vista previa desactivada aquí
         para no generar envíos de prueba.
       </div>
     );
@@ -101,7 +101,7 @@ function BlockPreview({ block, formDefinitions = [] }: { block: BlockValue; form
     const form = formDefinitions.find((f) => f.id === block.content.formId);
     return (
       <div className="rounded-md border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
-        📋 {form ? `Formulario: ${form.name}` : "Sin formulario seleccionado"} — vista previa desactivada aquí para no
+        <ClipboardIcon size={16} className="mr-1 inline align-text-bottom" /> {form ? `Formulario: ${form.name}` : "Sin formulario seleccionado"} — vista previa desactivada aquí para no
         generar envíos de prueba.
       </div>
     );
@@ -727,6 +727,7 @@ export function SectionBlockEditor({
                             onClick={() => moveFreeBlockZ(section.id, item.id, "back")}
                             className="hover:text-violet-200"
                             title="Enviar atrás"
+                            aria-label="Enviar atrás"
                           >
                             <ArrowDownIcon size={14} />
                           </button>
@@ -735,8 +736,9 @@ export function SectionBlockEditor({
                             onClick={() => moveFreeBlockZ(section.id, item.id, "front")}
                             className="hover:text-violet-200"
                             title="Traer al frente"
+                            aria-label="Traer al frente"
                           >
-                            ⬆
+                            <ArrowUpIcon size={14} />
                           </button>
                           <button type="button" onClick={() => removeFreeBlock(section.id, item.id)} className="hover:text-red-200">
                             Quitar

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { saveForm, type FormFormState } from "../actions";
 import { FIELD_TYPE_LABELS, type FormFieldType } from "@/lib/formFieldTypes";
 import { SaveFeedback } from "@/components/admin/SaveFeedback";
+import { ArrowDownIcon, ArrowUpIcon } from "@/components/icons";
 
 const initialState: FormFormState = {};
 const inputClass =
@@ -117,18 +118,20 @@ export function FormEditorForm({
                   <button
                     type="button"
                     disabled={idx === 0}
+                    aria-label={`Subir campo ${idx + 1}`}
                     onClick={() => moveField(field.id, -1)}
                     className="text-slate-500 hover:text-violet-700 disabled:opacity-30 dark:text-slate-400 dark:hover:text-sky-400"
                   >
-                    ↑
+                    <ArrowUpIcon size={16} />
                   </button>
                   <button
                     type="button"
                     disabled={idx === fields.length - 1}
+                    aria-label={`Bajar campo ${idx + 1}`}
                     onClick={() => moveField(field.id, 1)}
                     className="text-slate-500 hover:text-violet-700 disabled:opacity-30 dark:text-slate-400 dark:hover:text-sky-400"
                   >
-                    ↓
+                    <ArrowDownIcon size={16} />
                   </button>
                   <button type="button" onClick={() => removeField(field.id)} className="text-red-600 hover:underline dark:text-red-400">
                     Eliminar
