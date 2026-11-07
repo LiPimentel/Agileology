@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { adminListPosts } from "@/lib/posts";
 import { toCsv } from "@/lib/csv";
+import { toAstInput } from "@/lib/date";
 
 const STATUS_LABEL: Record<string, string> = { draft: "Borrador", published: "Publicado" };
 
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest) {
     ...posts.map((p) => [
       p.title,
       STATUS_LABEL[p.status] ?? p.status,
-      p.publishedAt ? p.publishedAt.toISOString().slice(0, 10) : "",
+      p.publishedAt ? toAstInput(p.publishedAt).slice(0, 10) : "",
     ]),
   ];
 

@@ -20,13 +20,13 @@ export async function Footer() {
   const socialLinks = SOCIAL.filter((s) => settings[s.urlKey]);
 
   return (
-    <footer className="mt-auto border-t border-slate-200 bg-slate-50 px-6 py-8 text-sm text-slate-600">
+    <footer className="mt-auto bg-[#1F2A44] px-6 py-8 text-sm text-[#E6E9EF]">
       <div className="mx-auto flex max-w-6xl flex-col items-center gap-3 text-center">
         {(settings.phone || settings.whatsapp) && (
           <div className="flex gap-4">
             {settings.phone && (
-              <TrackedLink href={`tel:${settings.phone}`} label="phone" internal={false} className="hover:text-violet-800">
-                📞 {settings.phone}
+              <TrackedLink href={`tel:${settings.phone}`} label="phone" internal={false} className="hover:text-white hover:underline focus-visible:text-white focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+                <span aria-hidden="true">📞</span> {settings.phone}
               </TrackedLink>
             )}
             {settings.whatsapp && (
@@ -35,7 +35,7 @@ export async function Footer() {
                 label="whatsapp"
                 internal={false}
                 newTab
-                className="hover:text-violet-800"
+                className="hover:text-white hover:underline focus-visible:text-white focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               >
                 WhatsApp
               </TrackedLink>
@@ -53,7 +53,7 @@ export async function Footer() {
                   label={`social:${s.urlKey.replace("Url", "")}`}
                   internal={false}
                   newTab
-                  className="text-slate-500 hover:text-violet-800"
+                  className="text-[#E6E9EF] hover:text-white hover:underline focus-visible:text-white focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                 >
                   {customIcon ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -76,12 +76,12 @@ export async function Footer() {
                   href={l.href}
                   target={l.newTab ? "_blank" : undefined}
                   rel={l.newTab ? "noopener noreferrer" : undefined}
-                  className="text-slate-400 hover:text-violet-700"
+                  className="text-[#B4B9C4] hover:text-white hover:underline focus-visible:text-white focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                 >
                   {l.label}
                 </a>
               ) : (
-                <Link key={`${l.href}-${i}`} href={l.href} target={l.newTab ? "_blank" : undefined} className="text-slate-400 hover:text-violet-700">
+                <Link key={`${l.href}-${i}`} href={l.href} target={l.newTab ? "_blank" : undefined} className="text-[#B4B9C4] hover:text-white hover:underline focus-visible:text-white focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
                   {l.label}
                 </Link>
               ),
@@ -89,7 +89,7 @@ export async function Footer() {
           </div>
         )}
         <p>{settings.footerText ?? `© ${new Date().getFullYear()} ${settings.siteTitle}`}</p>
-        <Link href="/privacy-policy" className="text-xs text-slate-400 hover:text-violet-700">
+        <Link href="/privacy-policy" className="text-xs text-[#B4B9C4] hover:text-white hover:underline focus-visible:text-white focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
           Política de privacidad
         </Link>
       </div>

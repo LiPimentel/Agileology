@@ -1,4 +1,5 @@
 import "server-only";
+import { isHomeSlug } from "@/lib/home";
 import { prisma } from "@/lib/prisma";
 
 export async function getSiteSettings() {
@@ -43,7 +44,7 @@ type MenuItemWithPage = Awaited<ReturnType<typeof prisma.menuItem.findMany<{ inc
 function resolveMenuLink(item: MenuItemWithPage): NavLink | null {
   if (item.linkType === "page") {
     if (!item.page || item.page.status !== "published") return null;
-    return { label: item.label, href: item.page.slug === "home" ? "/" : `/${item.page.slug}`, newTab: item.newTab };
+    return { label: item.label, href: isHomeSlug(item.page.slug) ? "/" : `/${item.page.slug}`, newTab: item.newTab };
   }
   if (item.externalUrl) return { label: item.label, href: item.externalUrl, newTab: item.newTab };
   return null;

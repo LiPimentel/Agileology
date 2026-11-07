@@ -3,6 +3,7 @@ import Image from "next/image";
 import type { Metadata } from "next";
 import { listPublishedPosts } from "@/lib/posts";
 import { getBlogSettings } from "@/lib/settings";
+import { formatAstDate } from "@/lib/date";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -41,7 +42,7 @@ export default async function BlogIndexPage({ searchParams }: { searchParams: Pr
                 <h2 className="font-semibold text-slate-900 group-hover:text-violet-700">{p.title}</h2>
                 {p.excerpt && <p className="mt-1 line-clamp-2 text-sm text-slate-600">{p.excerpt}</p>}
                 {p.publishedAt && (
-                  <p className="mt-2 text-xs text-slate-400">{new Date(p.publishedAt).toLocaleDateString("es")}</p>
+                  <p className="mt-2 text-xs text-slate-400">{formatAstDate(p.publishedAt)}</p>
                 )}
               </div>
             </Link>
@@ -58,7 +59,7 @@ export default async function BlogIndexPage({ searchParams }: { searchParams: Pr
                 <h2 className="font-semibold text-slate-900 group-hover:text-violet-700">{p.title}</h2>
                 {p.excerpt && <p className="mt-1 text-sm text-slate-600">{p.excerpt}</p>}
                 {p.publishedAt && (
-                  <p className="mt-2 text-xs text-slate-400">{new Date(p.publishedAt).toLocaleDateString("es")}</p>
+                  <p className="mt-2 text-xs text-slate-400">{formatAstDate(p.publishedAt)}</p>
                 )}
               </div>
             </Link>

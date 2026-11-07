@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { SESSION_COOKIE, touchSession, sessionCookieOptions } from "@/lib/session-db";
+import { findRedirect } from "@/lib/redirects";
 
 /**
  * Gates the backoffice (RF-01, RF-03) and slides the session's inactivity
@@ -18,6 +19,17 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const host = request.headers.get("host") ?? "";
   const isAdminHost = host.startsWith("admin.");
+
+  // Old Wix URLs -> new ones (permanent, 301). The table lives in src/data/redirects.ts.
+  // GET/HEAD only, and never for the backoffice.
+  if ((request.method === "GET" || request.method === "HEAD") && !isAdminHost && !pathname.startsWith("/admin")) {
+    const target = findRedirect(pathname);
+    if (target) {
+      const url = request.nextUrl.clone();
+      url.pathname = target;
+      return NextResponse.redirect(url, 301);
+    }
+  }
 
   if (isAdminHost && !pathname.startsWith("/admin")) {
     const url = request.nextUrl.clone();

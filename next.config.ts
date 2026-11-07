@@ -1,6 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: 'standalone',
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '10mb',
+    },
+  },
   images: {
     // Every uploaded image already gets resized server-side to a 1920px
     // cap and re-encoded as webp on upload (see saveUploadedImage) -- this

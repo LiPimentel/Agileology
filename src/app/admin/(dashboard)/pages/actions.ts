@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { isHomeSlug } from "@/lib/home";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
@@ -191,7 +192,7 @@ export async function savePage(_prev: PageFormState, formData: FormData): Promis
   });
   revalidatePath("/admin/pages");
   if (intent === "publish") {
-    revalidatePath(slug === "home" ? "/" : `/${slug}`);
+    revalidatePath(isHomeSlug(slug) ? "/" : `/${slug}`);
     revalidatePath("/", "layout");
   }
   return { pageId, savedAt: Date.now() };

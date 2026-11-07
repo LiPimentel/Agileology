@@ -48,3 +48,7 @@ next-env.d.ts
 # volume so uploads survive rebuilds.)
 /uploads/
 /public/uploads/
+
+# playwright
+/test-results/
+/playwright-report/

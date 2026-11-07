@@ -1,5 +1,7 @@
 "use client";
 
+import { isHomeSlug } from "@/lib/home";
+
 export type LinkBlockValue = { label: string; href: string; internal: boolean; newTab: boolean };
 
 export function LinkBlockEditor({
@@ -37,7 +39,7 @@ export function LinkBlockEditor({
         >
           <option value="">Selecciona una página</option>
           {pages.map((p) => (
-            <option key={p.slug} value={p.slug === "home" ? "/" : `/${p.slug}`}>
+            <option key={p.slug} value={isHomeSlug(p.slug) ? "/" : `/${p.slug}`}>
               {p.title}
             </option>
           ))}

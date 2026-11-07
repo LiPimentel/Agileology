@@ -32,9 +32,17 @@ export async function publishPost(postId: string) {
   const snapshot = await buildPostSnapshot(postId);
   if (!snapshot) throw new Error("Post not found");
 
+  // Respect a publishedAt that was already set (an editor-fixed date, e.g. a
+  // migrated post keeping its original date); only fall back to "now" when
+  // there is none.
+  const current = await prisma.post.findUnique({ where: { id: postId }, select: { publishedAt: true } });
+
   await prisma.$transaction([
     prisma.postVersion.create({ data: { postId, snapshot: snapshot as object } }),
-    prisma.post.update({ where: { id: postId }, data: { status: "published", publishedAt: new Date() } }),
+    prisma.post.update({
+      where: { id: postId },
+      data: { status: "published", publishedAt: current?.publishedAt ?? new Date() },
+    }),
   ]);
 }
 

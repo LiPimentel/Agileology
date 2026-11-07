@@ -27,7 +27,7 @@ export function ChatWidget({
         // overflow past the screen edge -- cap it to the viewport width
         // (minus the fixed left/right margins above) below that.
         <div className="mb-3 w-full max-w-80 rounded-lg border border-slate-200 bg-white shadow-xl">
-          <div className="flex items-center justify-between rounded-t-lg bg-[#1c1140] px-4 py-3 text-white">
+          <div className="flex items-center justify-between rounded-t-lg bg-[#1F2A44] px-4 py-3 text-white">
             <span className="font-medium">{title}</span>
             <button type="button" onClick={() => setOpen(false)} aria-label="Cerrar chat">
               ✕

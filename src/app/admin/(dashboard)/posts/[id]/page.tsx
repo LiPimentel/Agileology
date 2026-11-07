@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import type { EditorBlock } from "@/components/admin/BlockEditor";
+import { toAstInput } from "@/lib/date";
 import { PostEditorForm } from "./PostEditorForm";
 
 export const metadata = { title: "Editar post — Backoffice" };
@@ -36,6 +37,7 @@ export default async function PostEditorPage({ params }: { params: Promise<{ id:
         seoTitle: post.seoTitle,
         seoDescription: post.seoDescription,
         publishAt: toLocalInput(post.publishAt),
+        publishedAt: toAstInput(post.publishedAt),
         // Blog posts only ever contain text/image/link/video blocks (map/
         // contactForm are pages-only, added through the section editor) --
         // the DB-level BlockType enum is shared across both, so this cast

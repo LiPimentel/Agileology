@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { isHomeSlug } from "@/lib/home";
 import { notFound } from "next/navigation";
 import { getPublishedPageBySlug } from "@/lib/pages";
 import { getSiteSettings } from "@/lib/settings";
@@ -17,7 +18,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title,
     description,
-    alternates: { canonical: slug === "home" ? "/" : `/${slug}` },
+    alternates: { canonical: isHomeSlug(slug) ? "/" : `/${slug}` },
     openGraph: { title, description, images: ogImage ? [ogImage] : undefined },
   };
 }

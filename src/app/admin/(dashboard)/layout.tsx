@@ -33,7 +33,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             {/* Real uploaded logo (Ajustes del sitio → Logo) when set. */}
             {settings.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={settings.logoUrl} alt={settings.siteTitle} className="h-16 w-auto max-w-full" />
+              <img src={settings.logoUrl} alt={settings.siteTitle} className="h-auto max-h-16 w-auto max-w-full object-contain" />
             ) : (
               <p className="font-semibold text-violet-800 dark:text-sky-300">{settings.siteTitle}</p>
             )}

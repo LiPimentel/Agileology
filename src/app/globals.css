@@ -43,3 +43,16 @@ body {
   background: #0f172a;
   color: #e2e8f0;
 }
+
+/*
+ * Public site typography, matching the Wix site it replaces: Alegreya for body text and
+ * Alegreya SC for headings. Scoped to .site-public (the public layout wrapper) so the
+ * backoffice keeps its own fonts. Text blocks that set an explicit font-family inline
+ * (the editor's font picker) still win over this.
+ */
+.site-public {
+  font-family: "Alegreya", Georgia, "Times New Roman", serif;
+}
+.site-public :is(h1, h2, h3, h4) {
+  font-family: "Alegreya SC", "Alegreya", Georgia, serif;
+}

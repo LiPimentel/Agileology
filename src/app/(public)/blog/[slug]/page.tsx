@@ -5,6 +5,7 @@ import { getPublishedPostBySlug } from "@/lib/posts";
 import { getSiteSettings } from "@/lib/settings";
 import { BlockRenderer } from "@/components/blocks/BlockRenderer";
 import { SocialShare } from "@/components/public/SocialShare";
+import { formatAstDate } from "@/lib/date";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +40,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       <div>
         <h1 className="text-4xl font-bold text-slate-900">{post.snapshot.title}</h1>
         {post.publishedAt && (
-          <p className="mt-2 text-sm text-slate-500">{new Date(post.publishedAt).toLocaleDateString("es")}</p>
+          <p className="mt-2 text-sm text-slate-500">{formatAstDate(post.publishedAt)}</p>
         )}
         {post.snapshot.tags.length > 0 && (
           <div className="mt-2 flex gap-2">

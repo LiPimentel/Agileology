@@ -1,0 +1,30 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: agileology-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: agileology
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?define POSTGRES_PASSWORD en .env}
+      POSTGRES_DB: agileology
+    volumes:
+      - agileology_db_data:/var/lib/postgresql/data
+
+  app:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
+    container_name: agileology-app
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./public/uploads:/app/public/uploads
+
+volumes:
+  agileology_db_data:
