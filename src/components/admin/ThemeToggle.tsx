@@ -63,7 +63,6 @@ export function ThemeToggle() {
       role="switch"
       aria-checked={isDark}
       aria-label="Modo oscuro"
-      title={isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
       onClick={() => setDark(!isDark)}
       className="group relative inline-flex h-8 w-14 shrink-0 rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600 dark:focus-visible:outline-sky-300"
     >
@@ -83,14 +82,20 @@ export function ThemeToggle() {
             <stop offset="0" stopColor="#1F2A44" />
             <stop offset="1" stopColor="#3A3F7A" />
           </linearGradient>
+          {/* night glyph: the logo's light blue -> violet, on the dark knob */}
           <linearGradient id={`${id}-glyph`} x1="0" y1="0" x2="1" y2="1">
             <stop offset="0" stopColor="#74B0E0" />
             <stop offset="1" stopColor="#8B83D1" />
           </linearGradient>
+          {/* day glyph: same hues, deeper, so it keeps 3:1 against the white knob */}
+          <linearGradient id={`${id}-glyph-day`} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#4F8FC7" />
+            <stop offset="1" stopColor="#6A5FC0" />
+          </linearGradient>
         </defs>
 
         {/* track: day and night layers cross-fade */}
-        <rect x="0.5" y="0.5" width="55" height="31" rx="15.5" fill={`url(#${id}-day)`} stroke="#B7C4EA" className="transition-opacity duration-300 motion-reduce:transition-none" opacity={isDark ? 0 : 1} />
+        <rect x="0.5" y="0.5" width="55" height="31" rx="15.5" fill={`url(#${id}-day)`} stroke="#6F7DBF" className="transition-opacity duration-300 motion-reduce:transition-none" opacity={isDark ? 0 : 1} />
         <rect x="0.5" y="0.5" width="55" height="31" rx="15.5" fill={`url(#${id}-night)`} stroke="#5B63A8" className="transition-opacity duration-300 motion-reduce:transition-none" opacity={isDark ? 1 : 0} />
 
         {/* day: the logo's wave line */}
@@ -106,11 +111,11 @@ export function ThemeToggle() {
         {/* knob */}
         <g className="transition-transform duration-300 ease-out motion-reduce:transition-none" style={{ transform: `translateX(${isDark ? 24 : 0}px)` }}>
           <circle cx="16" cy="16.8" r="12" fill="#1F2A44" opacity="0.18" />
-          <circle cx="16" cy="16" r="12" fill={isDark ? "#101831" : "#FFFFFF"} stroke={isDark ? "#6D74C8" : "#C4CEF0"} className="transition-colors duration-300 motion-reduce:transition-none" />
+          <circle cx="16" cy="16" r="12" fill={isDark ? "#101831" : "#FFFFFF"} stroke={isDark ? "#6D74C8" : "#6F7DBF"} className="transition-colors duration-300 motion-reduce:transition-none" />
           {/* sun */}
           <g className="transition-opacity duration-300 motion-reduce:transition-none" opacity={isDark ? 0 : 1}>
-            <circle cx="16" cy="16" r="4.2" fill={`url(#${id}-glyph)`} />
-            <g stroke="#8B83D1" strokeWidth="1.6" strokeLinecap="round">
+            <circle cx="16" cy="16" r="4.2" fill={`url(#${id}-glyph-day)`} />
+            <g stroke="#6A5FC0" strokeWidth="1.6" strokeLinecap="round">
               <path d="M16 8.2v1.8M16 22v1.8M8.2 16H10M22 16h1.8" />
               <path d="m10.5 10.5 1.3 1.3M20.2 20.2l1.3 1.3M10.5 21.5l1.3-1.3M20.2 11.8l1.3-1.3" />
             </g>

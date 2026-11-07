@@ -35,7 +35,11 @@ export function Pagination({
       <p role="status">{total === 0 ? "Sin resultados." : `Mostrando ${from}–${to} de ${total}`}</p>
       {pages > 1 && (
         <ul className="flex flex-wrap items-center gap-1">
-          <li>{page > 1 ? <Link href={href(page - 1)} className={link} rel="prev"><ChevronLeftIcon size={16} className="mr-1 inline align-text-bottom" />Anterior</Link> : null}</li>
+          {page > 1 && (
+            <li>
+              <Link href={href(page - 1)} className={link} rel="prev"><ChevronLeftIcon size={16} className="mr-1 inline align-text-bottom" />Anterior</Link>
+            </li>
+          )}
           {shown.map((p, i) => (
             <li key={p} className="flex items-center gap-1">
               {i > 0 && p - shown[i - 1] > 1 && <span aria-hidden="true">…</span>}
@@ -46,7 +50,11 @@ export function Pagination({
               )}
             </li>
           ))}
-          <li>{page < pages ? <Link href={href(page + 1)} className={link} rel="next">Siguiente<ChevronRightIcon size={16} className="ml-1 inline align-text-bottom" /></Link> : null}</li>
+          {page < pages && (
+            <li>
+              <Link href={href(page + 1)} className={link} rel="next">Siguiente<ChevronRightIcon size={16} className="ml-1 inline align-text-bottom" /></Link>
+            </li>
+          )}
         </ul>
       )}
     </nav>

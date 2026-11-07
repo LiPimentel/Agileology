@@ -14,7 +14,12 @@ export const dynamic = "force-dynamic";
 const SORTS = ["", "title", "status", "createdAt", "publishedAt"] as const;
 
 function DateCell({ value }: { value: Date | null }) {
-  if (!value) return <span aria-label="Sin fecha">—</span>;
+  if (!value) return (
+    <>
+      <span aria-hidden="true">—</span>
+      <span className="sr-only">Sin fecha</span>
+    </>
+  );
   return (
     <time dateTime={value.toISOString()} title={formatAstDateTime(value)}>
       {formatAstDate(value)}
