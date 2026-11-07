@@ -10,6 +10,7 @@ import { sanitizePlainText } from "@/lib/sanitize";
 import { publishPost } from "@/lib/posts";
 import { slugify } from "@/lib/slugify";
 import { fromAstInput, toAstInput } from "@/lib/date";
+import { diffBlocks, diffFields, type AuditDetail, type BlockLike } from "@/lib/auditDetail";
 
 export type PostFormState = { error?: string; postId?: string; savedAt?: number };
 
@@ -22,6 +23,34 @@ function parseBlocks(raw: string): SubmittedBlock[] {
   } catch {
     return [];
   }
+}
+
+const POST_LABELS = {
+  title: "Título",
+  slug: "Dirección (slug)",
+  excerpt: "Extracto",
+  featuredImage: "Imagen destacada",
+  seoTitle: "Título SEO",
+  seoDescription: "Meta descripción SEO",
+  tags: "Etiquetas",
+  publishAt: "Programada para",
+  publishedAt: "Fecha de publicación",
+  status: "Estado",
+};
+const POST_STATUS = { draft: "Borrador", published: "Publicado" } as const;
+
+async function loadPostForAudit(postId: string) {
+  return prisma.post.findUnique({ where: { id: postId }, include: { blocks: { orderBy: { position: "asc" } } } });
+}
+type PostForAudit = NonNullable<Awaited<ReturnType<typeof loadPostForAudit>>>;
+
+/** What changed between two states of a post: its fields and blocks. */
+function describePostChange(before: PostForAudit | null, after: PostForAudit | null, summary: string): AuditDetail {
+  if (!after) return { summary };
+  const status = (r: PostForAudit | null) => (r ? POST_STATUS[r.status] : undefined);
+  const changes = diffFields(POST_LABELS, { ...(before ?? {}), status: status(before) }, { ...after, status: status(after) });
+  const blocks = diffBlocks((before?.blocks ?? []) as BlockLike[], after.blocks as BlockLike[]);
+  return { entity: `Entrada «${after.title}»`, summary: [summary, blocks.summary].filter(Boolean).join(" · "), changes: [...changes, ...blocks.changes] };
 }
 
 async function upsertPostContent(postId: string, formData: FormData) {
@@ -94,7 +123,7 @@ export async function createPost(_prev: PostFormState, formData: FormData): Prom
   }
 
   const post = await prisma.post.create({ data: { title, slug } });
-  await logAudit({ adminId: admin.id, action: "create_post", entityType: "Post", entityId: post.id });
+  await logAudit({ adminId: admin.id, action: "create_post", entityType: "Post", entityId: post.id, detail: { entity: `Entrada «${post.title}»`, summary: `Dirección /blog/${post.slug}` } });
   redirect(`/admin/posts/${post.id}`);
 }
 
@@ -103,6 +132,7 @@ export async function savePost(_prev: PostFormState, formData: FormData): Promis
   const postId = String(formData.get("postId") ?? "");
   const intent = String(formData.get("intent") ?? "draft");
 
+  const before = await loadPostForAudit(postId);
   let slug: string;
   try {
     slug = await upsertPostContent(postId, formData);
@@ -116,6 +146,7 @@ export async function savePost(_prev: PostFormState, formData: FormData): Promis
     action: intent === "publish" ? "publish_post" : "save_draft",
     entityType: "Post",
     entityId: postId,
+    detail: describePostChange(before, await loadPostForAudit(postId), intent === "publish" ? "Guardó y publicó" : "Guardó el borrador"),
   });
   revalidatePath("/admin/posts");
   if (intent === "publish") {
@@ -127,7 +158,14 @@ export async function savePost(_prev: PostFormState, formData: FormData): Promis
 
 export async function deletePost(postId: string) {
   const admin = await requireAdmin();
+  const post = await prisma.post.findUnique({ where: { id: postId }, select: { title: true, slug: true, status: true } });
   await prisma.post.delete({ where: { id: postId } });
-  await logAudit({ adminId: admin.id, action: "delete_post", entityType: "Post", entityId: postId });
+  await logAudit({
+    adminId: admin.id,
+    action: "delete_post",
+    entityType: "Post",
+    entityId: postId,
+    detail: post ? { entity: `Entrada «${post.title}»`, summary: `Se eliminó la entrada /blog/${post.slug} (${POST_STATUS[post.status]})` } : undefined,
+  });
   revalidatePath("/admin/posts");
 }

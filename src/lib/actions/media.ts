@@ -10,6 +10,7 @@ import { revalidatePath } from "next/cache";
 import { unlink } from "node:fs/promises";
 import path from "node:path";
 
+
 export type UploadState = { error?: string; media?: { id: string; url: string } };
 
 /** RS-07, 7.2, 7.10: validated, resized upload added to the shared media library. */
@@ -51,7 +52,7 @@ export async function uploadMedia(_prev: UploadState, formData: FormData): Promi
     data: { ...saved, altText: altText || null },
   });
 
-  await logAudit({ adminId: admin.id, action: "upload_media", entityType: "Media", entityId: media.id });
+  await logAudit({ adminId: admin.id, action: "upload_media", entityType: "Media", entityId: media.id, detail: { entity: `Archivo ${media.filename}`, summary: `${media.mimeType}, ${(media.size / 1024).toFixed(0)} KB${altText ? ` · texto alternativo: ${altText}` : ""}` } });
   revalidatePath("/admin/media");
 
   return { media: { id: media.id, url: media.url } };
@@ -64,6 +65,6 @@ export async function deleteMedia(mediaId: string) {
 
   await prisma.media.delete({ where: { id: mediaId } });
   await unlink(path.join(UPLOAD_DIR, path.basename(media.url))).catch(() => undefined);
-  await logAudit({ adminId: admin.id, action: "delete_media", entityType: "Media", entityId: mediaId });
+  await logAudit({ adminId: admin.id, action: "delete_media", entityType: "Media", entityId: mediaId, detail: { entity: `Archivo ${media.filename}`, summary: media.altText ? `Texto alternativo: ${media.altText}` : undefined } });
   revalidatePath("/admin/media");
 }

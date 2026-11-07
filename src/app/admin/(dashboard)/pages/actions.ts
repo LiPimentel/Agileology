@@ -11,8 +11,40 @@ import { sanitizePlainText } from "@/lib/sanitize";
 import { publishPage } from "@/lib/pages";
 import { slugify } from "@/lib/slugify";
 import { isUploadedVideo } from "@/lib/video";
+import { diffBlocks, diffFields, type AuditDetail, type BlockLike } from "@/lib/auditDetail";
 
 export type PageFormState = { error?: string; pageId?: string; savedAt?: number };
+
+const PAGE_LABELS = { title: "Título", slug: "Dirección (slug)", seoTitle: "Título SEO", seoDescription: "Meta descripción SEO", status: "Estado" };
+const BACKGROUND_LABELS = {
+  overlayColor: "Banner: color de la capa",
+  overlayOpacity: "Banner: opacidad de la capa",
+  imageUrl: "Banner: imagen de fondo",
+  bannerImageUrl: "Banner: imagen (logo)",
+  showBanner: "Banner: mostrar",
+  showTitle: "Banner: mostrar título",
+};
+const PAGE_STATUS = { draft: "Borrador", published: "Publicada" } as const;
+
+async function loadPageForAudit(pageId: string) {
+  return prisma.page.findUnique({
+    where: { id: pageId },
+    include: { blocks: { orderBy: [{ position: "asc" }, { columnIndex: "asc" }, { blockOrder: "asc" }] }, background: true },
+  });
+}
+type PageForAudit = NonNullable<Awaited<ReturnType<typeof loadPageForAudit>>>;
+
+/** What changed between two states of a page: its fields, banner settings and blocks. */
+function describePageChange(before: PageForAudit | null, after: PageForAudit | null, summary: string): AuditDetail {
+  if (!after) return { summary };
+  const status = (r: PageForAudit | null) => (r ? PAGE_STATUS[r.status] : undefined);
+  const changes = [
+    ...diffFields(PAGE_LABELS, { ...(before ?? {}), status: status(before) }, { ...after, status: status(after) }),
+    ...diffFields(BACKGROUND_LABELS, before?.background ?? {}, after.background ?? {}),
+  ];
+  const blocks = diffBlocks((before?.blocks ?? []) as BlockLike[], after.blocks as BlockLike[]);
+  return { entity: `Página «${after.title}»`, summary: [summary, blocks.summary].filter(Boolean).join(" · "), changes: [...changes, ...blocks.changes] };
+}
 
 /** A section background video must be a file uploaded to this site (or empty). */
 function sectionVideoOrNull(raw: unknown): string | null {
@@ -176,7 +208,7 @@ export async function createPage(_prev: PageFormState, formData: FormData): Prom
   const page = await prisma.page.create({
     data: { title, slug, background: { create: {} } },
   });
-  await logAudit({ adminId: admin.id, action: "create_page", entityType: "Page", entityId: page.id });
+  await logAudit({ adminId: admin.id, action: "create_page", entityType: "Page", entityId: page.id, detail: { entity: `Página «${page.title}»`, summary: `Dirección /${page.slug}` } });
   redirect(`/admin/pages/${page.id}`);
 }
 
@@ -185,6 +217,7 @@ export async function savePage(_prev: PageFormState, formData: FormData): Promis
   const pageId = String(formData.get("pageId") ?? "");
   const intent = String(formData.get("intent") ?? "draft");
 
+  const before = await loadPageForAudit(pageId);
   let slug: string;
   try {
     slug = await upsertPageContent(pageId, formData);
@@ -198,6 +231,7 @@ export async function savePage(_prev: PageFormState, formData: FormData): Promis
     action: intent === "publish" ? "publish_page" : "save_draft",
     entityType: "Page",
     entityId: pageId,
+    detail: describePageChange(before, await loadPageForAudit(pageId), intent === "publish" ? "Guardó y publicó" : "Guardó el borrador"),
   });
   revalidatePath("/admin/pages");
   if (intent === "publish") {
@@ -212,7 +246,7 @@ export async function deletePage(pageId: string) {
   const page = await prisma.page.findUnique({ where: { id: pageId } });
   if (!page || page.isSystem) throw new Error("No se puede eliminar esta página.");
   await prisma.page.delete({ where: { id: pageId } });
-  await logAudit({ adminId: admin.id, action: "delete_page", entityType: "Page", entityId: pageId });
+  await logAudit({ adminId: admin.id, action: "delete_page", entityType: "Page", entityId: pageId, detail: { entity: `Página «${page.title}»`, summary: `Se eliminó la página /${page.slug}` } });
   revalidatePath("/admin/pages");
 }
 
@@ -274,7 +308,7 @@ export async function duplicatePage(pageId: string) {
     },
   });
 
-  await logAudit({ adminId: admin.id, action: "duplicate_page", entityType: "Page", entityId: copy.id });
+  await logAudit({ adminId: admin.id, action: "duplicate_page", entityType: "Page", entityId: copy.id, detail: { entity: `Página «${copy.title}»`, summary: `Copia de «${source.title}»` } });
   revalidatePath("/admin/pages");
 }
 
@@ -366,6 +400,6 @@ export async function restorePageVersion(pageId: string, versionId: string) {
   });
 
   await publishPage(pageId);
-  await logAudit({ adminId: admin.id, action: "restore_version", entityType: "Page", entityId: pageId, detail: versionId });
+  await logAudit({ adminId: admin.id, action: "restore_version", entityType: "Page", entityId: pageId, detail: { entity: `Página «${(await prisma.page.findUnique({ where: { id: pageId }, select: { title: true } }))?.title ?? pageId}»`, summary: `Restauró la versión del ${version.createdAt.toISOString()}` } });
   revalidatePath(`/admin/pages/${pageId}`);
 }

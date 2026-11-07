@@ -6,6 +6,29 @@ import { requireAdmin } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { saveUploadedImage } from "@/lib/image";
 import { sanitizePlainText } from "@/lib/sanitize";
+import { diffFields } from "@/lib/auditDetail";
+
+const SITE_LABELS = {
+  siteTitle: "Nombre del sitio",
+  tagline: "Lema",
+  defaultMetaDescription: "Descripción para buscadores",
+  footerText: "Texto del pie",
+  logoUrl: "Logo",
+  faviconUrl: "Favicon",
+  facebookUrl: "Facebook",
+  twitterUrl: "Twitter/X",
+  linkedinUrl: "LinkedIn",
+  instagramUrl: "Instagram",
+  telegramUrl: "Telegram",
+  facebookIconUrl: "Icono de Facebook",
+  twitterIconUrl: "Icono de Twitter/X",
+  linkedinIconUrl: "Icono de LinkedIn",
+  instagramIconUrl: "Icono de Instagram",
+  phone: "Teléfono",
+  whatsapp: "WhatsApp",
+  cookieNoticeEnabled: "Aviso de cookies",
+  googleSiteVerification: "Verificación de Google",
+};
 
 export type SiteSettingsState = { error?: string; success?: boolean };
 
@@ -64,13 +87,20 @@ export async function updateSiteSettings(_prev: SiteSettingsState, formData: For
     }
   }
 
-  await prisma.siteSettings.upsert({
+  const before = await prisma.siteSettings.findUnique({ where: { id: "singleton" } });
+  const after = await prisma.siteSettings.upsert({
     where: { id: "singleton" },
     update: data,
     create: { id: "singleton", ...data },
   });
 
-  await logAudit({ adminId: admin.id, action: "update_site_settings", entityType: "SiteSettings", entityId: "singleton" });
+  await logAudit({
+    adminId: admin.id,
+    action: "update_site_settings",
+    entityType: "SiteSettings",
+    entityId: "singleton",
+    detail: { entity: "Ajustes del sitio", changes: diffFields(SITE_LABELS, before ?? {}, after) },
+  });
   revalidatePath("/", "layout");
 
   return { success: true };

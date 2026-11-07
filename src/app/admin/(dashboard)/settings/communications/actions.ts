@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { sanitizePlainText } from "@/lib/sanitize";
+import { diffFields } from "@/lib/auditDetail";
 
 export type CommsState = { error?: string; success?: boolean };
 
@@ -35,13 +36,34 @@ export async function updateCommunicationSettings(_prev: CommsState, formData: F
     chatWidgetSuccessMessage,
   };
 
+  const before = await prisma.communicationSettings.findUnique({ where: { id: "singleton" } });
   await prisma.communicationSettings.upsert({
     where: { id: "singleton" },
     update: data,
     create: { id: "singleton", ...data },
   });
 
-  await logAudit({ adminId: admin.id, action: "update_communication_settings", entityType: "CommunicationSettings", entityId: "singleton" });
+  await logAudit({
+    adminId: admin.id,
+    action: "update_communication_settings",
+    entityType: "CommunicationSettings",
+    entityId: "singleton",
+    detail: {
+      entity: "Comunicaciones",
+      changes: diffFields(
+        {
+          chatDestinationEmail: "Correo de destino del chat",
+          contactFormDestinationEmail: "Correo de destino del formulario de contacto",
+          chatWidgetTitle: "Título del chat",
+          chatWidgetButtonLabel: "Texto del botón del chat",
+          chatWidgetPlaceholder: "Texto de ejemplo del chat",
+          chatWidgetSuccessMessage: "Mensaje de éxito del chat",
+        },
+        before ?? {},
+        data,
+      ),
+    },
+  });
   revalidatePath("/admin/settings/communications");
   // Chat widget texts render on every public page (PublicLayout).
   revalidatePath("/", "layout");

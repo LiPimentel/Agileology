@@ -89,6 +89,7 @@ export async function saveMenuItems(_prev: MenuFormState, formData: FormData): P
   // other.
   const ordered = [...items].sort((a, b) => (a.parentId ? 1 : 0) - (b.parentId ? 1 : 0));
 
+  const beforeItems = await prisma.menuItem.findMany({ include: { page: { select: { slug: true } } }, orderBy: [{ location: "asc" }, { order: "asc" }] });
   await prisma.$transaction([
     prisma.menuItem.deleteMany({}),
     ...(ordered.length > 0
@@ -96,7 +97,26 @@ export async function saveMenuItems(_prev: MenuFormState, formData: FormData): P
       : []),
   ]);
 
-  await logAudit({ adminId: admin.id, action: "update_menu", entityType: "MenuItem" });
+  const describeMenu = (rows: Array<{ id: string; label: string; location: string; visible: boolean; parentId: string | null }>) => {
+    const line = (r: (typeof rows)[number]) => `${r.label}${r.visible ? "" : " (oculto)"}`;
+    const group = (loc: string) =>
+      rows
+        .filter((r) => r.location === loc && !r.parentId)
+        .map((r) => {
+          const kids = rows.filter((k) => k.parentId === r.id).map(line);
+          return kids.length ? `${line(r)} ▸ ${kids.join(", ")}` : line(r);
+        })
+        .join(" · ") || "—";
+    return `Cabecera: ${group("header")} | Pie: ${group("footer")}`;
+  };
+  const beforeText = describeMenu(beforeItems);
+  const afterText = describeMenu(ordered.map((i) => ({ id: i.id, label: i.label, location: i.location, visible: i.visible, parentId: i.parentId })));
+  await logAudit({
+    adminId: admin.id,
+    action: "update_menu",
+    entityType: "MenuItem",
+    detail: { entity: "Menú del sitio", changes: beforeText === afterText ? [] : [{ field: "Elementos del menú", from: beforeText, to: afterText }], summary: beforeText === afterText ? "Se guardó sin cambios" : undefined },
+  });
   revalidatePath("/", "layout");
 
   return { success: true };
