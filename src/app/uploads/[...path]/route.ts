@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { readFile } from "node:fs/promises";
+import { stat } from "node:fs/promises";
+import { createReadStream } from "node:fs";
+import { Readable } from "node:stream";
 import path from "node:path";
 import { UPLOAD_DIR } from "@/lib/image";
 
@@ -41,7 +43,8 @@ function parseRange(header: string | null, size: number): { start: number; end: 
     start = Number(m[1]);
     end = m[2] === "" ? size - 1 : Math.min(Number(m[2]), size - 1);
   }
-  if (start >= size || start > end) return "invalid";
+  if (start >= size) return "invalid";
+  if (start > end) return null; // syntactically valid but inverted: ignore the header and serve the whole file
   return { start, end };
 }
 
@@ -61,24 +64,31 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ path
   }
 
   try {
-    const data = await readFile(path.join(UPLOAD_DIR, filename));
+    const filePath = path.join(UPLOAD_DIR, filename);
+    const { size } = await stat(filePath);
+    // Streamed from disk (never loaded whole into memory), so many concurrent requests for a
+    // large video cannot exhaust memory.
+    const body = (start?: number, end?: number) =>
+      Readable.toWeb(createReadStream(filePath, start === undefined ? {} : { start, end })) as unknown as ReadableStream;
     const headers = {
       "Content-Type": mimeType,
       "Cache-Control": "public, max-age=31536000, immutable",
       "Accept-Ranges": "bytes",
+      // Uploaded files are only ever images/videos: never let a browser sniff or run them as a page.
+      "X-Content-Type-Options": "nosniff",
+      "Content-Security-Policy": "default-src 'none'; sandbox",
     };
-    const range = parseRange(req.headers.get("range"), data.length);
+    const range = parseRange(req.headers.get("range"), size);
     if (range === "invalid") {
-      return new NextResponse(null, { status: 416, headers: { ...headers, "Content-Range": `bytes */${data.length}` } });
+      return new NextResponse(null, { status: 416, headers: { ...headers, "Content-Range": `bytes */${size}` } });
     }
     if (range) {
-      const chunk = data.subarray(range.start, range.end + 1);
-      return new NextResponse(new Uint8Array(chunk), {
+      return new NextResponse(body(range.start, range.end), {
         status: 206,
-        headers: { ...headers, "Content-Range": `bytes ${range.start}-${range.end}/${data.length}`, "Content-Length": String(chunk.length) },
+        headers: { ...headers, "Content-Range": `bytes ${range.start}-${range.end}/${size}`, "Content-Length": String(range.end - range.start + 1) },
       });
     }
-    return new NextResponse(new Uint8Array(data), { headers });
+    return new NextResponse(body(), { headers: { ...headers, "Content-Length": String(size) } });
   } catch {
     return new NextResponse("Not found", { status: 404 });
   }

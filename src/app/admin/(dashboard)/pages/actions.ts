@@ -10,8 +10,17 @@ import { sanitizeBlockContent } from "@/lib/blocks";
 import { sanitizePlainText } from "@/lib/sanitize";
 import { publishPage } from "@/lib/pages";
 import { slugify } from "@/lib/slugify";
+import { isUploadedVideo } from "@/lib/video";
 
 export type PageFormState = { error?: string; pageId?: string; savedAt?: number };
+
+/** A section background video must be a file uploaded to this site (or empty). */
+function sectionVideoOrNull(raw: unknown): string | null {
+  const url = String(raw ?? "").trim();
+  if (!url) return null;
+  if (!isUploadedVideo(url)) throw new Error("El video de fondo de la sección debe ser un archivo subido a la biblioteca.");
+  return url;
+}
 
 type SubmittedBlock = {
   id: string;
@@ -121,7 +130,7 @@ async function upsertPageContent(pageId: string, formData: FormData) {
     sectionBgImageUrl: String(b.sectionBgImageUrl ?? "") || null,
     sectionBgColor: sanitizeHexColor(b.sectionBgColor, "#000000"),
     sectionBgOpacity: sanitizeOpacity(b.sectionBgOpacity),
-    sectionBgVideoUrl: String(b.sectionBgVideoUrl ?? "") || null,
+    sectionBgVideoUrl: sectionVideoOrNull(b.sectionBgVideoUrl),
     sectionBgGradientEnd: String(b.sectionBgGradientEnd ?? "") || null,
     sectionLayoutMode: b.sectionLayoutMode === "free" ? "free" : "grid",
     sectionFreeHeight: sanitizeFreeHeight(b.sectionFreeHeight),

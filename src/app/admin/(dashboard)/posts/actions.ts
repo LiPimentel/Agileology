@@ -34,7 +34,10 @@ async function upsertPostContent(postId: string, formData: FormData) {
   if (existing && existing.id !== postId) throw new Error("Ya existe otro post con ese slug.");
 
   const excerpt = sanitizePlainText(String(formData.get("excerpt") ?? "")) || null;
-  const featuredImage = String(formData.get("featuredImage") ?? "") || null;
+  const featuredImage = String(formData.get("featuredImage") ?? "").trim() || null;
+  if (featuredImage && !/^\/uploads\/[\w./-]+$/.test(featuredImage) && !/^https:\/\/[^\s]+$/i.test(featuredImage)) {
+    throw new Error("La imagen destacada debe ser un archivo de la biblioteca o un enlace https.");
+  }
   const seoTitle = sanitizePlainText(String(formData.get("seoTitle") ?? "")) || null;
   const seoDescription = sanitizePlainText(String(formData.get("seoDescription") ?? "")) || null;
   const tags = String(formData.get("tags") ?? "")
