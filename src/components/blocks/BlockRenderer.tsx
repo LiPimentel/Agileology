@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { Carousel, type CarouselValue } from "@/components/blocks/Carousel";
+import { LatestPosts, type LatestPostsValue } from "@/components/blocks/LatestPosts";
 import { parseVideoEmbed } from "@/lib/video";
 import { TrackedLink } from "@/components/public/TrackedLink";
 import {
@@ -17,7 +18,7 @@ import { CustomFormRenderer, type PublicFormField } from "@/components/public/Cu
 
 export type RenderableBlock = {
   id?: string;
-  type: "text" | "image" | "link" | "video" | "map" | "contactForm" | "customForm" | "carousel";
+  type: "text" | "image" | "link" | "video" | "map" | "contactForm" | "customForm" | "carousel" | "latestPosts";
   content: Record<string, unknown>;
   // Section/column layout (pages only -- see PageRenderer, which groups
   // blocks sharing the same `position` into one row and lays them out
@@ -151,6 +152,28 @@ export function BlockRenderer({ block, pageId }: { block: RenderableBlock; pageI
             autoplay: c.autoplay ?? false,
             intervalSeconds: c.intervalSeconds ?? 6,
             width: c.width ?? 100,
+          }}
+        />
+      );
+    }
+    case "latestPosts": {
+      const posts = block.content.posts;
+      // Not resolved (the editor canvas has no database access): show where it will appear.
+      if (!Array.isArray(posts)) {
+        return (
+          <div className="rounded-md border-2 border-dashed border-slate-300 p-6 text-center text-sm text-slate-600">
+            Entradas recientes: aquí rotan automáticamente tus últimas entradas publicadas.
+          </div>
+        );
+      }
+      if (posts.length === 0) return null;
+      return (
+        <LatestPosts
+          value={{
+            posts: posts as LatestPostsValue["posts"],
+            autoplay: block.content.autoplay !== false,
+            intervalSeconds: Number(block.content.intervalSeconds ?? 6),
+            author: String(block.content.author ?? "Lissette Pimentel Sosa"),
           }}
         />
       );

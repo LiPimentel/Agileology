@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { getFooterLinks, getSiteSettings } from "@/lib/settings";
-import { FacebookIcon, InstagramIcon, LinkedinIcon, TwitterIcon } from "./SocialIcons";
+import { FacebookIcon, InstagramIcon, LinkedinIcon, TelegramIcon, TwitterIcon } from "./SocialIcons";
 import { TrackedLink } from "./TrackedLink";
 
 const SOCIAL: Array<{
-  urlKey: "facebookUrl" | "twitterUrl" | "linkedinUrl" | "instagramUrl";
-  iconKey: "facebookIconUrl" | "twitterIconUrl" | "linkedinIconUrl" | "instagramIconUrl";
+  urlKey: "facebookUrl" | "twitterUrl" | "linkedinUrl" | "instagramUrl" | "telegramUrl";
+  iconKey?: "facebookIconUrl" | "twitterIconUrl" | "linkedinIconUrl" | "instagramIconUrl";
   label: string;
   Icon: () => React.ReactElement;
 }> = [
@@ -13,6 +13,7 @@ const SOCIAL: Array<{
   { urlKey: "twitterUrl", iconKey: "twitterIconUrl", label: "Twitter / X", Icon: TwitterIcon },
   { urlKey: "linkedinUrl", iconKey: "linkedinIconUrl", label: "LinkedIn", Icon: LinkedinIcon },
   { urlKey: "instagramUrl", iconKey: "instagramIconUrl", label: "Instagram", Icon: InstagramIcon },
+  { urlKey: "telegramUrl", label: "Telegram", Icon: TelegramIcon },
 ];
 
 export async function Footer() {
@@ -45,7 +46,7 @@ export async function Footer() {
         {socialLinks.length > 0 && (
           <div className="flex gap-4">
             {socialLinks.map((s) => {
-              const customIcon = settings[s.iconKey];
+              const customIcon = s.iconKey ? settings[s.iconKey] : null;
               return (
                 <TrackedLink
                   key={s.urlKey}

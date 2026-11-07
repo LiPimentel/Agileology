@@ -11,6 +11,7 @@ import { ImageBlockEditor } from "@/components/admin/blocks/ImageBlockEditor";
 import { LinkBlockEditor } from "@/components/admin/blocks/LinkBlockEditor";
 import { VideoBlockEditor } from "@/components/admin/blocks/VideoBlockEditor";
 import { CarouselBlockEditor } from "@/components/admin/blocks/CarouselBlockEditor";
+import { LatestPostsBlockEditor } from "@/components/admin/blocks/LatestPostsBlockEditor";
 import { MapBlockEditor } from "@/components/admin/blocks/MapBlockEditor";
 import { ContactFormBlockEditor } from "@/components/admin/blocks/ContactFormBlockEditor";
 import { CustomFormBlockEditor } from "@/components/admin/blocks/CustomFormBlockEditor";
@@ -39,6 +40,7 @@ const BLOCK_LABELS: Record<BlockType, string> = {
   contactForm: "Formulario de contacto",
   customForm: "Formulario (biblioteca)",
   carousel: "Carrusel",
+  latestPosts: "Entradas recientes (rotan)",
 };
 const BLOCK_TYPE_OPTIONS = (Object.keys(BLOCK_LABELS) as BlockType[]).map((type) => ({ type, label: BLOCK_LABELS[type] }));
 
@@ -65,6 +67,8 @@ function hasContent(block: BlockValue): boolean {
       return Boolean(block.content.formId);
     case "carousel":
       return block.content.slides.length > 0;
+    case "latestPosts":
+      return true;
   }
 }
 
@@ -564,6 +568,8 @@ export function SectionBlockEditor({
         return <CustomFormBlockEditor value={item.block.content} onChange={onChange} formDefinitions={formDefinitions} />;
       case "carousel":
         return <CarouselBlockEditor value={item.block.content} onChange={onChange} mediaLibrary={mediaLibrary} />;
+      case "latestPosts":
+        return <LatestPostsBlockEditor value={item.block.content} onChange={onChange} />;
     }
   }
 
@@ -587,6 +593,8 @@ export function SectionBlockEditor({
         return <CustomFormBlockEditor value={item.block.content} onChange={onChange} formDefinitions={formDefinitions} />;
       case "carousel":
         return <CarouselBlockEditor value={item.block.content} onChange={onChange} mediaLibrary={mediaLibrary} />;
+      case "latestPosts":
+        return <LatestPostsBlockEditor value={item.block.content} onChange={onChange} />;
     }
   }
 

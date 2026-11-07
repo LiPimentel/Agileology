@@ -143,6 +143,10 @@ export function SiteSettingsForm({ settings, siteUrl }: { settings: SiteSettings
           </div>
         ))}
       </div>
+      <div className="max-w-md">
+        <label htmlFor="telegramUrl" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Telegram URL</label>
+        <input id="telegramUrl" name="telegramUrl" defaultValue={settings.telegramUrl ?? ""} placeholder="https://t.me/tu_canal" className={inputClass} />
+      </div>
       <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
         <input type="checkbox" name="cookieNoticeEnabled" defaultChecked={settings.cookieNoticeEnabled} />
         Mostrar aviso de cookies

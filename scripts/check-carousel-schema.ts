@@ -41,6 +41,15 @@ bad("zoom mayor que 3", { slides: [{ kind: "image", url: "/uploads/a.webp", zoom
 bad("posición fuera de 0-100", { slides: [{ kind: "image", url: "/uploads/a.webp", focalX: 150 }] });
 bad("ajuste desconocido", { slides: [{ kind: "image", url: "/uploads/a.webp", fit: "stretch" }] });
 bad("forma desconocida", { shape: "star", slides: [] });
+const lp = sanitizeBlockContent("latestPosts", {}) as { count: number; autoplay: boolean; author: string };
+console.log(lp.count === 5 && lp.autoplay === true && lp.author === "Lissette Pimentel Sosa" ? "✔ entradas recientes: valores por defecto (5, rotando)" : "✘ valores por defecto de entradas recientes");
+const lpBad = (name: string, c: unknown) => { try { sanitizeBlockContent("latestPosts", c); console.log(`✘ ${name}: se aceptó`); process.exitCode = 1; } catch { console.log(`✔ rechaza (entradas recientes): ${name}`); } };
+lpBad("menos de 3 entradas", { count: 2 });
+lpBad("más de 5 entradas", { count: 6 });
+lpBad("intervalo fuera de rango", { intervalSeconds: 1 });
+lpBad("nombre de más de 80 caracteres", { author: "a".repeat(81) });
+const lpHtml = sanitizeBlockContent("latestPosts", { author: "<b>Ana</b>" }) as { author: string };
+console.log(lpHtml.author.includes("<") ? "✘ el nombre conserva HTML" : "✔ limpia HTML del nombre");
 bad("más de 20 diapositivas", { slides: Array.from({ length: 21 }, () => ({ kind: "image", url: "/uploads/a.webp", altText: "" })) });
 bad("intervalo fuera de rango", { slides: [], intervalSeconds: 1 });
 bad("tipo de diapositiva desconocido", { slides: [{ kind: "html", url: "/a" }] });

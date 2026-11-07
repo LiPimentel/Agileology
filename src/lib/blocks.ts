@@ -98,6 +98,15 @@ export const carouselBlockSchema = z.object({
   width: z.number().min(20).max(100).default(100),
 });
 
+// Most recent published posts, rotating (3 shown at a time). The posts themselves are looked up
+// at render time (lib/latestPosts.ts); only the options are stored here.
+export const latestPostsBlockSchema = z.object({
+  count: z.number().int().min(3).max(5).default(5),
+  autoplay: z.boolean().default(true),
+  intervalSeconds: z.number().min(3).max(15).default(6),
+  author: z.string().max(80).default("Lissette Pimentel Sosa"),
+});
+
 export type EditorBlock =
   | { id: string; type: "text"; content: z.infer<typeof textBlockSchema> }
   | { id: string; type: "image"; content: z.infer<typeof imageBlockSchema> }
@@ -106,7 +115,8 @@ export type EditorBlock =
   | { id: string; type: "map"; content: z.infer<typeof mapBlockSchema> }
   | { id: string; type: "contactForm"; content: z.infer<typeof contactFormBlockSchema> }
   | { id: string; type: "customForm"; content: z.infer<typeof customFormBlockSchema> }
-  | { id: string; type: "carousel"; content: z.infer<typeof carouselBlockSchema> };
+  | { id: string; type: "carousel"; content: z.infer<typeof carouselBlockSchema> }
+  | { id: string; type: "latestPosts"; content: z.infer<typeof latestPostsBlockSchema> };
 
 /** Sanitizes a block's content before it's persisted (RS-06). */
 export function sanitizeBlockContent(type: string, content: unknown) {
@@ -145,6 +155,10 @@ export function sanitizeBlockContent(type: string, content: unknown) {
         ...parsed,
         slides: parsed.slides.map((s) => (s.kind === "image" ? { ...s, altText: sanitizePlainText(s.altText) } : s)),
       };
+    }
+    case "latestPosts": {
+      const parsed = latestPostsBlockSchema.parse(content);
+      return { ...parsed, author: sanitizePlainText(parsed.author) };
     }
     default:
       throw new Error(`Unknown block type: ${type}`);

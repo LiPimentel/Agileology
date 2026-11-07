@@ -15,6 +15,11 @@ export async function updateSiteSettings(_prev: SiteSettingsState, formData: For
   const siteTitle = sanitizePlainText(String(formData.get("siteTitle") ?? "")).slice(0, 120);
   if (!siteTitle) return { error: "El nombre del sitio es requerido." };
 
+  const telegramUrl = String(formData.get("telegramUrl") ?? "").trim();
+  if (telegramUrl && !/^https:\/\/[^\s]+$/i.test(telegramUrl)) {
+    return { error: "El enlace de Telegram debe empezar por https:// (por ejemplo https://t.me/tu_canal)." };
+  }
+
   const data: Record<string, unknown> = {
     siteTitle,
     tagline: sanitizePlainText(String(formData.get("tagline") ?? "")) || null,
@@ -24,6 +29,7 @@ export async function updateSiteSettings(_prev: SiteSettingsState, formData: For
     twitterUrl: String(formData.get("twitterUrl") ?? "").trim() || null,
     linkedinUrl: String(formData.get("linkedinUrl") ?? "").trim() || null,
     instagramUrl: String(formData.get("instagramUrl") ?? "").trim() || null,
+    telegramUrl: telegramUrl || null,
     phone: String(formData.get("phone") ?? "").trim() || null,
     whatsapp: String(formData.get("whatsapp") ?? "").trim() || null,
     cookieNoticeEnabled: formData.get("cookieNoticeEnabled") === "on",
