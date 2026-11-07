@@ -70,7 +70,7 @@ export function NavItem({ link }: { link: NavLink }) {
         </button>
       </span>
       {open && (
-        <ul className="absolute left-0 top-full z-10 mt-2 min-w-[10rem] rounded-md border border-white/10 bg-[#1c1140] py-1 shadow-lg">
+        <ul className="absolute left-0 top-full z-10 mt-2 min-w-[10rem] rounded-md border border-white/10 bg-[#1F2A44] py-1 shadow-lg">
           {link.children.map((child, i) => (
             <li key={`${child.href}-${i}`}>
               <LinkItem link={child} className="block px-4 py-2 hover:bg-white/10 hover:text-white" />

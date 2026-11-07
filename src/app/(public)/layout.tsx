@@ -11,7 +11,7 @@ export default async function PublicLayout({ children }: { children: React.React
   const [settings, comms] = await Promise.all([getSiteSettings(), getCommunicationSettings()]);
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="site-public flex min-h-screen flex-col">
       <Nav />
       <div className="flex-1">{children}</div>
       <Footer />
