@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { logAudit, safely } from "@/lib/audit";
 import { diffFields } from "@/lib/auditDetail";
+import { rateLimit } from "@/lib/rateLimit";
 import { getSiteSettings } from "@/lib/settings";
 import { runDomainChecks, type Check } from "@/lib/domainCheck";
 import { CANONICAL_HOSTS, isIpOrLocalHost, normalizePublicUrl, type CanonicalHost } from "@/lib/siteUrl";
@@ -51,7 +52,8 @@ export async function saveDomain(_prev: DomainState, formData: FormData): Promis
 // useActionState passes the previous state first; this action has nothing to read from it.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function verifyDomain(_prev: VerifyState): Promise<VerifyState> {
-  await requireAdmin();
+  const admin = await requireAdmin();
+  if (!rateLimit(`verify-domain:${admin.id}`, 6, 60_000)) return { checks: [{ id: "rate", label: "Demasiadas verificaciones", status: "warn", detail: "Espera un minuto antes de volver a verificar." }], at: Date.now() };
   const settings = await getSiteSettings();
   const publicUrl = (settings.publicUrl ?? process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/+$/, "") || null;
   return { checks: await runDomainChecks(publicUrl), at: Date.now() };

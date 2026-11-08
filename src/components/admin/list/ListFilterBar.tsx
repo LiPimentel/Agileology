@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
@@ -37,6 +37,7 @@ export function ListFilterBar({
   const formRef = useRef<HTMLFormElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pending, startTransition] = useTransition();
+  const [applied, setApplied] = useState(false);
   const active = fields.some((f) => Boolean(values[f.name]));
 
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
@@ -50,6 +51,7 @@ export function ListFilterBar({
       if (typeof value === "string" && value.trim() !== "") params.set(key, value.trim());
     }
     const qs = params.toString();
+    setApplied(true);
     startTransition(() => router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false }));
   }
   const applyAfterPause = () => {
@@ -63,8 +65,7 @@ export function ListFilterBar({
       method="get"
       role="search"
       aria-label="Filtros de la lista"
-      aria-busy={pending}
-      onSubmit={(e) => {
+            onSubmit={(e) => {
         e.preventDefault();
         apply();
       }}
@@ -79,7 +80,7 @@ export function ListFilterBar({
               {f.label}
             </label>
             {f.type === "select" ? (
-              <select id={id} name={f.name} defaultValue={values[f.name] ?? ""} onChange={apply} className={input}>
+              <select id={id} name={f.name} defaultValue={values[f.name] ?? ""} onChange={applyAfterPause} className={input}>
                 {f.options.map((o) => (
                   <option key={o.value} value={o.value}>
                     {o.label}
@@ -104,7 +105,8 @@ export function ListFilterBar({
       <button type="submit" className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
         Aplicar
       </button>
-      {pending && <span role="status" className="pb-2 text-xs text-slate-600 dark:text-slate-400">Filtrando…</span>}
+      {/* Always mounted so screen readers announce its changes. */}
+      <span role="status" className="pb-2 text-xs text-slate-600 dark:text-slate-400">{pending ? "Filtrando…" : applied ? <span className="sr-only">Lista actualizada.</span> : ""}</span>
       {active && (
         <Link href={resetHref} className="text-sm text-slate-600 underline hover:text-violet-700 dark:text-slate-400 dark:hover:text-sky-400">
           Limpiar filtros

@@ -57,6 +57,7 @@ export function canonicalRedirectTarget(opts: {
   } catch {
     return null;
   }
+  if (official.protocol !== "https:") return null; // never bounce visitors from https to http
   if (isIpOrLocalHost(official.hostname)) return null; // "with/without www" means nothing for an IP
   const bare = official.hostname.replace(/^www\./, "");
   const apex = bare;

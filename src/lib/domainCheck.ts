@@ -11,10 +11,21 @@ export type Check = { id: string; label: string; status: CheckStatus; detail: st
 export function isPrivateAddress(ip: string): boolean {
   if (isIP(ip) === 6) {
     const v = ip.toLowerCase();
-    return v === "::1" || v === "::" || v.startsWith("fc") || v.startsWith("fd") || v.startsWith("fe80") || v.startsWith("::ffff:");
+    // Uncompressed/unspecified/loopback forms, unique-local, link-local, site-local, IPv4-mapped,
+    // NAT64 and 6to4 (which embed IPv4 addresses), multicast.
+    if (/^(0{1,4}:){7}0{0,3}[01]$/.test(v) || v === "::1" || v === "::") return true;
+    return /^(fc|fd|fe[89ab]|fec|fed|fee|fef|ff)/.test(v) || v.startsWith("::ffff:") || v.startsWith("64:ff9b:") || v.startsWith("2002:");
   }
-  const [a, b] = ip.split(".").map(Number);
-  return a === 10 || a === 127 || a === 0 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 169 && b === 254) || (a === 100 && b >= 64 && b <= 127);
+  const [a, b, c] = ip.split(".").map(Number);
+  return (
+    a === 10 || a === 127 || a === 0 || a >= 224 || // private, loopback, "this" network, multicast/reserved
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168) ||
+    (a === 169 && b === 254) ||
+    (a === 100 && b >= 64 && b <= 127) || // CGNAT (Tailscale)
+    (a === 198 && (b === 18 || b === 19)) ||
+    (a === 192 && b === 0 && c === 0)
+  );
 }
 
 const resolver = () => {
@@ -78,13 +89,15 @@ export async function runDomainChecks(publicUrl: string | null): Promise<Check[]
         : { id: "ns", label: "Servidores de nombres", status: "info", detail: ns?.length ? `Con ${ns.join(", ")}. Para usar el túnel y Cloudflare Access deben ser los de Cloudflare.` : "No se pudieron leer." },
     );
 
-    const publicIps = addresses.filter((ip) => !isPrivateAddress(ip));
-    if (addresses.length > 0 && publicIps.length === 0) {
-      add({ id: "reach", label: "El dominio llega a esta aplicación", status: "info", detail: "El dominio apunta a una dirección privada: no se puede verificar desde el servidor." });
+    // If ANY resolved address is private, do not connect at all (the fetch re-resolves the name).
+    if (addresses.length > 0 && addresses.some((ip) => isPrivateAddress(ip))) {
+      add({ id: "reach", label: "El dominio llega a esta aplicación", status: "info", detail: "El dominio apunta (también) a una dirección privada: no se verifica desde el servidor." });
     } else if (publicUrl?.startsWith("https://") && !onWix && addresses.length > 0) {
       try {
         const res = await fetch(`${publicUrl}/api/health`, { cache: "no-store", redirect: "manual", signal: AbortSignal.timeout(6000), headers: { "User-Agent": "agileology-domain-check" } });
-        const body = res.ok ? await res.json().catch(() => null) : null;
+        const text = res.ok ? (await res.text().catch(() => "")).slice(0, 2048) : "";
+        let body: { status?: string } | null = null;
+        try { body = text ? JSON.parse(text) : null; } catch { body = null; }
         if (res.ok && body?.status === "ok") add({ id: "reach", label: "El dominio llega a esta aplicación", status: "ok", detail: "La dirección responde y es esta aplicación, con la base de datos funcionando." });
         else add({ id: "reach", label: "El dominio llega a esta aplicación", status: "warn", detail: `Responde (código ${res.status}), pero no parece ser esta aplicación. ¿Sigue apuntando a otro sitio?` });
       } catch {

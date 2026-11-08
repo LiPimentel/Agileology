@@ -29,7 +29,7 @@ async function route(request: NextRequest, requestHeaders: Headers) {
     const config = await getCanonicalConfig();
     if (config && config.canonicalHost !== "none") {
       const target = canonicalRedirectTarget({
-        host: request.headers.get("x-forwarded-host") ?? host,
+        host, // the Host header only: x-forwarded-host is client-controllable
         pathname,
         search: request.nextUrl.search,
         publicUrl: config.publicUrl,

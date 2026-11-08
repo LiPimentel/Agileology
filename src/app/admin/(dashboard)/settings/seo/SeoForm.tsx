@@ -90,7 +90,7 @@ export function SeoForm({ pages, siteTitle, defaultDescription }: { pages: PageR
           const tId = `t-${p.id}`;
           const dId = `d-${p.id}`;
           return (
-            <li key={p.id} className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+            <li key={p.id} className="scroll-mb-24 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
                   <Link href={`/admin/pages/${p.id}`} className="text-violet-700 hover:underline dark:text-sky-400">{p.title}</Link>

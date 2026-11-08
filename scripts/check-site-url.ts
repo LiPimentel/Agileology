@@ -22,4 +22,5 @@ check("otros hosts (IP, localhost, admin.) nunca se redirigen", ["100.123.85.59:
 check("ignora el puerto del host pedido", canonicalRedirectTarget({ ...o, host: "www.agileologywave.com:443", pathname: "/", canonicalHost: "apex" }) !== null);
 check("si la dirección pública es una IP no redirige", canonicalRedirectTarget({ publicUrl: "http://100.123.85.59:3000", search: "", host: "www.x.com", pathname: "/", canonicalHost: "apex" }) === null);
 check("sin dirección pública no redirige", canonicalRedirectTarget({ publicUrl: null, search: "", host: "www.agileologywave.com", pathname: "/", canonicalHost: "apex" }) === null);
+check("con dirección http no redirige (nunca baja de https a http)", canonicalRedirectTarget({ publicUrl: "http://ejemplo.com", search: "", host: "www.ejemplo.com", pathname: "/", canonicalHost: "apex" }) === null);
 process.exit(fails ? 1 : 0);

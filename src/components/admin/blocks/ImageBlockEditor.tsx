@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import Image from "next/image";
 import { MediaGrid, type MediaItem } from "@/components/admin/MediaGrid";
 import { MediaUploadForm } from "@/components/admin/MediaUploadForm";
@@ -158,6 +158,7 @@ export function ImageBlockEditor({
   /** Free-layout section: width/height of the block's box, which is the window. Hides the "Marco" menu. */
   boxAspect?: number;
 }) {
+  const uid = useId();
   const [pickerOpen, setPickerOpen] = useState(false);
   const shape = value.shape ?? "none";
   const frame: ImageFrame = value.frame ?? "auto";
@@ -209,9 +210,9 @@ export function ImageBlockEditor({
       )}
 
       <div>
-        <label htmlFor="img-alt" className={labelCls}>Texto alternativo (SEO/accesibilidad)</label>
+        <label htmlFor={`${uid}-alt`} className={labelCls}>Texto alternativo (SEO/accesibilidad)</label>
         <input
-          id="img-alt"
+          id={`${uid}-alt`}
           value={value.altText}
           onChange={(e) => onChange({ ...value, altText: e.target.value })}
           className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
@@ -219,16 +220,16 @@ export function ImageBlockEditor({
       </div>
       <div className="flex flex-wrap gap-4">
         <div>
-          <label htmlFor="img-align" className={labelCls}>Alineación</label>
-          <select id="img-align" value={value.alignment} onChange={(e) => onChange({ ...value, alignment: e.target.value as ImageBlockValue["alignment"] })} className={selectCls}>
+          <label htmlFor={`${uid}-align`} className={labelCls}>Alineación</label>
+          <select id={`${uid}-align`} value={value.alignment} onChange={(e) => onChange({ ...value, alignment: e.target.value as ImageBlockValue["alignment"] })} className={selectCls}>
             <option value="left">Izquierda</option>
             <option value="center">Centro</option>
             <option value="right">Derecha</option>
           </select>
         </div>
         <div>
-          <label htmlFor="img-shape" className={labelCls}>Forma</label>
-          <select id="img-shape" value={shape} onChange={(e) => onChange({ ...value, shape: e.target.value as ImageShape })} className={selectCls}>
+          <label htmlFor={`${uid}-shape`} className={labelCls}>Forma</label>
+          <select id={`${uid}-shape`} value={shape} onChange={(e) => onChange({ ...value, shape: e.target.value as ImageShape })} className={selectCls}>
             {(Object.keys(IMAGE_SHAPE_LABELS) as ImageShape[]).map((s) => (
               <option key={s} value={s}>{IMAGE_SHAPE_LABELS[s]}</option>
             ))}
@@ -236,8 +237,8 @@ export function ImageBlockEditor({
         </div>
         {boxAspect === undefined && !isCroppableShape(shape) && (
           <div>
-            <label htmlFor="img-frame" className={labelCls}>Marco</label>
-            <select id="img-frame" value={frame} onChange={(e) => onChange({ ...value, frame: e.target.value as ImageFrame })} className={selectCls}>
+            <label htmlFor={`${uid}-frame`} className={labelCls}>Marco</label>
+            <select id={`${uid}-frame`} value={frame} onChange={(e) => onChange({ ...value, frame: e.target.value as ImageFrame })} className={selectCls}>
               {IMAGE_FRAMES.map((f) => (
                 <option key={f} value={f}>{IMAGE_FRAME_LABELS[f]}</option>
               ))}
@@ -245,8 +246,8 @@ export function ImageBlockEditor({
           </div>
         )}
         <div>
-          <label htmlFor="img-width" className={labelCls}>Tamaño ({width}%)</label>
-          <input id="img-width" type="range" min={20} max={100} step={5} value={width} onChange={(e) => onChange({ ...value, width: Number(e.target.value) })} className="mt-3 w-40" />
+          <label htmlFor={`${uid}-width`} className={labelCls}>Tamaño ({width}%)</label>
+          <input id={`${uid}-width`} type="range" min={20} max={100} step={5} value={width} onChange={(e) => onChange({ ...value, width: Number(e.target.value) })} className="mt-3 w-40" />
         </div>
       </div>
       <button
