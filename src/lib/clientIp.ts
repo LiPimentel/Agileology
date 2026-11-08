@@ -15,8 +15,14 @@ const valid = (v: string | null | undefined): v is string => Boolean(v) && isIP(
  * of trusting a forgeable one. Without it, the first address of X-Forwarded-For is used
  * (fine while testing, e.g. behind Tailscale, where no one can reach the app directly).
  */
+let warned = false;
+
 export function clientIp(headers: HeaderReader): string {
   const trusted = process.env.TRUSTED_IP_HEADER?.trim().toLowerCase();
+  if (!trusted && !warned && process.env.NODE_ENV === "production" && (process.env.NEXT_PUBLIC_SITE_URL ?? "").startsWith("https://")) {
+    warned = true;
+    console.warn("[seguridad] El sitio es público (https) pero TRUSTED_IP_HEADER no está definida: los límites por IP se pueden evadir con un X-Forwarded-For falso. Con Cloudflare: TRUSTED_IP_HEADER=cf-connecting-ip");
+  }
   if (trusted) {
     const v = headers.get(trusted)?.trim();
     return valid(v) ? v : "unknown";

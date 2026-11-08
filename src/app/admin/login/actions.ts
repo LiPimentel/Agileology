@@ -25,7 +25,7 @@ const DUMMY_HASH = "$2b$12$Wfhw1wdgTUPbG1am2k2STepDidDoMgWKMe1IqhXXYsvQ7yHaCPFE.
 const BAD_CREDENTIALS = "Credenciales inválidas, o cuenta bloqueada temporalmente.";
 
 export async function login(_prev: LoginState, formData: FormData): Promise<LoginState> {
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase().slice(0, 254); // an address is at most 254 chars: bounds the limiter key
   const password = String(formData.get("password") ?? "");
 
   if (!email || !password) return { error: "Email y contraseña son requeridos." };
@@ -33,7 +33,8 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
   const ip = clientIp(await headers());
   // Two independent limits: per email (stops guessing one account) and per IP (stops one source
   // trying many emails, which the per-email limit alone cannot see).
-  if (!rateLimit(`login:${email}`, 10, 60_000) || !rateLimit(`login-ip:${ip}`, 30, 10 * 60_000)) {
+  // IP first: a blocked source must not also create a per-email entry for every attempt.
+  if (!rateLimit(`login-ip:${ip}`, 30, 10 * 60_000) || !rateLimit(`login:${email}`, 10, 60_000)) {
     return { error: "Demasiados intentos. Intenta de nuevo en unos minutos." };
   }
 

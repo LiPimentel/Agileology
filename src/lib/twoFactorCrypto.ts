@@ -10,6 +10,10 @@ const ENC_PREFIX = "v1:";
 function twoFactorKey(): Buffer {
   const raw = process.env.TWO_FACTOR_KEY || process.env.SESSION_SECRET;
   if (!raw) throw new Error("Falta TWO_FACTOR_KEY (o SESSION_SECRET) para proteger el secreto del 2FA.");
+  // A placeholder copied from .env.example, or something short, is not a key.
+  if (raw.length < 32 || /change-me|replace-with|example|password/i.test(raw)) {
+    throw new Error("TWO_FACTOR_KEY es demasiado corta o es un valor de ejemplo: genera una con `openssl rand -hex 32`.");
+  }
   return Buffer.from(hkdfSync("sha256", raw, "agileology-2fa", "two-factor-secret", 32));
 }
 

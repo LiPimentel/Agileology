@@ -21,6 +21,11 @@ async function main() {
   const tampered = enc.slice(0, -3) + (enc.endsWith("AAA") ? "BBB" : "AAA");
   let rejected = false; try { decryptTwoFactorSecret(tampered); } catch { rejected = true; }
   check("2FA: un valor manipulado se rechaza", rejected);
+  for (const bad of ["change-me", "replace-with-a-long-random-string", "corta", "x".repeat(40) + "password"]) {
+    process.env.TWO_FACTOR_KEY = bad;
+    let refused = false; try { encryptTwoFactorSecret(secret); } catch { refused = true; }
+    check(`2FA: rechaza una clave débil o de ejemplo (${bad.slice(0, 14)}…)`, refused);
+  }
   process.env.TWO_FACTOR_KEY = "b".repeat(64);
   rejected = false; try { decryptTwoFactorSecret(enc); } catch { rejected = true; }
   check("2FA: con otra clave no se puede leer", rejected);
@@ -51,6 +56,7 @@ async function main() {
   check("CSP: ninguna página puede ir en un marco ajeno", csp.includes("frame-ancestors 'none'") && csp.includes("object-src 'none'"));
   check("CSP: sin https no fuerza la mejora a https", !csp.includes("upgrade-insecure-requests") && buildCsp("N", { https: true, dev: false }).includes("upgrade-insecure-requests"));
   check("CSP: sin 'unsafe-eval' en producción", !csp.includes("unsafe-eval") && buildCsp("N", { https: false, dev: true }).includes("unsafe-eval"));
+  check("CSP: el mapa solo se permite bajo google.com/maps/", csp.includes("https://www.google.com/maps/") && !/google\.com[ ;]/.test(csp.replace("https://www.google.com/maps/", "")));
   process.exit(fails ? 1 : 0);
 }
 main();

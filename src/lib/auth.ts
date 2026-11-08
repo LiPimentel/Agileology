@@ -26,6 +26,8 @@ export async function verifyPassword(password: string, hash: string) {
 export async function createSession(adminId: string) {
   const token = randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + SESSION_MINUTES * 60_000);
+  // Housekeeping: expired sessions are useless rows.
+  await prisma.session.deleteMany({ where: { expiresAt: { lt: new Date() } } }).catch(() => undefined);
   await prisma.session.create({ data: { id: hashSessionToken(token), adminId, expiresAt } });
   const store = await cookies();
   store.set(SESSION_COOKIE, token, sessionCookieOptions(expiresAt));
@@ -90,16 +92,14 @@ export async function isLockedOut(admin: { lockoutUntil: Date | null }) {
 }
 
 export async function recordFailedLogin(adminId: string) {
-  const admin = await prisma.admin.findUnique({ where: { id: adminId } });
-  if (!admin) return;
-  const attempts = admin.failedLoginAttempts + 1;
-  const data: { failedLoginAttempts: number; lockoutUntil?: Date } = {
-    failedLoginAttempts: attempts,
-  };
-  if (attempts >= MAX_FAILED_ATTEMPTS) {
-    data.lockoutUntil = new Date(Date.now() + LOCKOUT_MINUTES * 60_000);
+  // Atomic increment in the database: parallel guesses (each bcrypt check takes ~250 ms) used to
+  // read the same counter and count as a single failure.
+  const updated = await prisma.admin
+    .update({ where: { id: adminId }, data: { failedLoginAttempts: { increment: 1 } }, select: { failedLoginAttempts: true } })
+    .catch(() => null);
+  if (updated && updated.failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
+    await prisma.admin.update({ where: { id: adminId }, data: { lockoutUntil: new Date(Date.now() + LOCKOUT_MINUTES * 60_000) } });
   }
-  await prisma.admin.update({ where: { id: adminId }, data });
 }
 
 export async function resetFailedLogins(adminId: string) {
@@ -184,6 +184,8 @@ const PENDING_2FA_MINUTES = 5;
 
 function sign(value: string) {
   const secret = process.env.SESSION_SECRET ?? "";
+  // An empty/short secret would make the signed 2FA-pending cookie forgeable: refuse to run that way.
+  if (secret.length < 32) throw new Error("SESSION_SECRET falta o es demasiado corta (mínimo 32 caracteres).");
   return createHmac("sha256", secret).update(value).digest("hex");
 }
 

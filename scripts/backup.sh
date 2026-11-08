@@ -16,10 +16,11 @@ DB_CONTAINER="${DB_CONTAINER:-agileology-db}"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 
 [ -f "$PASS_FILE" ] || { echo "ERROR: falta la frase de cifrado en $PASS_FILE (crea una larga y aleatoria: openssl rand -base64 36 > \"$PASS_FILE\" && chmod 600 \"$PASS_FILE\")"; exit 1; }
-[ "$(stat -f '%Lp' "$PASS_FILE" 2>/dev/null || stat -c '%a' "$PASS_FILE")" = "600" ] || { echo "ERROR: $PASS_FILE debe tener permisos 600"; exit 1; }
+perm="$(stat -c '%a' "$PASS_FILE" 2>/dev/null || stat -f '%Lp' "$PASS_FILE")"   # GNU first, then macOS/BSD
+[ "$perm" = "600" ] || { echo "ERROR: $PASS_FILE debe tener permisos 600"; exit 1; }
 
 umask 077
-mkdir -p "$DEST"
+mkdir -p "$DEST" "$HOME/Backups/agileology"
 ENC=(openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -salt -pass "file:$PASS_FILE")
 DEC=(openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 -pass "file:$PASS_FILE")
 
@@ -33,6 +34,7 @@ tar -C uploads -czf - . | "${ENC[@]}" -out "$UP_OUT"
 "${DEC[@]}" -in "$UP_OUT" | tar -tzf - >/dev/null
 
 # Keep the last $KEEP_DAYS days.
-find "$DEST" -name '*.enc' -mtime +"$KEEP_DAYS" -delete
+# Only this script's own files, in this folder only (never anything else a wrong BACKUP_DIR might hold).
+find "$DEST" -maxdepth 1 -type f \( -name 'db-*.enc' -o -name 'uploads-*.enc' \) -mtime +"$KEEP_DAYS" -delete
 
 echo "OK $(date '+%F %T') · base: $(du -h "$DB_OUT" | cut -f1) · archivos: $(du -h "$UP_OUT" | cut -f1) · destino: $DEST"

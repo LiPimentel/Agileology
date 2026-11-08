@@ -16,6 +16,10 @@ export const dynamic = "force-dynamic";
  * del sitio" in the analytics dashboard.
  */
 export async function POST(request: NextRequest) {
+  // Only this site's own pages may report visits: a browser marks requests started by another
+  // site as "cross-site" (and this endpoint accepts a plain-text POST, which needs no CORS check).
+  if (request.headers.get("sec-fetch-site") === "cross-site") return NextResponse.json({ ok: false }, { status: 403 });
+  if (Number(request.headers.get("content-length") ?? 0) > 4096) return NextResponse.json({ ok: false }, { status: 413 });
   const ip = clientIp(request.headers);
   if (!rateLimit(`visit:${ip}`, 60, 60_000)) {
     return NextResponse.json({ ok: false }, { status: 429 });
