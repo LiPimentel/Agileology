@@ -352,7 +352,10 @@ export async function duplicatePage(pageId: string) {
   revalidatePath("/admin/pages");
 }
 
-/** RF-23: rolls a page back to a previously published snapshot by re-publishing it. */
+/**
+ * RF-23: brings an earlier saved version back into the page's working copy (the draft). It does NOT
+ * publish: the editor reviews it first and publishes when ready.
+ */
 export async function restorePageVersion(pageId: string, versionId: string) {
   const admin = await requireAdmin();
   const version = await prisma.pageVersion.findUnique({ where: { id: versionId } });
@@ -457,7 +460,6 @@ export async function restorePageVersion(pageId: string, versionId: string) {
     });
   });
 
-  await publishPage(pageId);
-  await logAudit({ adminId: admin.id, action: "restore_version", entityType: "Page", entityId: pageId, detail: { entity: `Página «${(await prisma.page.findUnique({ where: { id: pageId }, select: { title: true } }))?.title ?? pageId}»`, summary: `Restauró la versión del ${version.createdAt.toISOString()}` } });
+  await logAudit({ adminId: admin.id, action: "restore_version", entityType: "Page", entityId: pageId, detail: { entity: `Página «${(await prisma.page.findUnique({ where: { id: pageId }, select: { title: true } }))?.title ?? pageId}»`, summary: `Restauró como borrador la versión del ${version.createdAt.toISOString()} (sin publicar)` } });
   revalidatePath(`/admin/pages/${pageId}`);
 }
