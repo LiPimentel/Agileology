@@ -121,6 +121,9 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
 
   // `where`: "full" = a full-width section (centred in a readable column); "center" / "rail" = inside the
   // three-column grid, where the section fills its column instead of being centred in a narrow strip.
+  // A page that uses the three-column grid anywhere is laid out as one wide page (shared width, one type scale).
+  const wide = sections.some((sec) => ['main', 'left', 'right'].includes(String(sec[0]?.sectionZone)));
+  const gridMax = Math.min(1920, Math.max(800, page.background?.gridMaxWidth ?? 1280));
   const renderSection = (section: RenderableBlock[], i: number, where: "full" | "center" | "rail" = "full") => {
     const inGrid = where !== "full";
           const first = section[0];
@@ -181,7 +184,10 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
           const hasSectionBg =
             Boolean(first?.sectionBgImageUrl) || Boolean(first?.sectionBgVideoUrl) || (first?.sectionBgOpacity ?? 0) > 0;
           // Multi-column sections get a wider container than single-column reading text.
-          const widthClass = inGrid ? "max-w-full" : columns.length > 1 ? "max-w-5xl" : "max-w-3xl";
+          // On a page that uses the three-column grid, every full-width section shares the grid's width so the whole page lines up.
+          const alignWide = wide && where === "full";
+          const widthClass = inGrid || alignWide ? "max-w-full" : columns.length > 1 ? "max-w-5xl" : "max-w-3xl";
+          const maxStyle = alignWide ? { maxWidth: `${gridMax}px` } : undefined;
           const padX = where === "rail" ? "px-3" : "px-6";
           if (hasSectionBg && !isFree) {
             return (
@@ -198,6 +204,7 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
                 >
                   {/* A section with a background video is a hero: tall (like Wix's first screen), content centred, bigger heading. */}
                   <div
+                    style={maxStyle}
                     className={`mx-auto ${widthClass} ${padX} py-10 ${
                       first?.sectionBgVideoUrl ? "flex min-h-[min(75vh,46rem)] items-center [&>*]:w-full [&_h2]:text-4xl sm:[&_h2]:text-6xl" : ""
                     }`}
@@ -229,7 +236,7 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
           // the centered ~768px readable column, same as before this
           // existed -- see the comment on the outer wrapper above.
           return (
-            <div key={first?.id ?? i} className={isFree ? "w-full" : `mx-auto ${widthClass} ${padX}${hasBands ? " py-8" : ""}`}>
+            <div key={first?.id ?? i} style={isFree ? undefined : maxStyle} className={isFree ? "w-full" : `mx-auto ${widthClass} ${padX}${hasBands ? " py-8" : ""}`}>
               {content}
             </div>
           );
@@ -239,11 +246,15 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
   // grid; "full" sections (the default, every page before this existed) keep spanning the whole width.
   const leftWidth = page.background?.sideLeftWidth ?? 22;
   const rightWidth = page.background?.sideRightWidth ?? 22;
-  const gridMax = Math.min(1920, Math.max(800, page.background?.gridMaxWidth ?? 1280));
   const layoutItems = buildLayoutItems(sections, (sec) => sec[0]?.sectionZone);
 
+  // One type scale across a wide page: a title written as H1 looks like an H2 (they are the same size), body text one step larger. The hero keeps its own big heading.
+  // Sizes set by hand in the editor (inline styles) still win.
+  const articleClass = wide
+    ? "[&_.prose]:text-[1.125rem] [&_.prose_h1]:text-[1.5em] [&_.prose_h1]:leading-[1.33]"
+    : undefined;
   return (
-    <article>
+    <article className={articleClass}>
       {showBanner ? (
         <BackgroundOverlay
           imageUrl={page.background?.imageUrl}
