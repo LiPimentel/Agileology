@@ -4,7 +4,7 @@ import { useId } from "react";
 
 export type LatestPostsBlockValue = { count: number; autoplay: boolean; intervalSeconds: number; author: string };
 
-export const EMPTY_LATEST_POSTS: LatestPostsBlockValue = { count: 5, autoplay: true, intervalSeconds: 6, author: "Lissette Pimentel Sosa" };
+export const EMPTY_LATEST_POSTS: LatestPostsBlockValue = { count: 6, autoplay: true, intervalSeconds: 6, author: "Lissette Pimentel Sosa" };
 
 const field = "rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100";
 const label = "block text-sm font-medium text-slate-700 dark:text-slate-300";
@@ -20,9 +20,9 @@ export function LatestPostsBlockEditor({ value, onChange }: { value: LatestPosts
         <div>
           <label htmlFor={`${uid}-count`} className={label}>Entradas en la rotación</label>
           <select id={`${uid}-count`} value={value.count} onChange={(e) => onChange({ ...value, count: Number(e.target.value) })} className={`${field} mt-1`}>
-            {[3, 4, 5].map((n) => (
+            {[3, 4, 5, 6].map((n) => (
               <option key={n} value={n}>
-                {n === 5 ? "5 (máximo)" : n}
+                {n === 6 ? "6 (máximo)" : n}
               </option>
             ))}
           </select>

@@ -32,6 +32,13 @@ function CheckRow({ c }: { c: Check }) {
   );
 }
 
+const SUBDOMAIN_STEPS = [
+  "En Cloudflare entra a tu dominio y abre Zero Trust → Networks → Tunnels (o el túnel que ya usas).",
+  "Elige «Public hostname» (nombre público) y escribe el subdominio, por ejemplo app2.",
+  "En «Service» pon dónde corre esa app (por ejemplo http://localhost:3001). Cloudflare crea el registro DNS solo.",
+  "Prueba la dirección en el navegador. Si la app tiene panel privado, agrégale una regla de Cloudflare Access.",
+];
+
 const STEPS = [
   "Crea una cuenta gratis en Cloudflare (con verificación en dos pasos) y añade tu dominio.",
   "Cambia los servidores de nombres del dominio, en el registrador actual, por los dos de Cloudflare. Tu sitio actual sigue funcionando.",
@@ -107,6 +114,17 @@ export function DomainForm({ publicUrl, envUrl, canonicalHost }: { publicUrl: st
           {STEPS.map((s) => <li key={s}>{s}</li>)}
         </ol>
         <p className="mt-3 text-xs text-slate-600 dark:text-slate-400">Detalle completo, con la lista de seguridad, en <code>docs/hardening.md</code>.</p>
+      </section>
+
+      <section aria-labelledby="sub-h" className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+        <h2 id="sub-h" className="text-lg font-semibold text-slate-900 dark:text-slate-100">Subdominios para otras apps</h2>
+        <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
+          Un subdominio es otro nombre bajo el mismo dominio (por ejemplo <code>app2.tudominio.com</code>) que lleva a otra aplicación. Se crea en Cloudflare, no aquí, a propósito: así este sitio nunca guarda una llave que controle todo tu dominio.
+        </p>
+        <ol className="mt-2 list-decimal space-y-2 pl-5 text-sm text-slate-700 dark:text-slate-300">
+          {SUBDOMAIN_STEPS.map((s) => <li key={s}>{s}</li>)}
+        </ol>
+        <p className="mt-3 text-xs text-slate-600 dark:text-slate-400">La «Dirección del sitio» de arriba es solo la de este sitio; los subdominios de otras apps no la cambian. Protege con Cloudflare Access cualquier app que tenga panel de administración.</p>
       </section>
     </div>
   );

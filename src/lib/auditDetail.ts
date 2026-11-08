@@ -67,7 +67,7 @@ export function blockPreview(b: BlockLike): string {
     case "carousel":
       return `${Array.isArray(c.slides) ? c.slides.length : 0} diapositivas`;
     case "latestPosts":
-      return `${c.count ?? 5} entradas`;
+      return `${c.count ?? 6} entradas`;
     case "linkedinPosts":
       return `${Array.isArray(c.posts) ? c.posts.length : 0} publicaciones`;
     default:

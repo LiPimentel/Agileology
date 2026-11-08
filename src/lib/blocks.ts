@@ -108,7 +108,7 @@ export const carouselBlockSchema = z.object({
 // Most recent published posts, rotating (3 shown at a time). The posts themselves are looked up
 // at render time (lib/latestPosts.ts); only the options are stored here.
 export const latestPostsBlockSchema = z.object({
-  count: z.number().int().min(3).max(5).default(5),
+  count: z.number().int().min(3).max(6).default(6),
   autoplay: z.boolean().default(true),
   intervalSeconds: z.number().min(3).max(15).default(6),
   author: z.string().max(80).default("Lissette Pimentel Sosa"),
