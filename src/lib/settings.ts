@@ -2,32 +2,49 @@ import "server-only";
 import { isHomeSlug } from "@/lib/home";
 import { prisma } from "@/lib/prisma";
 
+/**
+ * Reads a one-row settings table, creating the row the first time. Two requests arriving together
+ * on a brand-new database both try to create it; the loser re-reads instead of failing (the old
+ * upsert threw a unique-constraint error there, and also wrote on every page view).
+ */
+async function ensureSingleton<T>(find: () => Promise<T | null>, create: () => Promise<T>): Promise<T> {
+  const existing = await find();
+  if (existing) return existing;
+  try {
+    return await create();
+  } catch (err) {
+    const raced = await find();
+    if (raced) return raced;
+    throw err;
+  }
+}
+
 export async function getSiteSettings() {
-  return prisma.siteSettings.upsert({
-    where: { id: "singleton" },
-    update: {},
-    create: { id: "singleton" },
-  });
+  return ensureSingleton(
+    () => prisma.siteSettings.findUnique({ where: { id: "singleton" } }),
+    () => prisma.siteSettings.create({ data: { id: "singleton" } }),
+  );
 }
 
 export async function getCommunicationSettings() {
-  return prisma.communicationSettings.upsert({
-    where: { id: "singleton" },
-    update: {},
-    create: {
-      id: "singleton",
-      chatDestinationEmail: process.env.CHAT_DESTINATION_EMAIL_DEFAULT ?? "",
-      contactFormDestinationEmail: process.env.CONTACT_DESTINATION_EMAIL_DEFAULT ?? "",
-    },
-  });
+  return ensureSingleton(
+    () => prisma.communicationSettings.findUnique({ where: { id: "singleton" } }),
+    () =>
+      prisma.communicationSettings.create({
+        data: {
+          id: "singleton",
+          chatDestinationEmail: process.env.CHAT_DESTINATION_EMAIL_DEFAULT ?? "",
+          contactFormDestinationEmail: process.env.CONTACT_DESTINATION_EMAIL_DEFAULT ?? "",
+        },
+      }),
+  );
 }
 
 export async function getBlogSettings() {
-  return prisma.blogSettings.upsert({
-    where: { id: "singleton" },
-    update: {},
-    create: { id: "singleton" },
-  });
+  return ensureSingleton(
+    () => prisma.blogSettings.findUnique({ where: { id: "singleton" } }),
+    () => prisma.blogSettings.create({ data: { id: "singleton" } }),
+  );
 }
 
 export type NavLink = { label: string; href: string; newTab: boolean; children?: NavLink[] };

@@ -21,11 +21,19 @@ services:
       - postgres
     env_file:
       - .env
+    # The app never needs extra privileges: drop every Linux capability and forbid gaining more.
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     ports:
-      - "3000:3000"
+      # Reachable only from this machine by default (a proxy/tunnel such as cloudflared on the same host
+      # is enough). For testing over Tailscale/LAN set APP_BIND=0.0.0.0 in .env; never on a public host.
+      - "${APP_BIND:-127.0.0.1}:3000:3000"
     volumes:
       # Outside public/ on purpose: Next serves anything under public/ as a plain static file,
       # which would bypass the /uploads route (Range handling, nosniff + sandbox headers).
+      # The container runs as uid 1000 ("node"): on Linux, `chown 1000:1000 uploads` once on the host.
       - ./uploads:/app/uploads
 
 volumes:

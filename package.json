@@ -17,23 +17,23 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
-    "@prisma/adapter-pg": "^7.9.1",
-    "@prisma/client": "^7.9.1",
+    "@prisma/adapter-pg": "7.10.1",
+    "@prisma/client": "7.10.1",
     "@tailwindcss/typography": "^0.5.20",
     "bcryptjs": "^3.0.3",
     "marked": "18.1.0",
     "next": "16.4.5",
-    "nodemailer": "^9.0.5",
+    "nodemailer": "10.2.1",
     "otpauth": "^9.5.1",
     "pg": "^8.23.0",
-    "prisma": "^7.9.1",
+    "prisma": "7.10.1",
     "qrcode": "^1.5.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "sanitize-html": "^2.17.7",
+    "sanitize-html": "2.18.1",
     "sharp": "^0.35.3",
     "uuid": "^14.0.2",
-    "zod": "^4.4.3"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",

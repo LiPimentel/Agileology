@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Nightly backup on macOS. Copy to ~/Library/LaunchAgents/com.agileology.backup.plist, fix the
+     two paths, then:  launchctl load ~/Library/LaunchAgents/com.agileology.backup.plist
+     (runs every day at 03:00; if the Mac was asleep it runs when it wakes). -->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.agileology.backup</string>
+  <key>ProgramArguments</key>
+  <array><string>/bin/bash</string><string>/Users/CAMBIA_TU_USUARIO/stacks/agileology/scripts/backup.sh</string></array>
+  <key>StartCalendarInterval</key><dict><key>Hour</key><integer>3</integer><key>Minute</key><integer>0</integer></dict>
+  <key>EnvironmentVariables</key><dict><key>PATH</key><string>/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin</string></dict>
+  <key>StandardOutPath</key><string>/Users/CAMBIA_TU_USUARIO/Backups/agileology/backup.log</string>
+  <key>StandardErrorPath</key><string>/Users/CAMBIA_TU_USUARIO/Backups/agileology/backup.log</string>
+</dict>
+</plist>

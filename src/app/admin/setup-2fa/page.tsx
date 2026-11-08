@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, generateTwoFactorSecret, buildOtpauthUrl, twoFactorQrDataUrl } from "@/lib/auth";
+import { encryptTwoFactorSecret, decryptTwoFactorSecret } from "@/lib/twoFactorCrypto";
 import { ConfirmForm } from "./ConfirmForm";
 import { ThemeToggle } from "@/components/admin/ThemeToggle";
 
@@ -22,10 +23,12 @@ export default async function SetupTwoFactorPage() {
     );
   }
 
-  let secret = admin.twoFactorSecret;
-  if (!secret) {
+  let secret: string;
+  if (admin.twoFactorSecret) {
+    secret = decryptTwoFactorSecret(admin.twoFactorSecret);
+  } else {
     secret = generateTwoFactorSecret(admin.email).base32;
-    await prisma.admin.update({ where: { id: admin.id }, data: { twoFactorSecret: secret } });
+    await prisma.admin.update({ where: { id: admin.id }, data: { twoFactorSecret: encryptTwoFactorSecret(secret) } });
   }
   const otpauthUrl = buildOtpauthUrl(admin.email, secret);
 

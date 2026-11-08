@@ -6,7 +6,8 @@ import bcrypt from "bcryptjs";
 import { TOTP, Secret } from "otpauth";
 import QRCode from "qrcode";
 import { prisma } from "@/lib/prisma";
-import { SESSION_COOKIE, SESSION_MINUTES, COOKIE_SECURE, sessionCookieOptions } from "@/lib/session-db";
+import { decryptTwoFactorSecret } from "@/lib/twoFactorCrypto";
+import { SESSION_COOKIE, SESSION_MINUTES, COOKIE_SECURE, sessionCookieOptions, hashSessionToken } from "@/lib/session-db";
 
 export { SESSION_COOKIE, touchSession } from "@/lib/session-db";
 
@@ -25,7 +26,9 @@ export async function verifyPassword(password: string, hash: string) {
 export async function createSession(adminId: string) {
   const token = randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + SESSION_MINUTES * 60_000);
-  await prisma.session.create({ data: { id: token, adminId, expiresAt } });
+  // Housekeeping: expired sessions are useless rows.
+  await prisma.session.deleteMany({ where: { expiresAt: { lt: new Date() } } }).catch(() => undefined);
+  await prisma.session.create({ data: { id: hashSessionToken(token), adminId, expiresAt } });
   const store = await cookies();
   store.set(SESSION_COOKIE, token, sessionCookieOptions(expiresAt));
   return token;
@@ -35,7 +38,7 @@ export async function destroySession() {
   const store = await cookies();
   const token = store.get(SESSION_COOKIE)?.value;
   if (token) {
-    await prisma.session.delete({ where: { id: token } }).catch(() => undefined);
+    await prisma.session.delete({ where: { id: hashSessionToken(token) } }).catch(() => undefined);
   }
   store.delete(SESSION_COOKIE);
 }
@@ -55,18 +58,19 @@ export async function getCurrentAdmin() {
     return null;
   }
 
+  const sessionId = hashSessionToken(token);
   const session = await prisma.session.findUnique({
-    where: { id: token },
+    where: { id: sessionId },
     include: { admin: true },
   });
 
   if (!session) {
-    console.warn(`[getCurrentAdmin] no session row in DB for cookie ${token.slice(0, 8)}…`);
+    console.warn(`[getCurrentAdmin] no session row in DB for cookie ${sessionId.slice(0, 8)}…`);
     return null;
   }
   if (session.expiresAt < new Date()) {
     console.warn(
-      `[getCurrentAdmin] session ${token.slice(0, 8)}… expired: expiresAt=${session.expiresAt.toISOString()} now=${new Date().toISOString()}`,
+      `[getCurrentAdmin] session ${sessionId.slice(0, 8)}… expired: expiresAt=${session.expiresAt.toISOString()} now=${new Date().toISOString()}`,
     );
     return null;
   }
@@ -88,16 +92,14 @@ export async function isLockedOut(admin: { lockoutUntil: Date | null }) {
 }
 
 export async function recordFailedLogin(adminId: string) {
-  const admin = await prisma.admin.findUnique({ where: { id: adminId } });
-  if (!admin) return;
-  const attempts = admin.failedLoginAttempts + 1;
-  const data: { failedLoginAttempts: number; lockoutUntil?: Date } = {
-    failedLoginAttempts: attempts,
-  };
-  if (attempts >= MAX_FAILED_ATTEMPTS) {
-    data.lockoutUntil = new Date(Date.now() + LOCKOUT_MINUTES * 60_000);
+  // Atomic increment in the database: parallel guesses (each bcrypt check takes ~250 ms) used to
+  // read the same counter and count as a single failure.
+  const updated = await prisma.admin
+    .update({ where: { id: adminId }, data: { failedLoginAttempts: { increment: 1 } }, select: { failedLoginAttempts: true } })
+    .catch(() => null);
+  if (updated && updated.failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
+    await prisma.admin.update({ where: { id: adminId }, data: { lockoutUntil: new Date(Date.now() + LOCKOUT_MINUTES * 60_000) } });
   }
-  await prisma.admin.update({ where: { id: adminId }, data });
 }
 
 export async function resetFailedLogins(adminId: string) {
@@ -156,7 +158,8 @@ export async function twoFactorQrDataUrl(otpauthUrl: string) {
   return QRCode.toDataURL(otpauthUrl);
 }
 
-export function verifyTwoFactorToken(base32Secret: string, token: string) {
+export function verifyTwoFactorToken(storedSecret: string, token: string) {
+  const base32Secret = decryptTwoFactorSecret(storedSecret);
   const totp = new TOTP({
     issuer: TOTP_ISSUER,
     algorithm: "SHA1",
@@ -181,6 +184,8 @@ const PENDING_2FA_MINUTES = 5;
 
 function sign(value: string) {
   const secret = process.env.SESSION_SECRET ?? "";
+  // An empty/short secret would make the signed 2FA-pending cookie forgeable: refuse to run that way.
+  if (secret.length < 32) throw new Error("SESSION_SECRET falta o es demasiado corta (mínimo 32 caracteres).");
   return createHmac("sha256", secret).update(value).digest("hex");
 }
 

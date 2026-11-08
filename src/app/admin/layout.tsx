@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { THEME_STORAGE_KEY } from "@/lib/theme";
 import { DarkModeScope } from "@/components/admin/DarkModeScope";
 
@@ -15,10 +16,12 @@ const THEME_SCRIPT = `(function () {
   } catch (e) {}
 })();`;
 
-export default function AdminRootLayout({ children }: { children: React.ReactNode }) {
+export default async function AdminRootLayout({ children }: { children: React.ReactNode }) {
+  // The CSP only lets scripts carrying this request's nonce run (set in proxy.ts).
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <>
-      <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      <script nonce={nonce} dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       {/*
         "el modo oscuro era para el backoffice solamente... afuera siempre
         se queda en claro normal" -- the class this script just applied to
