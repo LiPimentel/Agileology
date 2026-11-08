@@ -21,6 +21,7 @@ const NAV = [
 const SETTINGS_NAV = [
   { href: "/admin/settings/site", label: "Ajustes del sitio" },
   { href: "/admin/settings/menu", label: "Menú del sitio" },
+  { href: "/admin/settings/seo", label: "SEO de las páginas" },
   { href: "/admin/settings/blog", label: "Diseño del blog" },
   { href: "/admin/settings/communications", label: "Comunicaciones" },
   { href: "/admin/settings/audit", label: "Auditoría" },
