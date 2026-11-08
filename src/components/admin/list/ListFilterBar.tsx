@@ -1,4 +1,8 @@
+"use client";
+
+import { useEffect, useRef, useTransition } from "react";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 
 export type FilterField =
   | { type: "search"; name: string; label: string; placeholder?: string }
@@ -6,11 +10,14 @@ export type FilterField =
   | { type: "date"; name: string; label: string };
 
 const input = "mt-1 rounded-md border border-slate-300 px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100";
+const TYPING_DELAY_MS = 300;
 
 /**
- * GET form with the filters of a list. Plain HTML (no client code): submitting reloads the list
- * with the filters in the URL, so they can be bookmarked and shared. Sorting is kept through
- * hidden inputs; pagination restarts at page 1 on every new search.
+ * The filters of a list. They apply by themselves: a list narrows as you type (after a short pause),
+ * and a choice in a menu or a date applies at once. The filters live in the address, so a filtered
+ * list can be bookmarked or shared; sorting is kept (hidden inputs) and pagination restarts at page 1
+ * (page parameters are not part of this form). Without JavaScript it still works as a normal GET form
+ * with a "Filtrar" button.
  */
 export function ListFilterBar({
   fields,
@@ -25,9 +32,44 @@ export function ListFilterBar({
   hidden?: Record<string, string | undefined>;
   children?: React.ReactNode;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const formRef = useRef<HTMLFormElement>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [pending, startTransition] = useTransition();
   const active = fields.some((f) => Boolean(values[f.name]));
+
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+
+  function apply() {
+    if (timer.current) clearTimeout(timer.current);
+    const form = formRef.current;
+    if (!form) return;
+    const params = new URLSearchParams();
+    for (const [key, value] of new FormData(form).entries()) {
+      if (typeof value === "string" && value.trim() !== "") params.set(key, value.trim());
+    }
+    const qs = params.toString();
+    startTransition(() => router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false }));
+  }
+  const applyAfterPause = () => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(apply, TYPING_DELAY_MS);
+  };
+
   return (
-    <form method="get" role="search" aria-label="Filtros de la lista" className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+    <form
+      ref={formRef}
+      method="get"
+      role="search"
+      aria-label="Filtros de la lista"
+      aria-busy={pending}
+      onSubmit={(e) => {
+        e.preventDefault();
+        apply();
+      }}
+      className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
+    >
       {Object.entries(hidden).map(([k, v]) => (v ? <input key={k} type="hidden" name={k} value={v} /> : null))}
       {fields.map((f) => {
         const id = `filter-${f.name}`;
@@ -37,7 +79,7 @@ export function ListFilterBar({
               {f.label}
             </label>
             {f.type === "select" ? (
-              <select id={id} name={f.name} defaultValue={values[f.name] ?? ""} className={input}>
+              <select id={id} name={f.name} defaultValue={values[f.name] ?? ""} onChange={apply} className={input}>
                 {f.options.map((o) => (
                   <option key={o.value} value={o.value}>
                     {o.label}
@@ -51,15 +93,18 @@ export function ListFilterBar({
                 type={f.type === "date" ? "date" : "search"}
                 defaultValue={values[f.name] ?? ""}
                 placeholder={f.type === "search" ? f.placeholder : undefined}
+                onChange={f.type === "search" ? applyAfterPause : apply}
                 className={`${input} ${f.type === "search" ? "w-56" : ""}`}
               />
             )}
           </div>
         );
       })}
-      <button type="submit" className="rounded-md bg-violet-700 px-4 py-2 text-sm font-medium text-white hover:bg-violet-800 dark:bg-violet-600 dark:hover:bg-violet-500">
-        Filtrar
+      {/* Kept for keyboards and for browsers without JavaScript; the filters already apply on their own. */}
+      <button type="submit" className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+        Aplicar
       </button>
+      {pending && <span role="status" className="pb-2 text-xs text-slate-600 dark:text-slate-400">Filtrando…</span>}
       {active && (
         <Link href={resetHref} className="text-sm text-slate-600 underline hover:text-violet-700 dark:text-slate-400 dark:hover:text-sky-400">
           Limpiar filtros
