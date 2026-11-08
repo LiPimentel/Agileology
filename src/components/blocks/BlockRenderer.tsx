@@ -2,6 +2,7 @@ import Image from "next/image";
 import { Carousel, type CarouselValue } from "@/components/blocks/Carousel";
 import { LatestPosts, type LatestPostsValue } from "@/components/blocks/LatestPosts";
 import { LinkedinPosts, type LinkedinPostsValue } from "@/components/blocks/LinkedinPosts";
+import { ElfsightFrame } from "@/components/blocks/ElfsightFrame";
 import { isUploadedVideo, parseVideoEmbed } from "@/lib/video";
 import { TrackedLink } from "@/components/public/TrackedLink";
 import {
@@ -213,14 +214,11 @@ export function BlockRenderer({ block, pageId }: { block: RenderableBlock; pageI
           <section aria-label={heading || "Publicaciones de LinkedIn"} className="w-full">
             {heading && <h2 className="mb-2 text-base font-semibold text-[#1F2A44]">{heading}</h2>}
             {/* Third-party widget: served from its own origin (EMBED_ORIGIN), so allow-same-origin only applies to that origin and its scripts cannot touch this site or the backoffice. */}
-            <iframe
+            <ElfsightFrame
               src={`${embedOrigin}/embed/linkedin/${elfsightId.toLowerCase()}`}
+              embedOrigin={embedOrigin}
+              initialHeight={height}
               title={heading || "Publicaciones de LinkedIn"}
-              loading="lazy"
-              sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
-              referrerPolicy="no-referrer"
-              className="w-full rounded-md border-0"
-              style={{ height: `${height}px` }}
             />
           </section>
         );

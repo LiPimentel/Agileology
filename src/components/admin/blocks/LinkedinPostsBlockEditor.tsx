@@ -59,7 +59,7 @@ export function LinkedinPostsBlockEditor({
         </p>
         {value.elfsightId && (
           <div className="mt-2">
-            <label htmlFor={`${uid}-h`} className={label}>Alto del recuadro ({value.height}px)</label>
+            <label htmlFor={`${uid}-h`} className={label}>Alto antes de cargar ({value.height}px). Después se ajusta solo para mostrar todas las publicaciones</label>
             <input id={`${uid}-h`} type="range" min={240} max={1400} step={20} value={value.height} onChange={(e) => onChange({ ...value, height: Number(e.target.value) })} className="mt-1 w-full max-w-xs" />
           </div>
         )}

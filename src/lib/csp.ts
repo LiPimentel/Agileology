@@ -39,10 +39,12 @@ export function buildCsp(nonce: string, opts: { https: boolean; dev: boolean; em
  * lib/embedOrigin.ts) and may be framed only by this site, so the widget shares no cookies or storage
  * with the site or the backoffice.
  */
+import { EMBED_HEIGHT_SCRIPT_HASH } from "@/lib/embedPage";
+
 export function buildEmbedCsp(opts: { https: boolean; ancestors: string[] }): string {
   const directives = [
     `default-src 'none'`,
-    `script-src https://static.elfsight.com https://*.elfsight.com https://*.elfsightcdn.com`,
+    `script-src https://static.elfsight.com https://*.elfsight.com https://*.elfsightcdn.com ${EMBED_HEIGHT_SCRIPT_HASH}`,
     `style-src 'unsafe-inline' https:`,
     `img-src https: data: blob:`,
     `font-src https: data:`,

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { EMBED_HEIGHT_SCRIPT } from "@/lib/embedPage";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   const used = await prisma.contentBlock.findFirst({ where: { type: "linkedinPosts", content: { path: ["elfsightId"], equals: id.toLowerCase() } }, select: { id: true } });
   if (!used) return notFound();
 
-  const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Publicaciones de LinkedIn</title><style>html,body{margin:0;background:transparent}</style></head><body><script src="https://static.elfsight.com/platform/platform.js" async></script><div class="elfsight-app-${id.toLowerCase()}" data-elfsight-app-lazy></div></body></html>`;
+  const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Publicaciones de LinkedIn</title><style>html,body{margin:0;background:transparent}</style></head><body><script src="https://static.elfsight.com/platform/platform.js" async></script><div class="elfsight-app-${id.toLowerCase()}" data-elfsight-app-lazy></div><script>${EMBED_HEIGHT_SCRIPT}</script></body></html>`;
   return new Response(html, {
     headers: {
       "Content-Type": "text/html; charset=utf-8",
