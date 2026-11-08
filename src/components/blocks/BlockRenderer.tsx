@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { Carousel, type CarouselValue } from "@/components/blocks/Carousel";
 import { LatestPosts, type LatestPostsValue } from "@/components/blocks/LatestPosts";
+import { LinkedinPosts, type LinkedinPostsValue } from "@/components/blocks/LinkedinPosts";
 import { isUploadedVideo, parseVideoEmbed } from "@/lib/video";
 import { TrackedLink } from "@/components/public/TrackedLink";
 import {
@@ -22,7 +23,7 @@ import { CustomFormRenderer, type PublicFormField } from "@/components/public/Cu
 
 export type RenderableBlock = {
   id?: string;
-  type: "text" | "image" | "link" | "video" | "map" | "contactForm" | "customForm" | "carousel" | "latestPosts";
+  type: "text" | "image" | "link" | "video" | "map" | "contactForm" | "customForm" | "carousel" | "latestPosts" | "linkedinPosts";
   content: Record<string, unknown>;
   // Section/column layout (pages only -- see PageRenderer, which groups
   // blocks sharing the same `position` into one row and lays them out
@@ -188,6 +189,21 @@ export function BlockRenderer({ block, pageId }: { block: RenderableBlock; pageI
             autoplay: block.content.autoplay !== false,
             intervalSeconds: Number(block.content.intervalSeconds ?? 6),
             author: String(block.content.author ?? "Lissette Pimentel Sosa"),
+          }}
+        />
+      );
+    }
+    case "linkedinPosts": {
+      const posts = Array.isArray(block.content.posts) ? (block.content.posts as LinkedinPostsValue["posts"]) : [];
+      if (posts.length === 0) return null;
+      return (
+        <LinkedinPosts
+          value={{
+            title: String(block.content.title ?? "Últimas publicaciones en LinkedIn"),
+            posts,
+            visible: Number(block.content.visible ?? 4),
+            autoplay: block.content.autoplay !== false,
+            intervalSeconds: Number(block.content.intervalSeconds ?? 6),
           }}
         />
       );

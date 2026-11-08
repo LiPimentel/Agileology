@@ -12,6 +12,7 @@ import { LinkBlockEditor } from "@/components/admin/blocks/LinkBlockEditor";
 import { VideoBlockEditor } from "@/components/admin/blocks/VideoBlockEditor";
 import { CarouselBlockEditor } from "@/components/admin/blocks/CarouselBlockEditor";
 import { LatestPostsBlockEditor } from "@/components/admin/blocks/LatestPostsBlockEditor";
+import { LinkedinPostsBlockEditor } from "@/components/admin/blocks/LinkedinPostsBlockEditor";
 import { MapBlockEditor } from "@/components/admin/blocks/MapBlockEditor";
 import { ContactFormBlockEditor } from "@/components/admin/blocks/ContactFormBlockEditor";
 import { CustomFormBlockEditor } from "@/components/admin/blocks/CustomFormBlockEditor";
@@ -42,6 +43,7 @@ const BLOCK_LABELS: Record<BlockType, string> = {
   customForm: "Formulario (biblioteca)",
   carousel: "Carrusel",
   latestPosts: "Entradas recientes (rotan)",
+  linkedinPosts: "Publicaciones de LinkedIn (rotan)",
 };
 const BLOCK_TYPE_OPTIONS = (Object.keys(BLOCK_LABELS) as BlockType[]).map((type) => ({ type, label: BLOCK_LABELS[type] }));
 
@@ -70,6 +72,8 @@ function hasContent(block: BlockValue): boolean {
       return block.content.slides.length > 0;
     case "latestPosts":
       return true;
+    case "linkedinPosts":
+      return block.content.posts.length > 0;
   }
 }
 
@@ -571,6 +575,8 @@ export function SectionBlockEditor({
         return <CarouselBlockEditor value={item.block.content} onChange={onChange} mediaLibrary={mediaLibrary} />;
       case "latestPosts":
         return <LatestPostsBlockEditor value={item.block.content} onChange={onChange} />;
+      case "linkedinPosts":
+        return <LinkedinPostsBlockEditor value={item.block.content} onChange={onChange} mediaLibrary={mediaLibrary} />;
     }
   }
 
@@ -608,6 +614,8 @@ export function SectionBlockEditor({
         return <CarouselBlockEditor value={item.block.content} onChange={onChange} mediaLibrary={mediaLibrary} />;
       case "latestPosts":
         return <LatestPostsBlockEditor value={item.block.content} onChange={onChange} />;
+      case "linkedinPosts":
+        return <LinkedinPostsBlockEditor value={item.block.content} onChange={onChange} mediaLibrary={mediaLibrary} />;
     }
   }
 

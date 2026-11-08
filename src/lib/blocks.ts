@@ -114,6 +114,33 @@ export const latestPostsBlockSchema = z.object({
   author: z.string().max(80).default("Lissette Pimentel Sosa"),
 });
 
+// Compact cards linking to LinkedIn posts, filled in by hand (LinkedIn has no free public feed):
+// up to 5, `visible` of them shown at a time and rotating. Links must point at LinkedIn.
+export const MAX_LINKEDIN_POSTS = 5;
+const linkedinUrl = z
+  .string()
+  .max(2048)
+  .refine((u) => /^https:\/\/(([a-z]{2,3}|www)\.)?linkedin\.com\/[^\s]*$/i.test(u) || /^https:\/\/lnkd\.in\/[^\s]+$/i.test(u), "El enlace debe ser de LinkedIn (https://www.linkedin.com/...).");
+export const linkedinPostSchema = z.object({
+  url: linkedinUrl,
+  text: z.string().max(280).default(""),
+  // YYYY-MM-DD or empty.
+  date: z.string().regex(/^(\d{4}-\d{2}-\d{2})?$/, "La fecha debe tener el formato AAAA-MM-DD.").default(""),
+  // Optional thumbnail: an uploaded file or an https image.
+  image: z
+    .string()
+    .max(2048)
+    .refine((u) => u === "" || /^\/uploads\/[\w./-]+$/.test(u) || /^https:\/\/[^\s]+$/i.test(u), "La imagen debe ser un archivo de la biblioteca o un enlace https.")
+    .default(""),
+});
+export const linkedinPostsBlockSchema = z.object({
+  title: z.string().max(80).default("Últimas publicaciones en LinkedIn"),
+  posts: z.array(linkedinPostSchema).max(MAX_LINKEDIN_POSTS).default([]),
+  visible: z.number().int().min(2).max(4).default(4),
+  autoplay: z.boolean().default(true),
+  intervalSeconds: z.number().min(3).max(15).default(6),
+});
+
 export type EditorBlock =
   | { id: string; type: "text"; content: z.infer<typeof textBlockSchema> }
   | { id: string; type: "image"; content: z.infer<typeof imageBlockSchema> }
@@ -123,7 +150,8 @@ export type EditorBlock =
   | { id: string; type: "contactForm"; content: z.infer<typeof contactFormBlockSchema> }
   | { id: string; type: "customForm"; content: z.infer<typeof customFormBlockSchema> }
   | { id: string; type: "carousel"; content: z.infer<typeof carouselBlockSchema> }
-  | { id: string; type: "latestPosts"; content: z.infer<typeof latestPostsBlockSchema> };
+  | { id: string; type: "latestPosts"; content: z.infer<typeof latestPostsBlockSchema> }
+  | { id: string; type: "linkedinPosts"; content: z.infer<typeof linkedinPostsBlockSchema> };
 
 /** Sanitizes a block's content before it's persisted (RS-06). */
 export function sanitizeBlockContent(type: string, content: unknown) {
@@ -166,6 +194,14 @@ export function sanitizeBlockContent(type: string, content: unknown) {
     case "latestPosts": {
       const parsed = latestPostsBlockSchema.parse(content);
       return { ...parsed, author: sanitizePlainText(parsed.author) };
+    }
+    case "linkedinPosts": {
+      const parsed = linkedinPostsBlockSchema.parse(content);
+      return {
+        ...parsed,
+        title: sanitizePlainText(parsed.title),
+        posts: parsed.posts.map((p) => ({ ...p, text: sanitizePlainText(p.text) })),
+      };
     }
     default:
       throw new Error(`Unknown block type: ${type}`);
