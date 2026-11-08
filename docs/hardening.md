@@ -69,6 +69,17 @@ El inicio de sesión del administrador dará error, porque el secreto cifrado ya
 `update "Admin" set "twoFactorSecret"=null, "twoFactorEnabled"=false where email='TU_CORREO';`
 Entras con tu contraseña y el sistema te pide activar el 2FA de nuevo. Por eso conviene guardar la clave aparte y no depender de esta salida.
 
+## 5c. Mantenimiento del disco de Docker
+
+Cada `docker compose build` deja restos (imágenes sin etiqueta y caché de construcción). Tras unas decenas de reconstrucciones llenaron los 58 GB que Docker Desktop reserva: con **0 libres**, la base de datos no puede escribir. Revisa de vez en cuando:
+
+```
+docker exec agileology-app df -h /          # si "Use%" pasa del 80 %, limpia
+docker image prune -f                       # imágenes sin etiqueta que nadie usa
+docker builder prune -f                     # caché de construcción (se regenera sola)
+```
+Ninguno de estos comandos toca contenedores, volúmenes (la base de datos) ni imágenes con nombre.
+
 ## 6. Qué NO cubre (riesgos aceptados o pendientes)
 
 - No hay roles: todo administrador lo ve y lo puede todo (incluida la auditoría).
