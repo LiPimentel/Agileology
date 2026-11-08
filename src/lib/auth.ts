@@ -6,7 +6,8 @@ import bcrypt from "bcryptjs";
 import { TOTP, Secret } from "otpauth";
 import QRCode from "qrcode";
 import { prisma } from "@/lib/prisma";
-import { SESSION_COOKIE, SESSION_MINUTES, COOKIE_SECURE, sessionCookieOptions } from "@/lib/session-db";
+import { decryptTwoFactorSecret } from "@/lib/twoFactorCrypto";
+import { SESSION_COOKIE, SESSION_MINUTES, COOKIE_SECURE, sessionCookieOptions, hashSessionToken } from "@/lib/session-db";
 
 export { SESSION_COOKIE, touchSession } from "@/lib/session-db";
 
@@ -25,7 +26,7 @@ export async function verifyPassword(password: string, hash: string) {
 export async function createSession(adminId: string) {
   const token = randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + SESSION_MINUTES * 60_000);
-  await prisma.session.create({ data: { id: token, adminId, expiresAt } });
+  await prisma.session.create({ data: { id: hashSessionToken(token), adminId, expiresAt } });
   const store = await cookies();
   store.set(SESSION_COOKIE, token, sessionCookieOptions(expiresAt));
   return token;
@@ -35,7 +36,7 @@ export async function destroySession() {
   const store = await cookies();
   const token = store.get(SESSION_COOKIE)?.value;
   if (token) {
-    await prisma.session.delete({ where: { id: token } }).catch(() => undefined);
+    await prisma.session.delete({ where: { id: hashSessionToken(token) } }).catch(() => undefined);
   }
   store.delete(SESSION_COOKIE);
 }
@@ -55,18 +56,19 @@ export async function getCurrentAdmin() {
     return null;
   }
 
+  const sessionId = hashSessionToken(token);
   const session = await prisma.session.findUnique({
-    where: { id: token },
+    where: { id: sessionId },
     include: { admin: true },
   });
 
   if (!session) {
-    console.warn(`[getCurrentAdmin] no session row in DB for cookie ${token.slice(0, 8)}…`);
+    console.warn(`[getCurrentAdmin] no session row in DB for cookie ${sessionId.slice(0, 8)}…`);
     return null;
   }
   if (session.expiresAt < new Date()) {
     console.warn(
-      `[getCurrentAdmin] session ${token.slice(0, 8)}… expired: expiresAt=${session.expiresAt.toISOString()} now=${new Date().toISOString()}`,
+      `[getCurrentAdmin] session ${sessionId.slice(0, 8)}… expired: expiresAt=${session.expiresAt.toISOString()} now=${new Date().toISOString()}`,
     );
     return null;
   }
@@ -156,7 +158,8 @@ export async function twoFactorQrDataUrl(otpauthUrl: string) {
   return QRCode.toDataURL(otpauthUrl);
 }
 
-export function verifyTwoFactorToken(base32Secret: string, token: string) {
+export function verifyTwoFactorToken(storedSecret: string, token: string) {
+  const base32Secret = decryptTwoFactorSecret(storedSecret);
   const totp = new TOTP({
     issuer: TOTP_ISSUER,
     algorithm: "SHA1",

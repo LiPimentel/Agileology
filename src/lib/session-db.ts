@@ -1,9 +1,20 @@
 // No "next/headers" / "server-only" imports here on purpose — this module
 // is safe to import from proxy.ts (Node.js runtime, but not the
 // cookies()-in-render context that Server Components use).
+import { createHash } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 
 export const SESSION_COOKIE = "agileology_session";
+
+/**
+ * The cookie holds a random token; the database holds only its SHA-256. So a copy of the
+ * database (a backup, a leaked dump) does not contain anything that can be put in a cookie to
+ * become logged in. The token is 256 random bits, so a fast hash is enough (no password-style
+ * stretching needed).
+ */
+export function hashSessionToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
 
 // `NODE_ENV === "production"` used to gate the cookie's `Secure` attribute,
 // but a production Docker build accessed over plain HTTP (Tailscale/LAN
@@ -40,7 +51,7 @@ export function sessionCookieOptions(expires: Date) {
 export async function touchSession(token: string) {
   const expiresAt = new Date(Date.now() + SESSION_MINUTES * 60_000);
   try {
-    await prisma.session.update({ where: { id: token }, data: { expiresAt, lastSeenAt: new Date() } });
+    await prisma.session.update({ where: { id: hashSessionToken(token) }, data: { expiresAt, lastSeenAt: new Date() } });
   } catch (err) {
     // Never swallow this silently — a session that fails to slide (missing
     // row vs. a real DB error look identical downstream otherwise) has
@@ -48,7 +59,7 @@ export async function touchSession(token: string) {
     // token) so this is traceable in `docker compose logs` without leaking
     // a usable credential into the log.
     console.error(
-      `[touchSession] failed to refresh session ${token.slice(0, 8)}…:`,
+      `[touchSession] failed to refresh session ${hashSessionToken(token).slice(0, 8)}…:`,
       err instanceof Error ? err.message : err,
     );
     return null;

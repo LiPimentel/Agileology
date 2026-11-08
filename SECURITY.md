@@ -56,3 +56,17 @@ These need to be configured wherever the app is actually hosted:
 for a single-instance deployment; if the app ever runs on multiple
 instances behind a load balancer, move it to a shared store (Redis) so
 limits are enforced across instances.
+
+## Hardening round (see `docs/hardening.md`)
+
+| Area | Where |
+|------|-------|
+| Security headers, no `X-Powered-By` | `next.config.ts` |
+| CSP with per-request nonce, HSTS over HTTPS | `src/lib/csp.ts`, `src/proxy.ts` |
+| Trusted client IP for rate limiting | `src/lib/clientIp.ts` (`TRUSTED_IP_HEADER`) |
+| Login limited per email and per IP; constant-time answers; one-time 2FA codes | `src/app/admin/login/actions.ts`, `src/lib/rateLimit.ts` |
+| Session tokens stored only as SHA-256 | `src/lib/session-db.ts`, `src/lib/auth.ts` |
+| 2FA secret encrypted at rest (AES-256-GCM, `TWO_FACTOR_KEY`) | `src/lib/twoFactorCrypto.ts`, `scripts/encrypt-2fa-secrets.ts` |
+| Unprivileged container, dropped capabilities, health check | `Dockerfile`, `docker-compose.yml`, `src/app/api/health/route.ts` |
+| Encrypted, verified, rotating backups (RS-11) | `scripts/backup.sh` |
+| Uploads served only through the route (nosniff, sandbox CSP, Range) | `src/app/uploads/[...path]/route.ts` |
