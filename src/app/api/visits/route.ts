@@ -3,6 +3,7 @@ import { HOME_SLUGS } from "@/lib/home";
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rateLimit";
+import { clientIp } from "@/lib/clientIp";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export const dynamic = "force-dynamic";
  * del sitio" in the analytics dashboard.
  */
 export async function POST(request: NextRequest) {
-  const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+  const ip = clientIp(request.headers);
   if (!rateLimit(`visit:${ip}`, 60, 60_000)) {
     return NextResponse.json({ ok: false }, { status: 429 });
   }

@@ -6,6 +6,7 @@ import { sendMail } from "@/lib/mailer";
 import { getCommunicationSettings } from "@/lib/settings";
 import { rateLimit } from "@/lib/rateLimit";
 import { headers } from "next/headers";
+import { clientIp } from "@/lib/clientIp";
 
 export type ContactFormState = { error?: string; success?: boolean };
 
@@ -16,7 +17,7 @@ export async function submitContactForm(_prev: ContactFormState, formData: FormD
     return { success: true };
   }
 
-  const ip = (await headers()).get("x-forwarded-for") ?? "unknown";
+  const ip = clientIp(await headers());
   if (!rateLimit(`contact:${ip}`, 5, 60_000)) {
     return { error: "Demasiados envíos. Intenta de nuevo en un minuto." };
   }

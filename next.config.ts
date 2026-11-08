@@ -1,7 +1,26 @@
 import type { NextConfig } from "next";
 
+const SECURITY_HEADERS = [
+  // Never let a browser guess a file's type (an upload or response read as HTML/script).
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  // Nobody may show this site inside a frame on another site (clickjacking). frame-ancestors in
+  // the CSP (proxy.ts) says the same for modern browsers.
+  { key: "X-Frame-Options", value: "DENY" },
+  // Other sites see only the origin, never the full URL (which can hold a draft path or a token).
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  // Browser features this site never uses stay off, even if injected content asked for them.
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()" },
+  // Keeps other windows from holding a reference to this one.
+  { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+];
+
 const nextConfig: NextConfig = {
   output: 'standalone',
+  // Do not announce the framework ("X-Powered-By: Next.js") to every visitor.
+  poweredByHeader: false,
+  async headers() {
+    return [{ source: "/:path*", headers: SECURITY_HEADERS }];
+  },
   experimental: {
     serverActions: {
       bodySizeLimit: '10mb',

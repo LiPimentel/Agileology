@@ -6,6 +6,7 @@ import { sanitizePlainText } from "@/lib/sanitize";
 import { sendMail } from "@/lib/mailer";
 import { getCommunicationSettings } from "@/lib/settings";
 import { rateLimit } from "@/lib/rateLimit";
+import { clientIp } from "@/lib/clientIp";
 
 export type ChatFormState = { error?: string; success?: boolean };
 
@@ -14,7 +15,7 @@ export async function submitChatMessage(_prev: ChatFormState, formData: FormData
   // Honeypot (7.8, RS-14).
   if (String(formData.get("company") ?? "").trim()) return { success: true };
 
-  const ip = (await headers()).get("x-forwarded-for") ?? "unknown";
+  const ip = clientIp(await headers());
   if (!rateLimit(`chat:${ip}`, 8, 60_000)) {
     return { error: "Demasiados mensajes. Intenta de nuevo en un minuto." };
   }
