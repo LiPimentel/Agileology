@@ -87,6 +87,8 @@ export type EditorSection = {
   id: string;
   layoutMode: "grid" | "free";
   zone: SectionZone;
+  // Minimum height in px (0 = as tall as its content); set by dragging the section's bottom edge.
+  minHeight?: number;
   // Editor only (never saved): a just-added section that is still asking which layout it should have.
   choosing?: boolean;
   columns: EditorColumn[];
@@ -219,6 +221,7 @@ export function groupBlocksIntoSections(
     sectionBgFocalY: number;
     sectionBgZoom: number;
     sectionZone: string;
+    sectionMinHeight: number;
     sectionLayoutMode: string;
     sectionFreeHeight: number;
     freeX: number;
@@ -236,6 +239,7 @@ export function groupBlocksIntoSections(
         id: generateId(),
         layoutMode: b.sectionLayoutMode === "free" ? "free" : "grid",
         zone: parseZone(b.sectionZone),
+        minHeight: b.sectionMinHeight || 0,
         columns: [],
         freeBlocks: [],
         freeHeight: b.sectionFreeHeight || DEFAULT_FREE_HEIGHT,
@@ -290,6 +294,7 @@ export function serializeSections(sections: EditorSection[]) {
     sectionBgFocalY: number;
     sectionBgZoom: number;
     sectionZone: SectionZone;
+    sectionMinHeight: number;
     sectionLayoutMode: string;
     sectionFreeHeight: number;
     freeX: number;
@@ -309,6 +314,7 @@ export function serializeSections(sections: EditorSection[]) {
       sectionBgFocalY: section.background.focalY,
       sectionBgZoom: section.background.zoom,
       sectionZone: section.zone,
+      sectionMinHeight: section.minHeight ?? 0,
       sectionLayoutMode: section.layoutMode,
       sectionFreeHeight: section.freeHeight,
     };

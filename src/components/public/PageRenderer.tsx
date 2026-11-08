@@ -177,6 +177,10 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
               </div>
             );
 
+          // Taller than its content when the editor dragged the section's bottom edge down.
+          const minH = Math.min(2000, Math.max(0, Number(first?.sectionMinHeight ?? 0)));
+          const sized = minH > 0 && !isFree ? <div style={{ minHeight: `${minH}px` }}>{row}</div> : row;
+
           // A section's own background (separate from the page's overall
           // one) -- same imageUrl/color/opacity/videoUrl fields duplicated
           // across every block in this section (see ContentBlock schema
@@ -209,7 +213,7 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
                       first?.sectionBgVideoUrl ? "flex min-h-[min(75vh,46rem)] items-center [&>*]:w-full [&_h2]:text-4xl sm:[&_h2]:text-6xl" : ""
                     }`}
                   >
-                    {row}
+                    {sized}
                   </div>
                 </BackgroundOverlay>
               </div>
@@ -226,10 +230,10 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
                   focalY={first?.sectionBgFocalY}
                   zoom={first?.sectionBgZoom}
             >
-              <div className={isFree ? "" : "rounded-md p-6"}>{row}</div>
+              <div className={isFree ? "" : "rounded-md p-6"}>{sized}</div>
             </BackgroundOverlay>
           ) : (
-            row
+            sized
           );
 
           // Free sections span the full page width; grid sections stay in

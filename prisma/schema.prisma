@@ -243,6 +243,8 @@ model ContentBlock {
   // every block of the section like the sectionBg* fields. Consecutive non-"full" sections are laid
   // out together as one three-column grid (see PageRenderer).
   sectionZone String @default("full")
+  // Minimum height (px) of this section, set by dragging its bottom edge in the editor; 0 = as tall as its content.
+  sectionMinHeight Int @default(0)
 
   // Free-position ("Wix-style") layout, opt-in per section -- "quiero
   // poder ajustar/mover/redimensionar elementos directamente ahí,

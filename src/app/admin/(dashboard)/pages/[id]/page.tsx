@@ -72,6 +72,7 @@ export default async function PageEditorPage({ params }: { params: Promise<{ id:
             sectionBgFocalY: b.sectionBgFocalY,
             sectionBgZoom: b.sectionBgZoom,
             sectionZone: b.sectionZone,
+            sectionMinHeight: b.sectionMinHeight,
             sectionLayoutMode: b.sectionLayoutMode,
             sectionFreeHeight: b.sectionFreeHeight,
             freeX: b.freeX,

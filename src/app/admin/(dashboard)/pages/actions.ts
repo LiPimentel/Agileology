@@ -71,6 +71,7 @@ type SubmittedBlock = {
   sectionBgFocalY?: number;
   sectionBgZoom?: number;
   sectionZone?: string;
+  sectionMinHeight?: number;
   sectionLayoutMode?: string;
   sectionFreeHeight?: number;
   freeX?: number;
@@ -196,6 +197,7 @@ async function upsertPageContent(pageId: string, formData: FormData) {
     sectionBgFocalY: clampNumber(b.sectionBgFocalY, 0, 100, 50),
     sectionBgZoom: clampNumber(b.sectionBgZoom, 1, 3, 1),
     sectionZone: sanitizeZone(legacyClient ? previousZones.get(Number.isFinite(b.position) ? Number(b.position) : i) : b.sectionZone),
+    sectionMinHeight: Math.round(clampNumber(b.sectionMinHeight, 0, 2000, 0)),
     sectionLayoutMode: b.sectionLayoutMode === "free" ? "free" : "grid",
     sectionFreeHeight: sanitizeFreeHeight(b.sectionFreeHeight),
     freeX: sanitizePercent(b.freeX, 10),
@@ -320,6 +322,7 @@ export async function duplicatePage(pageId: string) {
           sectionBgFocalY: b.sectionBgFocalY,
           sectionBgZoom: b.sectionBgZoom,
           sectionZone: b.sectionZone,
+          sectionMinHeight: b.sectionMinHeight,
           sectionLayoutMode: b.sectionLayoutMode,
           sectionFreeHeight: b.sectionFreeHeight,
           freeX: b.freeX,
@@ -389,6 +392,7 @@ export async function restorePageVersion(pageId: string, versionId: string) {
               sectionBgFocalY?: number;
               sectionBgZoom?: number;
               sectionZone?: string;
+              sectionMinHeight?: number;
               sectionLayoutMode?: string;
               sectionFreeHeight?: number;
               freeX?: number;
@@ -419,6 +423,7 @@ export async function restorePageVersion(pageId: string, versionId: string) {
             sectionBgZoom: clampNumber(b.sectionBgZoom, 1, 3, 1),
             sectionBgOpacity: b.sectionBgOpacity ?? 0,
             sectionZone: sanitizeZone(b.sectionZone),
+            sectionMinHeight: Math.round(clampNumber(b.sectionMinHeight, 0, 2000, 0)),
             sectionLayoutMode: b.sectionLayoutMode ?? "grid",
             sectionFreeHeight: b.sectionFreeHeight ?? 400,
             freeX: b.freeX ?? 10,

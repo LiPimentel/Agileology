@@ -380,6 +380,54 @@ function PlusButton({ onClick, label, className = "" }: { onClick: () => void; l
   );
 }
 
+/**
+ * Handle on a section's bottom edge: drag it down to make the section taller than its content (up to 2000px),
+ * double-click to go back to "as tall as the content". Also adjustable with the arrow keys.
+ */
+function HeightHandle({ minHeight, cardRef, onChange }: { minHeight: number; cardRef: React.RefObject<HTMLDivElement | null>; onChange: (px: number) => void }) {
+  const start = useRef<{ y: number; h: number } | null>(null);
+  const clamp = (n: number) => Math.min(2000, Math.max(0, Math.round(n / 10) * 10));
+  const currentHeight = () => Math.round(cardRef.current?.getBoundingClientRect().height ?? minHeight);
+  return (
+    <div
+      role="slider"
+      aria-orientation="vertical"
+      aria-label="Alto de la sección"
+      aria-valuemin={0}
+      aria-valuemax={2000}
+      aria-valuenow={minHeight}
+      aria-valuetext={minHeight > 0 ? `${minHeight} píxeles` : "automático"}
+      tabIndex={0}
+      title={minHeight > 0 ? `Alto mínimo: ${minHeight}px. Arrastra para cambiarlo; doble clic = automático` : "Arrastra hacia abajo para hacer la sección más alta"}
+      onClick={(e) => e.stopPropagation()}
+      onDoubleClick={() => onChange(0)}
+      onPointerDown={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.currentTarget.setPointerCapture(e.pointerId);
+        start.current = { y: e.clientY, h: currentHeight() };
+      }}
+      onPointerMove={(e) => {
+        if (!start.current || !e.currentTarget.hasPointerCapture(e.pointerId)) return;
+        onChange(clamp(start.current.h + (e.clientY - start.current.y)));
+      }}
+      onPointerUp={() => {
+        start.current = null;
+      }}
+      onKeyDown={(e) => {
+        if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+        e.preventDefault();
+        const step = e.shiftKey ? 100 : 20;
+        onChange(clamp((minHeight || currentHeight()) + (e.key === "ArrowDown" ? step : -step)));
+      }}
+      className="absolute -bottom-2 left-1/2 z-20 flex h-4 w-28 -translate-x-1/2 cursor-row-resize touch-none items-center justify-center rounded-full hover:bg-violet-200/80 focus-visible:bg-violet-300 focus-visible:outline-2 focus-visible:outline-violet-700 dark:hover:bg-violet-800/60"
+    >
+      <span className="h-1 w-14 rounded bg-violet-500" aria-hidden="true" />
+      {minHeight > 0 && <span className="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded bg-violet-700 px-1.5 py-0.5 text-[10px] text-white">{minHeight}px</span>}
+    </div>
+  );
+}
+
 /** A draggable (and keyboard-adjustable) divider between two columns of the three-area grid. */
 function RailHandle({
   label,
@@ -453,6 +501,7 @@ export function SectionBlockEditor({
 }) {
   const [sections, setSections] = useState<EditorSection[]>(initialSections);
   const gridRef = useRef<HTMLDivElement>(null);
+  const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const railLeft = rails?.left ?? 22;
   const railRight = rails?.right ?? 22;
   const [openBgPickers, setOpenBgPickers] = useState<Record<string, boolean>>({});
@@ -495,6 +544,10 @@ export function SectionBlockEditor({
    * "+ Agregar componente" click leads straight into editing it, instead
    * of adding it collapsed and making the admin click it again to open it.
    */
+  function setSectionMinHeight(sectionId: string, px: number) {
+    setSections((prev) => prev.map((s) => (s.id === sectionId ? { ...s, minHeight: px } : s)));
+  }
+
   function setSectionZone(sectionId: string, zone: SectionZone) {
     setSections((prev) => prev.map((s) => (s.id === sectionId ? { ...s, zone } : s)));
   }
@@ -949,7 +1002,19 @@ export function SectionBlockEditor({
           );
 
         return (
-          <div key={section.id} className="group/section relative rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+          <div
+            key={section.id}
+            ref={(el) => {
+              cardRefs.current[section.id] = el;
+            }}
+            style={section.minHeight ? { minHeight: `${section.minHeight}px` } : undefined}
+            className="group/section relative rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
+          >
+            <HeightHandle
+              minHeight={section.minHeight ?? 0}
+              cardRef={{ get current() { return cardRefs.current[section.id] ?? null; } } as React.RefObject<HTMLDivElement | null>}
+              onChange={(px) => setSectionMinHeight(section.id, px)}
+            />
             <PlusButton className="absolute -top-3 left-1/2 -translate-x-1/2" label={`Agregar una sección encima de la sección ${i + 1}`} onClick={() => insertChooser(i, section.zone)} />
             {/*
               Section-level chrome (move/remove/background/column widths):

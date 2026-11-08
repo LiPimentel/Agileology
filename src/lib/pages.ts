@@ -33,6 +33,7 @@ export async function buildPageSnapshot(pageId: string): Promise<PageRenderData 
       sectionBgFocalY: b.sectionBgFocalY,
       sectionBgZoom: b.sectionBgZoom,
       sectionZone: b.sectionZone,
+      sectionMinHeight: b.sectionMinHeight,
       sectionLayoutMode: b.sectionLayoutMode,
       sectionFreeHeight: b.sectionFreeHeight,
       freeX: b.freeX,
