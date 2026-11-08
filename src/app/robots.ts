@@ -1,7 +1,8 @@
 import type { MetadataRoute } from "next";
+import { getSiteUrl } from "@/lib/settings";
 
-export default function robots(): MetadataRoute.Robots {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+export default async function robots(): Promise<MetadataRoute.Robots> {
+  const siteUrl = await getSiteUrl();
   return {
     rules: [{ userAgent: "*", allow: "/", disallow: "/admin" }],
     sitemap: siteUrl ? `${siteUrl}/sitemap.xml` : undefined,

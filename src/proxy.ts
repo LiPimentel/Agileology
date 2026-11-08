@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { SESSION_COOKIE, touchSession, sessionCookieOptions } from "@/lib/session-db";
 import { findRedirect } from "@/lib/redirects";
+import { canonicalRedirectTarget } from "@/lib/siteUrl";
+import { getCanonicalConfig } from "@/lib/canonicalConfig";
 import { buildCsp, HSTS_VALUE } from "@/lib/csp";
 
 /**
@@ -20,6 +22,22 @@ async function route(request: NextRequest, requestHeaders: Headers) {
   const { pathname } = request.nextUrl;
   const host = request.headers.get("host") ?? "";
   const isAdminHost = host.startsWith("admin.");
+
+  // One official spelling of the domain (with or without www), chosen in /admin/settings/domain:
+  // the other one is redirected (301) so search engines see a single site. Never for the backoffice.
+  if ((request.method === "GET" || request.method === "HEAD") && !isAdminHost && !pathname.startsWith("/admin")) {
+    const config = await getCanonicalConfig();
+    if (config && config.canonicalHost !== "none") {
+      const target = canonicalRedirectTarget({
+        host: request.headers.get("x-forwarded-host") ?? host,
+        pathname,
+        search: request.nextUrl.search,
+        publicUrl: config.publicUrl,
+        canonicalHost: config.canonicalHost,
+      });
+      if (target) return NextResponse.redirect(target, 301);
+    }
+  }
 
   // Old Wix URLs -> new ones (permanent, 301). The table lives in src/data/redirects.ts.
   // GET/HEAD only, and never for the backoffice.

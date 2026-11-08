@@ -7,6 +7,7 @@ import { logAudit } from "@/lib/audit";
 import { rateLimit } from "@/lib/rateLimit";
 import { headers } from "next/headers";
 import { clientIp } from "@/lib/clientIp";
+import { getSiteUrl } from "@/lib/settings";
 
 export type RequestResetState = { message?: string; error?: string };
 
@@ -21,7 +22,7 @@ export async function requestPasswordReset(_prev: RequestResetState, formData: F
 
   const token = await createPasswordResetToken(email);
   if (token) {
-    const url = `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/admin/login/reset-password/${token}`;
+    const url = `${await getSiteUrl()}/admin/login/reset-password/${token}`;
     // Not awaited: waiting for the mail server would make "this email has an account" visible in the
     // response time. sendMail never throws (it logs its own failures).
     void sendMail({

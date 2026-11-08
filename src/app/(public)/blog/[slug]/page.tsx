@@ -6,6 +6,7 @@ import { getSiteSettings } from "@/lib/settings";
 import { BlockRenderer } from "@/components/blocks/BlockRenderer";
 import { SocialShare } from "@/components/public/SocialShare";
 import { formatAstDate } from "@/lib/date";
+import { getSiteUrl } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +34,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const [post, settings] = await Promise.all([getPublishedPostBySlug(slug), getSiteSettings()]);
   if (!post) notFound();
 
-  const url = `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/blog/${slug}`;
+  const url = `${await getSiteUrl()}/blog/${slug}`;
 
   return (
     <article className="mx-auto max-w-3xl space-y-8 px-6 py-12">

@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  const siteUrl = settings.publicUrl ?? process.env.NEXT_PUBLIC_SITE_URL;
   const description = settings.defaultMetaDescription ?? "Coaching y gestión ágil.";
 
   return {

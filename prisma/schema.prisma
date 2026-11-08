@@ -408,6 +408,12 @@ model SiteSettings {
   linkedinUrl           String?
   instagramUrl          String?
   telegramUrl           String?
+  // Public address of the site (e.g. https://agileologywave.com): used by the sitemap, robots, RSS,
+  // canonical links and the links in e-mails. Editable at /admin/settings/domain; falls back to the
+  // NEXT_PUBLIC_SITE_URL variable when empty.
+  publicUrl             String?
+  // "none" | "apex" | "www": which spelling of the domain is the official one; the other one redirects (301).
+  canonicalHost         String  @default("none")
   // Optional custom icon per network, uploaded from /admin/settings/site --
   // when unset, the footer falls back to a built-in Facebook/X/LinkedIn/
   // Instagram SVG icon instead of the old plain-text link.

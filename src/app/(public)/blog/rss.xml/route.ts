@@ -1,5 +1,6 @@
 import { listPublishedPosts } from "@/lib/posts";
 import { getSiteSettings } from "@/lib/settings";
+import { getSiteUrl } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +9,7 @@ function escapeXml(str: string) {
 }
 
 export async function GET() {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+  const siteUrl = await getSiteUrl();
   const [{ posts }, settings] = await Promise.all([listPublishedPosts({ take: 30 }), getSiteSettings()]);
 
   const items = posts

@@ -143,6 +143,7 @@ export const ACTION_LABELS: Record<string, string> = {
   update_site_settings: "Cambió los ajustes del sitio",
   update_menu: "Cambió el menú del sitio",
   update_seo: "Cambió el SEO de las páginas",
+  update_domain: "Cambió el dominio y la publicación",
   update_blog_settings: "Cambió el diseño del blog",
   update_communication_settings: "Cambió las comunicaciones",
   upload_media: "Subió un archivo",
