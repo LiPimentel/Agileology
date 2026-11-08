@@ -225,7 +225,13 @@ export function PageEditorForm({
             Si ves mucho espacio vacío entre las columnas, baja el ancho total: los laterales se acercan al contenido. El centro ocupa lo que dejan los laterales.
           </p>
         </fieldset>
-        <SectionBlockEditor initialSections={page.sections} mediaLibrary={mediaLibrary} pages={pages} formDefinitions={formDefinitions} />
+        <SectionBlockEditor
+          initialSections={page.sections}
+          mediaLibrary={mediaLibrary}
+          pages={pages}
+          formDefinitions={formDefinitions}
+          rails={{ left: leftW, right: rightW, onChange: (l, r) => { setLeftW(l); setRightW(r); } }}
+        />
       </section>
 
       <SaveFeedback state={state} />

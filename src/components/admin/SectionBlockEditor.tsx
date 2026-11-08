@@ -380,18 +380,81 @@ function PlusButton({ onClick, label, className = "" }: { onClick: () => void; l
   );
 }
 
+/** A draggable (and keyboard-adjustable) divider between two columns of the three-area grid. */
+function RailHandle({
+  label,
+  value,
+  containerRef,
+  edge,
+  onChange,
+  style,
+}: {
+  label: string;
+  value: number;
+  containerRef: React.RefObject<HTMLDivElement | null>;
+  edge: "left" | "right";
+  onChange: (v: number) => void;
+  style: React.CSSProperties;
+}) {
+  const clamp = (n: number) => Math.min(40, Math.max(10, Math.round(n)));
+  const fromPointer = (clientX: number) => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect || rect.width === 0) return;
+    onChange(clamp(edge === "left" ? ((clientX - rect.left) / rect.width) * 100 : ((rect.right - clientX) / rect.width) * 100));
+  };
+  return (
+    <div
+      role="separator"
+      aria-orientation="vertical"
+      aria-label={label}
+      aria-valuemin={10}
+      aria-valuemax={40}
+      aria-valuenow={value}
+      tabIndex={0}
+      title={`${label}: arrastra para cambiar el ancho (${value}%)`}
+      onClick={(e) => e.stopPropagation()}
+      onPointerDown={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.currentTarget.setPointerCapture(e.pointerId);
+      }}
+      onPointerMove={(e) => {
+        if (e.currentTarget.hasPointerCapture(e.pointerId)) fromPointer(e.clientX);
+      }}
+      onKeyDown={(e) => {
+        const step = e.shiftKey ? 5 : 1;
+        if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+          e.preventDefault();
+          const grow = (e.key === "ArrowRight") === (edge === "left");
+          onChange(clamp(value + (grow ? step : -step)));
+        }
+      }}
+      className="absolute top-0 z-20 hidden h-full w-3 -translate-x-1/2 cursor-col-resize touch-none items-center justify-center rounded-sm hover:bg-violet-200/70 focus-visible:bg-violet-300 focus-visible:outline-2 focus-visible:outline-violet-700 lg:flex dark:hover:bg-violet-800/60"
+      style={style}
+    >
+      <span className="h-10 w-1 rounded bg-violet-500" aria-hidden="true" />
+    </div>
+  );
+}
+
 export function SectionBlockEditor({
   initialSections,
   mediaLibrary,
   pages,
   formDefinitions = [],
+  rails,
 }: {
+  // Side column widths (%), owned by the page form (it saves them); dragging the dividers changes them.
+  rails?: { left: number; right: number; onChange: (left: number, right: number) => void };
   initialSections: EditorSection[];
   mediaLibrary: MediaItem[];
   pages: Array<{ slug: string; title: string }>;
   formDefinitions?: Array<{ id: string; name: string }>;
 }) {
   const [sections, setSections] = useState<EditorSection[]>(initialSections);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const railLeft = rails?.left ?? 22;
+  const railRight = rails?.right ?? 22;
   const [openBgPickers, setOpenBgPickers] = useState<Record<string, boolean>>({});
   // Only one block editable at a time, canvas-wide -- clicking a different
   // block (or blank canvas space) closes whatever was open, matching a
@@ -1046,7 +1109,13 @@ export function SectionBlockEditor({
         return (
           <div key={`grid-${item.sections[0].section.id}`} className="relative rounded-lg border-2 border-dashed border-violet-300 bg-violet-50/40 p-3 dark:border-violet-700 dark:bg-slate-900/40" onClick={(e) => e.stopPropagation()}>
             <PlusButton className="absolute -top-3 left-1/2 -translate-x-1/2" label="Agregar una sección encima de la cuadrícula" onClick={() => insertChooser(startIndex, "full")} />
-            <div className="grid gap-3 lg:grid-cols-[1fr_2.4fr_1fr]">
+            <div ref={gridRef} className="relative grid gap-3" style={{ gridTemplateColumns: `${railLeft}% minmax(0,1fr) ${railRight}%` }}>
+              {rails && (
+                <>
+                  <RailHandle label="Borde entre la columna izquierda y el centro" value={railLeft} edge="left" containerRef={gridRef} onChange={(v) => rails.onChange(v, railRight)} style={{ left: `calc(${railLeft}% - 6px)` }} />
+                  <RailHandle label="Borde entre el centro y la columna derecha" value={railRight} edge="right" containerRef={gridRef} onChange={(v) => rails.onChange(railLeft, v)} style={{ left: `calc(${100 - railRight}% + 6px)` }} />
+                </>
+              )}
               {columns.map((c) => {
                 const inColumn = item.sections.filter((x) => x.zone === c.zone);
                 const afterIndex = inColumn.length ? inColumn[inColumn.length - 1].index : lastIndex;
