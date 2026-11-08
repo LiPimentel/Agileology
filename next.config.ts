@@ -20,9 +20,9 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   async headers() {
     return [
-      { source: "/:path*", headers: SECURITY_HEADERS },
-      // The widget host page is framed by this site's own pages (see src/lib/csp.ts buildEmbedCsp); a later rule wins for the same header.
-      { source: "/embed/:path*", headers: [{ key: "X-Frame-Options", value: "SAMEORIGIN" }] },
+      // Everything except the widget host page, which this site frames from the embed origin (CSP frame-ancestors, src/lib/csp.ts buildEmbedCsp).
+      { source: "/((?!embed/).*)", headers: SECURITY_HEADERS },
+      { source: "/embed/:path*", headers: SECURITY_HEADERS.filter((h) => h.key !== "X-Frame-Options") },
     ];
   },
   experimental: {

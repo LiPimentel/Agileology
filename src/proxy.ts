@@ -5,6 +5,7 @@ import { findRedirect } from "@/lib/redirects";
 import { canonicalRedirectTarget } from "@/lib/siteUrl";
 import { getCanonicalConfig } from "@/lib/canonicalConfig";
 import { buildCsp, buildEmbedCsp, HSTS_VALUE } from "@/lib/csp";
+import { embedAncestors, resolveEmbedOrigin } from "@/lib/embedOrigin";
 
 /**
  * Gates the backoffice (RF-01, RF-03) and slides the session's inactivity
@@ -91,15 +92,24 @@ export async function proxy(request: NextRequest) {
   // A fresh, unguessable value per request: scripts without it do not run (see lib/csp.ts).
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const https = request.headers.get("x-forwarded-proto") === "https" || request.nextUrl.protocol === "https:";
-  const csp = request.nextUrl.pathname.startsWith("/embed/")
-    ? buildEmbedCsp({ https })
-    : buildCsp(nonce, { https, dev: process.env.NODE_ENV === "development" });
+  const embedOrigin = resolveEmbedOrigin(process.env.EMBED_ORIGIN, process.env.NEXT_PUBLIC_SITE_URL);
+  const isEmbedPath = request.nextUrl.pathname.startsWith("/embed/");
+  const csp = isEmbedPath
+    ? buildEmbedCsp({ https, ancestors: embedAncestors(process.env.NEXT_PUBLIC_SITE_URL) })
+    : buildCsp(nonce, { https, dev: process.env.NODE_ENV === "development", embedOrigin });
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);
   requestHeaders.set("Content-Security-Policy", csp);
 
-  const res = await route(request, requestHeaders);
+  // Widget host: /embed/* is served only on the embed origin's own host, and that host serves nothing else.
+  // With no (valid) EMBED_ORIGIN the feature is off and /embed/* does not exist.
+  const embedHost = embedOrigin ? new URL(embedOrigin).host : null;
+  const onEmbedHost = embedHost !== null && (request.headers.get("host") ?? "") === embedHost;
+  const res =
+    isEmbedPath !== onEmbedHost || (isEmbedPath && !embedHost)
+      ? new NextResponse("No encontrado", { status: 404, headers: { "Content-Type": "text/plain; charset=utf-8" } })
+      : await route(request, requestHeaders);
   res.headers.set("Content-Security-Policy", csp);
   if (https) res.headers.set("Strict-Transport-Security", HSTS_VALUE);
   return res;

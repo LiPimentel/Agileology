@@ -200,15 +200,24 @@ export function BlockRenderer({ block, pageId }: { block: RenderableBlock; pageI
       if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(elfsightId)) {
         const height = Math.min(900, Math.max(240, Number(block.content.height ?? 520)));
         const heading = String(block.content.title ?? "");
+        const embedOrigin = String(block.content.embedOrigin ?? "");
+        if (!/^https?:\/\/[^\s/]+$/.test(embedOrigin)) {
+          // Not resolved (the editor canvas) or the widget address is not configured: say where it will appear.
+          return (
+            <div className="rounded-md border-2 border-dashed border-slate-300 p-4 text-center text-sm text-slate-600">
+              Publicaciones de LinkedIn (widget automático): se muestra aquí en el sitio.
+            </div>
+          );
+        }
         return (
           <section aria-label={heading || "Publicaciones de LinkedIn"} className="w-full">
             {heading && <h2 className="mb-2 text-base font-semibold text-[#1F2A44]">{heading}</h2>}
-            {/* Third-party widget: isolated in a sandboxed frame without same-origin, so its scripts cannot touch this site. */}
+            {/* Third-party widget: served from its own origin (EMBED_ORIGIN), so allow-same-origin only applies to that origin and its scripts cannot touch this site or the backoffice. */}
             <iframe
-              src={`/embed/linkedin/${elfsightId.toLowerCase()}`}
+              src={`${embedOrigin}/embed/linkedin/${elfsightId.toLowerCase()}`}
               title={heading || "Publicaciones de LinkedIn"}
               loading="lazy"
-              sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"
+              sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
               referrerPolicy="no-referrer"
               className="w-full rounded-md border-0"
               style={{ height: `${height}px` }}
