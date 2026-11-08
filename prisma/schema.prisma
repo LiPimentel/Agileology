@@ -291,6 +291,8 @@ model Background {
   // Width (% of the page) of the left/right side rails when a page has sections placed in them.
   sideLeftWidth  Int @default(22)
   sideRightWidth Int @default(22)
+  // Widest the three-column grid may be (px); on wider screens it is centred, so the side columns sit close to the content.
+  gridMaxWidth   Int @default(1280)
   // Whether the title/background banner block renders at all, above the
   // page's own sections. Previously this was forced on every page with no
   // way to turn it off -- "eso no puede estar fijo como obligatorio en

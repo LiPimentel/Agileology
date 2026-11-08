@@ -51,6 +51,7 @@ export default async function PageEditorPage({ params }: { params: Promise<{ id:
               showTitle: page.background.showTitle,
               sideLeftWidth: page.background.sideLeftWidth,
               sideRightWidth: page.background.sideRightWidth,
+              gridMaxWidth: page.background.gridMaxWidth,
             }
           : null,
         sections: groupBlocksIntoSections(

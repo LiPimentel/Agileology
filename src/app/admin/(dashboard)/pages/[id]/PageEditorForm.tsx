@@ -36,6 +36,7 @@ export type PageEditorData = {
     showTitle: boolean;
     sideLeftWidth: number;
     sideRightWidth: number;
+    gridMaxWidth: number;
   } | null;
   sections: EditorSection[];
 };
@@ -57,6 +58,9 @@ export function PageEditorForm({
   const draftButtonRef = useRef<HTMLButtonElement>(null);
   const [showBanner, setShowBanner] = useState(page.background?.showBanner ?? true);
   const [showTitle, setShowTitle] = useState(page.background?.showTitle ?? true);
+  const [leftW, setLeftW] = useState(page.background?.sideLeftWidth ?? 22);
+  const [rightW, setRightW] = useState(page.background?.sideRightWidth ?? 22);
+  const [gridMax, setGridMax] = useState(page.background?.gridMaxWidth ?? 1280);
 
   // Autosave draft periodically (7.14) so unsaved edits survive an accidental tab close.
   useEffect(() => {
@@ -203,16 +207,23 @@ export function PageEditorForm({
           <p className="mb-2 text-xs text-slate-500 dark:text-slate-400">
             Para tener una columna a cada lado, elige «Lateral izquierdo» o «Lateral derecho» en la ubicación de una sección, y «Centro» en las del medio. La sección de ancho completo (por ejemplo el video) queda arriba o abajo de esa cuadrícula. Aquí defines el ancho de cada lateral.
           </p>
-          <div className="flex flex-wrap gap-4">
+          <div className="grid gap-4 sm:grid-cols-3">
             <label className="text-sm text-slate-700 dark:text-slate-300">
-              Ancho lateral izquierdo (%)
-              <input type="number" name="sideLeftWidth" min={15} max={35} defaultValue={page.background?.sideLeftWidth ?? 22} className="ml-2 w-20 rounded-md border border-slate-300 px-2 py-1 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
+              Lateral izquierdo: {leftW}%
+              <input type="range" name="sideLeftWidth" min={10} max={40} step={1} value={leftW} onChange={(e) => setLeftW(Number(e.target.value))} className="mt-1 w-full" />
             </label>
             <label className="text-sm text-slate-700 dark:text-slate-300">
-              Ancho lateral derecho (%)
-              <input type="number" name="sideRightWidth" min={15} max={35} defaultValue={page.background?.sideRightWidth ?? 22} className="ml-2 w-20 rounded-md border border-slate-300 px-2 py-1 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
+              Lateral derecho: {rightW}%
+              <input type="range" name="sideRightWidth" min={10} max={40} step={1} value={rightW} onChange={(e) => setRightW(Number(e.target.value))} className="mt-1 w-full" />
+            </label>
+            <label className="text-sm text-slate-700 dark:text-slate-300">
+              Ancho total de la cuadrícula: {gridMax >= 1920 ? "todo el ancho" : `${gridMax}px`}
+              <input type="range" name="gridMaxWidth" min={800} max={1920} step={40} value={gridMax} onChange={(e) => setGridMax(Number(e.target.value))} className="mt-1 w-full" />
             </label>
           </div>
+          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+            Si ves mucho espacio vacío entre las columnas, baja el ancho total: los laterales se acercan al contenido. El centro ocupa lo que dejan los laterales.
+          </p>
         </fieldset>
         <SectionBlockEditor initialSections={page.sections} mediaLibrary={mediaLibrary} pages={pages} formDefinitions={formDefinitions} />
       </section>

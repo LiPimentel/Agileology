@@ -49,7 +49,7 @@ async function main() {
             imageUrl: page.background.imageUrl, overlayColor: page.background.overlayColor,
             overlayOpacity: page.background.overlayOpacity, focalX: page.background.focalX, focalY: page.background.focalY, zoom: page.background.zoom, bannerImageUrl: page.background.bannerImageUrl,
             showBanner: page.background.showBanner, showTitle: page.background.showTitle,
-            sideLeftWidth: page.background.sideLeftWidth, sideRightWidth: page.background.sideRightWidth,
+            sideLeftWidth: page.background.sideLeftWidth, sideRightWidth: page.background.sideRightWidth, gridMaxWidth: page.background.gridMaxWidth,
           }
         : null,
     };

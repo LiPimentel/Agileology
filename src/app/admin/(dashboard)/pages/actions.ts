@@ -156,8 +156,9 @@ async function upsertPageContent(pageId: string, formData: FormData) {
   const focalX = clampNumber(formData.get("backgroundFocalX"), 0, 100, 50);
   const focalY = clampNumber(formData.get("backgroundFocalY"), 0, 100, 50);
   const zoom = clampNumber(formData.get("backgroundZoom"), 1, 3, 1);
-  const sideLeftWidth = Math.round(clampNumber(formData.get("sideLeftWidth"), 15, 35, 22));
-  const sideRightWidth = Math.round(clampNumber(formData.get("sideRightWidth"), 15, 35, 22));
+  const sideLeftWidth = Math.round(clampNumber(formData.get("sideLeftWidth"), 10, 40, 22));
+  const sideRightWidth = Math.round(clampNumber(formData.get("sideRightWidth"), 10, 40, 22));
+  const gridMaxWidth = Math.round(clampNumber(formData.get("gridMaxWidth"), 800, 1920, 1280));
   const showBanner = formData.get("showBanner") === "on";
   const showTitle = formData.get("showTitle") === "on";
 
@@ -217,8 +218,8 @@ async function upsertPageContent(pageId: string, formData: FormData) {
 
     await tx.background.upsert({
       where: { pageId },
-      update: { overlayColor, overlayOpacity, imageUrl: backgroundImageUrl, focalX, focalY, zoom, bannerImageUrl, showBanner, showTitle, sideLeftWidth, sideRightWidth },
-      create: { pageId, overlayColor, overlayOpacity, imageUrl: backgroundImageUrl, focalX, focalY, zoom, bannerImageUrl, showBanner, showTitle, sideLeftWidth, sideRightWidth },
+      update: { overlayColor, overlayOpacity, imageUrl: backgroundImageUrl, focalX, focalY, zoom, bannerImageUrl, showBanner, showTitle, sideLeftWidth, sideRightWidth, gridMaxWidth },
+      create: { pageId, overlayColor, overlayOpacity, imageUrl: backgroundImageUrl, focalX, focalY, zoom, bannerImageUrl, showBanner, showTitle, sideLeftWidth, sideRightWidth, gridMaxWidth },
     });
   });
 
@@ -342,6 +343,7 @@ export async function duplicatePage(pageId: string) {
               showTitle: source.background.showTitle,
               sideLeftWidth: source.background.sideLeftWidth,
               sideRightWidth: source.background.sideRightWidth,
+              gridMaxWidth: source.background.gridMaxWidth,
             },
           }
         : { create: {} },
@@ -440,8 +442,9 @@ export async function restorePageVersion(pageId: string, versionId: string) {
         zoom: clampNumber(snapshot.background?.zoom, 1, 3, 1),
         showBanner: snapshot.background?.showBanner ?? true,
         showTitle: snapshot.background?.showTitle ?? true,
-        sideLeftWidth: Math.round(clampNumber(snapshot.background?.sideLeftWidth, 15, 35, 22)),
-        sideRightWidth: Math.round(clampNumber(snapshot.background?.sideRightWidth, 15, 35, 22)),
+        sideLeftWidth: Math.round(clampNumber(snapshot.background?.sideLeftWidth, 10, 40, 22)),
+        sideRightWidth: Math.round(clampNumber(snapshot.background?.sideRightWidth, 10, 40, 22)),
+        gridMaxWidth: Math.round(clampNumber(snapshot.background?.gridMaxWidth, 800, 1920, 1280)),
       },
       create: {
         pageId,
@@ -454,8 +457,9 @@ export async function restorePageVersion(pageId: string, versionId: string) {
         zoom: clampNumber(snapshot.background?.zoom, 1, 3, 1),
         showBanner: snapshot.background?.showBanner ?? true,
         showTitle: snapshot.background?.showTitle ?? true,
-        sideLeftWidth: Math.round(clampNumber(snapshot.background?.sideLeftWidth, 15, 35, 22)),
-        sideRightWidth: Math.round(clampNumber(snapshot.background?.sideRightWidth, 15, 35, 22)),
+        sideLeftWidth: Math.round(clampNumber(snapshot.background?.sideLeftWidth, 10, 40, 22)),
+        sideRightWidth: Math.round(clampNumber(snapshot.background?.sideRightWidth, 10, 40, 22)),
+        gridMaxWidth: Math.round(clampNumber(snapshot.background?.gridMaxWidth, 800, 1920, 1280)),
       },
     });
   });

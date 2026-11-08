@@ -28,6 +28,7 @@ export type PageRenderData = {
     // Widths (%) of the side rails; absent on older snapshots (default 22).
     sideLeftWidth?: number;
     sideRightWidth?: number;
+    gridMaxWidth?: number;
   } | null;
 };
 
@@ -118,7 +119,10 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
   };
   const hasBands = sections.some(sectionHasBg);
 
-  const renderSection = (section: RenderableBlock[], i: number, compact = false) => {
+  // `where`: "full" = a full-width section (centred in a readable column); "center" / "rail" = inside the
+  // three-column grid, where the section fills its column instead of being centred in a narrow strip.
+  const renderSection = (section: RenderableBlock[], i: number, where: "full" | "center" | "rail" = "full") => {
+    const inGrid = where !== "full";
           const first = section[0];
           const isFree = first?.sectionLayoutMode === "free";
           const columns = groupIntoColumns(section);
@@ -177,7 +181,8 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
           const hasSectionBg =
             Boolean(first?.sectionBgImageUrl) || Boolean(first?.sectionBgVideoUrl) || (first?.sectionBgOpacity ?? 0) > 0;
           // Multi-column sections get a wider container than single-column reading text.
-          const widthClass = columns.length > 1 ? "max-w-5xl" : "max-w-3xl";
+          const widthClass = inGrid ? "max-w-full" : columns.length > 1 ? "max-w-5xl" : "max-w-3xl";
+          const padX = where === "rail" ? "px-3" : "px-6";
           if (hasSectionBg && !isFree) {
             return (
               <div key={first?.id ?? i} className="w-full">
@@ -193,7 +198,7 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
                 >
                   {/* A section with a background video is a hero: tall (like Wix's first screen), content centred, bigger heading. */}
                   <div
-                    className={`mx-auto ${widthClass} px-6 py-10 ${
+                    className={`mx-auto ${widthClass} ${padX} py-10 ${
                       first?.sectionBgVideoUrl ? "flex min-h-[min(75vh,46rem)] items-center [&>*]:w-full [&_h2]:text-4xl sm:[&_h2]:text-6xl" : ""
                     }`}
                   >
@@ -224,7 +229,7 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
           // the centered ~768px readable column, same as before this
           // existed -- see the comment on the outer wrapper above.
           return (
-            <div key={first?.id ?? i} className={isFree ? "w-full" : `mx-auto ${compact ? "max-w-full px-3" : `${widthClass} px-6`}${hasBands ? " py-8" : ""}`}>
+            <div key={first?.id ?? i} className={isFree ? "w-full" : `mx-auto ${widthClass} ${padX}${hasBands ? " py-8" : ""}`}>
               {content}
             </div>
           );
@@ -234,6 +239,7 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
   // grid; "full" sections (the default, every page before this existed) keep spanning the whole width.
   const leftWidth = page.background?.sideLeftWidth ?? 22;
   const rightWidth = page.background?.sideRightWidth ?? 22;
+  const gridMax = Math.min(1920, Math.max(800, page.background?.gridMaxWidth ?? 1280));
   const layoutItems = buildLayoutItems(sections, (sec) => sec[0]?.sectionZone);
 
   return (
@@ -295,18 +301,21 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
           const solid = !f?.sectionBgImageUrl && !f?.sectionBgVideoUrl && (f?.sectionBgOpacity ?? 0) > 0;
           const stripBg = solid ? `color-mix(in srgb, ${f?.sectionBgColor ?? "#000000"} ${Math.round((f?.sectionBgOpacity ?? 0) * 100)}%, transparent)` : undefined;
           return (
-            <div key={`grid-${n}`} className="flex flex-col lg:flex-row lg:items-start" style={stripBg ? { backgroundColor: stripBg } : undefined}>
+            <div key={`grid-${n}`} style={stripBg ? { backgroundColor: stripBg } : undefined}>
+             {/* The columns sit in a container of at most gridMaxWidth, centred: the side columns stay close to the content instead of at the screen edges. */}
+             <div className="mx-auto flex flex-col lg:flex-row lg:items-start" style={{ maxWidth: `${gridMax}px` }}>
               {hasLeft && (
                 <aside aria-label="Columna lateral izquierda" className="order-2 min-w-0 lg:order-1 lg:w-[var(--rail-w)] lg:shrink-0" style={{ "--rail-w": `${leftWidth}%` } as React.CSSProperties}>
-                  {item.sections.filter((x) => x.zone === "left").map((x) => renderSection(x.section, x.index, true))}
+                  {item.sections.filter((x) => x.zone === "left").map((x) => renderSection(x.section, x.index, "rail"))}
                 </aside>
               )}
-              <div className="order-1 min-w-0 flex-1 lg:order-2">{mainSections.map((x) => renderSection(x.section, x.index))}</div>
+              <div className="order-1 min-w-0 flex-1 lg:order-2">{mainSections.map((x) => renderSection(x.section, x.index, "center"))}</div>
               {hasRight && (
                 <aside aria-label="Columna lateral derecha" className="order-3 min-w-0 lg:w-[var(--rail-w)] lg:shrink-0" style={{ "--rail-w": `${rightWidth}%` } as React.CSSProperties}>
-                  {item.sections.filter((x) => x.zone === "right").map((x) => renderSection(x.section, x.index, true))}
+                  {item.sections.filter((x) => x.zone === "right").map((x) => renderSection(x.section, x.index, "rail"))}
                 </aside>
               )}
+             </div>
             </div>
           );
         })}
