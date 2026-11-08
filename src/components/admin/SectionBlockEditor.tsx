@@ -360,6 +360,65 @@ function FreeCanvas({
   );
 }
 
+type InsertKind = 1 | 2 | 3 | "grid";
+
+/**
+ * Wix-style "+" between sections (and above the first / below the last): click it, choose what kind of
+ * section to insert right there -- one, two or three components side by side, or a three-area grid
+ * (left / centre / right) -- and then fill each slot with the component you want.
+ */
+function InsertBar({ onPick }: { onPick: (kind: InsertKind) => void }) {
+  const [open, setOpen] = useState(false);
+  const options: Array<{ kind: InsertKind; label: string; hint: string }> = [
+    { kind: 1, label: "Sección simple", hint: "1 componente" },
+    { kind: 2, label: "Sección doble", hint: "2 componentes lado a lado" },
+    { kind: 3, label: "Sección triple", hint: "3 componentes lado a lado" },
+    { kind: "grid", label: "Cuadrícula de 3 áreas", hint: "izquierda, centro y derecha" },
+  ];
+  return (
+    <div
+      className="group/insert relative flex h-6 items-center justify-center"
+      onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") setOpen(false);
+      }}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOpen(false);
+      }}
+    >
+      <div className="absolute inset-x-0 top-1/2 h-px bg-violet-300/60 group-hover/insert:bg-violet-500 dark:bg-violet-700/60" aria-hidden="true" />
+      <button
+        type="button"
+        aria-label="Agregar una sección aquí"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        className="relative z-10 flex h-6 w-6 items-center justify-center rounded-full border border-violet-400 bg-white text-base leading-none text-violet-700 opacity-60 hover:bg-violet-600 hover:text-white hover:opacity-100 focus-visible:opacity-100 group-hover/insert:opacity-100 dark:bg-slate-900 dark:text-violet-300"
+      >
+        +
+      </button>
+      {open && (
+        <div role="menu" className="absolute top-7 z-30 w-64 rounded-md border border-slate-200 bg-white p-1 shadow-lg dark:border-slate-700 dark:bg-slate-900">
+          {options.map((o) => (
+            <button
+              key={String(o.kind)}
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                onPick(o.kind);
+              }}
+              className="block w-full rounded px-3 py-2 text-left text-sm hover:bg-violet-50 dark:hover:bg-slate-800"
+            >
+              <span className="font-medium text-slate-900 dark:text-slate-100">{o.label}</span>
+              <span className="block text-xs text-slate-500 dark:text-slate-400">{o.hint}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function SectionBlockEditor({
   initialSections,
   mediaLibrary,
@@ -401,6 +460,12 @@ export function SectionBlockEditor({
    * "+ Agregar componente" click leads straight into editing it, instead
    * of adding it collapsed and making the admin click it again to open it.
    */
+  /** Inserts a new empty section at an exact place in the page (the Wix-style "+" between sections). */
+  function addSectionAt(index: number, kind: InsertKind) {
+    const fresh: EditorSection = kind === "grid" ? { ...newSection(1), zone: "main" } : newSection(kind);
+    setSections((prev) => [...prev.slice(0, index), fresh, ...prev.slice(index)]);
+  }
+
   /** A new empty section in one column of the three-column grid, placed after the grid's last section. */
   function addSectionInZone(zone: SectionZone, afterIndex: number, columnCount: 1 | 2 | 3 = 1) {
     setSections((prev) => [...prev.slice(0, afterIndex + 1), { ...newSection(columnCount), zone }, ...prev.slice(afterIndex + 1)]);
@@ -979,14 +1044,16 @@ export function SectionBlockEditor({
       <input type="hidden" name="blocksJson" value={JSON.stringify(serializeSections(sections))} readOnly />
 
       {buildLayoutItems(sections, (sec) => sec.zone).map((item, n) => {
-        if (item.kind === "full") return renderSectionCard(item.section, item.index);
+        const startIndex = item.kind === "full" ? item.index : item.sections[0].index;
+        const bar = <InsertBar key={`bar-${n}`} onPick={(kind) => addSectionAt(startIndex, kind)} />;
+        if (item.kind === "full") return [bar, renderSectionCard(item.section, item.index)];
         const lastIndex = item.sections[item.sections.length - 1].index;
         const columns: Array<{ zone: SectionZone; label: string }> = [
           { zone: "left", label: "Columna izquierda" },
           { zone: "main", label: "Centro" },
           { zone: "right", label: "Columna derecha" },
         ];
-        return (
+        return [bar, (
           <div key={`grid-${n}`} className="rounded-lg border-2 border-dashed border-violet-300 bg-violet-50/40 p-3 dark:border-violet-700 dark:bg-slate-900/40" onClick={(e) => e.stopPropagation()}>
             <p className="mb-2 text-xs font-medium text-violet-800 dark:text-violet-300">Cuadrícula de 3 columnas: cada columna es un espacio donde agregar secciones y componentes</p>
             <div className="grid gap-3 lg:grid-cols-[1fr_2.4fr_1fr]">
@@ -1014,8 +1081,9 @@ export function SectionBlockEditor({
               })}
             </div>
           </div>
-        );
+        )];
       })}
+      <InsertBar onPick={(kind) => addSectionAt(sections.length, kind)} />
 
       <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
         <button
