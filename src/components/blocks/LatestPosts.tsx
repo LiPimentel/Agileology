@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { ChevronLeftIcon, ChevronRightIcon, PauseIcon, PlayIcon } from "@/components/icons";
+import { ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
 
 export type LatestPost = { slug: string; title: string; image: string | null; publishedAt: string; minutes: number };
 export type LatestPostsValue = { posts: LatestPost[]; autoplay: boolean; intervalSeconds: number; author: string };
@@ -56,11 +56,12 @@ function Card({ post, author }: { post: LatestPost; author: string }) {
 }
 
 /**
- * The newest posts as cards that rotate one at a time. Shows 3 cards at once (2 / 1 on smaller
- * screens); with fewer posts than fit, it is a plain row with no controls. Accessible like the
- * image carousel: labelled group, arrow keys, buttons and dots, polite position announcement;
- * autoplay pauses on mouse hover, keyboard focus and with the pause button, and is off for
- * visitors who prefer reduced motion.
+ * The newest posts as cards in a smooth sliding strip: every move slides the whole row sideways
+ * (and loops round without a visible jump). Shows 3 cards at once (2 / 1 on smaller screens); with
+ * fewer posts than fit, it is a plain row with no controls. Accessible like the image carousel:
+ * labelled group, arrow keys, buttons and dots, polite position announcement. There is no pause
+ * button: the rotation stops by itself while the pointer is over it or something inside has keyboard
+ * focus, and it never moves for visitors who prefer reduced motion (they use the arrows).
  */
 export function LatestPosts({ value }: { value: LatestPostsValue }) {
   const posts = value.posts ?? [];
@@ -70,27 +71,46 @@ export function LatestPosts({ value }: { value: LatestPostsValue }) {
   const visible = Math.min(perView, n);
   const rotates = n > visible;
 
-  const [start, setStart] = useState(0);
-  const [paused, setPaused] = useState(false);
+  // `index` is the track position of the first card in view. The track is the posts followed by a
+  // copy of the first `visible` ones, so sliding past the last post lands on the copies and then
+  // snaps (without animation) back to the real start.
+  const [index, setIndex] = useState(0);
+  const [animate, setAnimate] = useState(true);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
   const touchX = useRef<number | null>(null);
 
-  const go = useCallback((i: number) => setStart(((i % n) + n) % n), [n]);
-  const current = n ? start % n : 0;
+  const current = n ? ((index % n) + n) % n : 0;
+  const step = useCallback(
+    (dir: 1 | -1) => {
+      if (!rotates) return;
+      if (dir === -1 && index === 0) {
+        // Jump (unseen) to the copy of the start at the end of the track, then slide back one.
+        setAnimate(false);
+        setIndex(n);
+        requestAnimationFrame(() => requestAnimationFrame(() => { setAnimate(true); setIndex(n - 1); }));
+        return;
+      }
+      setAnimate(true);
+      setIndex((i) => i + dir);
+    },
+    [index, n, rotates],
+  );
+  const goTo = (i: number) => { setAnimate(true); setIndex(i); };
 
-  const autoplaying = value.autoplay && rotates && !paused && !hovered && !focused && !reduced;
+  const autoplaying = value.autoplay && rotates && !hovered && !focused && !reduced;
   useEffect(() => {
     if (!autoplaying) return;
-    const t = window.setTimeout(() => go(current + 1), Math.max(3, value.intervalSeconds) * 1000);
+    const t = window.setTimeout(() => step(1), Math.max(3, value.intervalSeconds) * 1000);
     return () => window.clearTimeout(t);
-  }, [autoplaying, current, go, value.intervalSeconds]);
+  }, [autoplaying, index, step, value.intervalSeconds]);
 
   if (n === 0) return null;
 
+  const track = rotates ? [...posts, ...posts.slice(0, visible)] : posts;
   const shown = Array.from({ length: visible }, (_, k) => posts[(current + k) % n]);
-  const gridCols = visible === 3 ? "grid-cols-3" : visible === 2 ? "grid-cols-2" : "grid-cols-1";
   const announce = `Mostrando entradas ${shown.map((p) => `«${p.title}»`).join(", ")}. ${n} entradas en total.`;
+  const slideWidth = 100 / visible;
 
   return (
     <div
@@ -107,8 +127,8 @@ export function LatestPosts({ value }: { value: LatestPostsValue }) {
       }}
       onKeyDown={(e) => {
         if (!rotates || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
-        if (e.key === "ArrowLeft") { e.preventDefault(); go(current - 1); }
-        if (e.key === "ArrowRight") { e.preventDefault(); go(current + 1); }
+        if (e.key === "ArrowLeft") { e.preventDefault(); step(-1); }
+        if (e.key === "ArrowRight") { e.preventDefault(); step(1); }
       }}
       onTouchStart={(e) => { touchX.current = e.touches[0]?.clientX ?? null; }}
       onTouchEnd={(e) => {
@@ -116,7 +136,7 @@ export function LatestPosts({ value }: { value: LatestPostsValue }) {
         const x = e.changedTouches[0]?.clientX;
         touchX.current = null;
         if (!rotates || s == null || x == null || Math.abs(x - s) < 50) return;
-        go(x < s ? current + 1 : current - 1);
+        step(x < s ? 1 : -1);
       }}
     >
       {rotates && (
@@ -124,22 +144,45 @@ export function LatestPosts({ value }: { value: LatestPostsValue }) {
           {announce}
         </p>
       )}
-      <div className={`grid items-stretch gap-6 ${gridCols}`}>
-        {shown.map((p) => (
-          <Card key={p.slug} post={p} author={value.author} />
-        ))}
+      <div className="overflow-hidden">
+        <div
+          className="-mx-3 flex items-stretch"
+          style={{
+            transform: `translateX(-${index * slideWidth}%)`,
+            transition: animate && !reduced ? "transform 700ms cubic-bezier(0.45, 0, 0.2, 1)" : "none",
+          }}
+          onTransitionEnd={() => {
+            // Landed on the copies at the end: snap back to the same cards at the real start.
+            if (rotates && index >= n) {
+              setAnimate(false);
+              setIndex(index - n);
+            }
+          }}
+        >
+          {track.map((p, i) => {
+            const inView = i >= index && i < index + visible;
+            const isCopy = i >= n;
+            return (
+              <div
+                key={`${p.slug}-${isCopy ? "c" : "r"}`}
+                className="shrink-0 px-3"
+                style={{ width: `${slideWidth}%` }}
+                // Cards out of view (and the looping copies) are not reachable by keyboard or screen reader.
+                inert={rotates && (!inView || isCopy)}
+                aria-hidden={rotates && (!inView || isCopy) ? true : undefined}
+              >
+                <Card post={p} author={value.author} />
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {rotates && (
         <div className="mt-5 flex items-center justify-center gap-3">
-          <button type="button" aria-label="Entradas anteriores" className={NAV} onClick={() => go(current - 1)}>
+          <button type="button" aria-label="Entradas anteriores" className={NAV} onClick={() => step(-1)}>
             <ChevronLeftIcon size={22} />
           </button>
-          {value.autoplay && !reduced && (
-            <button type="button" aria-label={paused ? "Reanudar rotación" : "Pausar rotación"} className={NAV} onClick={() => setPaused((p) => !p)}>
-              {paused ? <PlayIcon size={14} /> : <PauseIcon size={14} />}
-            </button>
-          )}
           <div className="flex items-center">
             {posts.map((p, i) => (
               <button
@@ -147,14 +190,14 @@ export function LatestPosts({ value }: { value: LatestPostsValue }) {
                 type="button"
                 aria-label={`Ir a la entrada ${i + 1} de ${n}: ${p.title}`}
                 aria-current={i === current ? "true" : undefined}
-                onClick={() => go(i)}
+                onClick={() => goTo(i)}
                 className={`flex h-6 w-6 items-center justify-center rounded-full ${FOCUS}`}
               >
                 <span className={`block h-3 w-3 rounded-full border border-[#1F2A44] ${i === current ? "bg-[#1F2A44]" : "bg-transparent"}`} />
               </button>
             ))}
           </div>
-          <button type="button" aria-label="Entradas siguientes" className={NAV} onClick={() => go(current + 1)}>
+          <button type="button" aria-label="Entradas siguientes" className={NAV} onClick={() => step(1)}>
             <ChevronRightIcon size={22} />
           </button>
         </div>
