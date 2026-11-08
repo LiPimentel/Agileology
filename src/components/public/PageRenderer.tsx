@@ -1,5 +1,6 @@
 import { BlockRenderer, type RenderableBlock } from "@/components/blocks/BlockRenderer";
 import { BackgroundOverlay } from "@/components/public/BackgroundOverlay";
+import { buildLayoutItems } from "@/lib/pageLayout";
 
 export type PageRenderData = {
   id: string;
@@ -24,6 +25,9 @@ export type PageRenderData = {
     // showBanner (which hides the whole block). Also defaults true for old
     // snapshots.
     showTitle?: boolean;
+    // Widths (%) of the side rails; absent on older snapshots (default 22).
+    sideLeftWidth?: number;
+    sideRightWidth?: number;
   } | null;
 };
 
@@ -114,55 +118,7 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
   };
   const hasBands = sections.some(sectionHasBg);
 
-  return (
-    <article>
-      {showBanner ? (
-        <BackgroundOverlay
-          imageUrl={page.background?.imageUrl}
-          overlayColor={page.background?.overlayColor}
-          overlayOpacity={page.background?.overlayOpacity}
-          focalX={page.background?.focalX}
-          focalY={page.background?.focalY}
-          zoom={page.background?.zoom}
-        >
-          <div className={`mx-auto max-w-4xl px-6 py-16 ${page.background?.bannerImageUrl ? "text-center" : ""}`}>
-            {page.background?.bannerImageUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={page.background.bannerImageUrl} alt="" className="mx-auto mb-4 max-h-24 max-w-full object-contain" />
-            )}
-            <h1
-              className={
-                titleVisible
-                  ? page.background?.imageUrl
-                    ? "text-4xl font-bold text-white"
-                    : "text-4xl font-bold text-slate-900"
-                  : "sr-only"
-              }
-            >
-              {page.title}
-            </h1>
-          </div>
-        </BackgroundOverlay>
-      ) : (
-        // Banner turned off for this page -- still need exactly one <h1>
-        // for accessibility/SEO, just not shown visually (the page's own
-        // first section takes over immediately below the nav instead).
-        <h1 className="sr-only">{page.title}</h1>
-      )}
-
-      {/*
-        Grid sections stay in the narrow, centered, readable-width column
-        (below) like any article/page body -- but a free section is meant
-        to be used like Wix's canvas, "yo debería ser la que defina hasta
-        dónde queda [el contenido], no una limitante impuesta": it breaks
-        out of that column entirely and spans the full page width instead
-        of being boxed into the same ~768px column as regular text
-        content. Each section picks its own wrapper below (isFree), so a
-        page can freely mix narrow article-style sections with full-width
-        ones.
-      */}
-      <div className={hasBands ? "" : "space-y-8 py-12"}>
-        {sections.map((section, i) => {
+  const renderSection = (section: RenderableBlock[], i: number, compact = false) => {
           const first = section[0];
           const isFree = first?.sectionLayoutMode === "free";
           const columns = groupIntoColumns(section);
@@ -268,8 +224,89 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
           // the centered ~768px readable column, same as before this
           // existed -- see the comment on the outer wrapper above.
           return (
-            <div key={first?.id ?? i} className={isFree ? "w-full" : `mx-auto ${widthClass} px-6${hasBands ? " py-8" : ""}`}>
+            <div key={first?.id ?? i} className={isFree ? "w-full" : `mx-auto ${compact ? "max-w-full px-3" : `${widthClass} px-6`}${hasBands ? " py-8" : ""}`}>
               {content}
+            </div>
+          );
+  };
+
+  // Sections placed in the centre / a side rail (sectionZone) are laid out together as one three-column
+  // grid; "full" sections (the default, every page before this existed) keep spanning the whole width.
+  const leftWidth = page.background?.sideLeftWidth ?? 22;
+  const rightWidth = page.background?.sideRightWidth ?? 22;
+  const layoutItems = buildLayoutItems(sections, (sec) => sec[0]?.sectionZone);
+
+  return (
+    <article>
+      {showBanner ? (
+        <BackgroundOverlay
+          imageUrl={page.background?.imageUrl}
+          overlayColor={page.background?.overlayColor}
+          overlayOpacity={page.background?.overlayOpacity}
+          focalX={page.background?.focalX}
+          focalY={page.background?.focalY}
+          zoom={page.background?.zoom}
+        >
+          <div className={`mx-auto max-w-4xl px-6 py-16 ${page.background?.bannerImageUrl ? "text-center" : ""}`}>
+            {page.background?.bannerImageUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={page.background.bannerImageUrl} alt="" className="mx-auto mb-4 max-h-24 max-w-full object-contain" />
+            )}
+            <h1
+              className={
+                titleVisible
+                  ? page.background?.imageUrl
+                    ? "text-4xl font-bold text-white"
+                    : "text-4xl font-bold text-slate-900"
+                  : "sr-only"
+              }
+            >
+              {page.title}
+            </h1>
+          </div>
+        </BackgroundOverlay>
+      ) : (
+        // Banner turned off for this page -- still need exactly one <h1>
+        // for accessibility/SEO, just not shown visually (the page's own
+        // first section takes over immediately below the nav instead).
+        <h1 className="sr-only">{page.title}</h1>
+      )}
+
+      {/*
+        Grid sections stay in the narrow, centered, readable-width column
+        (below) like any article/page body -- but a free section is meant
+        to be used like Wix's canvas, "yo debería ser la que defina hasta
+        dónde queda [el contenido], no una limitante impuesta": it breaks
+        out of that column entirely and spans the full page width instead
+        of being boxed into the same ~768px column as regular text
+        content. Each section picks its own wrapper below (isFree), so a
+        page can freely mix narrow article-style sections with full-width
+        ones.
+      */}
+      <div className={hasBands ? "" : "space-y-8 py-12"}>
+        {layoutItems.map((item, n) => {
+          if (item.kind === "full") return renderSection(item.section, item.index);
+          const hasLeft = item.sections.some((x) => x.zone === "left");
+          const hasRight = item.sections.some((x) => x.zone === "right");
+          const mainSections = item.sections.filter((x) => x.zone === "main" || (x.zone !== "left" && x.zone !== "right"));
+          // The strip behind the three columns takes the colour of its first section, so the rails
+          // are not white gaps beside coloured bands.
+          const f = item.sections[0].section[0];
+          const solid = !f?.sectionBgImageUrl && !f?.sectionBgVideoUrl && (f?.sectionBgOpacity ?? 0) > 0;
+          const stripBg = solid ? `color-mix(in srgb, ${f?.sectionBgColor ?? "#000000"} ${Math.round((f?.sectionBgOpacity ?? 0) * 100)}%, transparent)` : undefined;
+          return (
+            <div key={`grid-${n}`} className="flex flex-col lg:flex-row lg:items-start" style={stripBg ? { backgroundColor: stripBg } : undefined}>
+              {hasLeft && (
+                <aside aria-label="Columna lateral izquierda" className="order-2 min-w-0 lg:order-1 lg:w-[var(--rail-w)] lg:shrink-0" style={{ "--rail-w": `${leftWidth}%` } as React.CSSProperties}>
+                  {item.sections.filter((x) => x.zone === "left").map((x) => renderSection(x.section, x.index, true))}
+                </aside>
+              )}
+              <div className="order-1 min-w-0 flex-1 lg:order-2">{mainSections.map((x) => renderSection(x.section, x.index))}</div>
+              {hasRight && (
+                <aside aria-label="Columna lateral derecha" className="order-3 min-w-0 lg:w-[var(--rail-w)] lg:shrink-0" style={{ "--rail-w": `${rightWidth}%` } as React.CSSProperties}>
+                  {item.sections.filter((x) => x.zone === "right").map((x) => renderSection(x.section, x.index, true))}
+                </aside>
+              )}
             </div>
           );
         })}

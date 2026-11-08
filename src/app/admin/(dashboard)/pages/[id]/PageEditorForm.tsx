@@ -34,6 +34,8 @@ export type PageEditorData = {
     zoom: number;
     showBanner: boolean;
     showTitle: boolean;
+    sideLeftWidth: number;
+    sideRightWidth: number;
   } | null;
   sections: EditorSection[];
 };
@@ -196,6 +198,22 @@ export function PageEditorForm({
         <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">
           Agrega el mapa o el formulario de contacto como un componente más, en la sección donde los quieras.
         </p>
+        <fieldset className="mb-4 rounded-md border border-slate-200 p-3 dark:border-slate-700">
+          <legend className="px-1 text-sm font-medium text-slate-700 dark:text-slate-300">Laterales</legend>
+          <p className="mb-2 text-xs text-slate-500 dark:text-slate-400">
+            Para tener una columna a cada lado, elige «Lateral izquierdo» o «Lateral derecho» en la ubicación de una sección, y «Centro» en las del medio. La sección de ancho completo (por ejemplo el video) queda arriba o abajo de esa cuadrícula. Aquí defines el ancho de cada lateral.
+          </p>
+          <div className="flex flex-wrap gap-4">
+            <label className="text-sm text-slate-700 dark:text-slate-300">
+              Ancho lateral izquierdo (%)
+              <input type="number" name="sideLeftWidth" min={15} max={35} defaultValue={page.background?.sideLeftWidth ?? 22} className="ml-2 w-20 rounded-md border border-slate-300 px-2 py-1 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
+            </label>
+            <label className="text-sm text-slate-700 dark:text-slate-300">
+              Ancho lateral derecho (%)
+              <input type="number" name="sideRightWidth" min={15} max={35} defaultValue={page.background?.sideRightWidth ?? 22} className="ml-2 w-20 rounded-md border border-slate-300 px-2 py-1 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
+            </label>
+          </div>
+        </fieldset>
         <SectionBlockEditor initialSections={page.sections} mediaLibrary={mediaLibrary} pages={pages} formDefinitions={formDefinitions} />
       </section>
 

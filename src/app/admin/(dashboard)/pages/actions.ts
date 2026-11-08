@@ -70,6 +70,7 @@ type SubmittedBlock = {
   sectionBgFocalX?: number;
   sectionBgFocalY?: number;
   sectionBgZoom?: number;
+  sectionZone?: string;
   sectionLayoutMode?: string;
   sectionFreeHeight?: number;
   freeX?: number;
@@ -94,6 +95,11 @@ function sanitizeColumnWidth(width: unknown) {
   const n = Number(width);
   if (!Number.isFinite(n)) return 100;
   return Math.min(100, Math.max(10, Math.round(n)));
+}
+
+/** Where a section sits: full width (default), the centre column, or a side rail. */
+function sanitizeZone(v: unknown): "full" | "main" | "left" | "right" {
+  return v === "main" || v === "left" || v === "right" ? v : "full";
 }
 
 function clampNumber(v: unknown, min: number, max: number, fallback: number) {
@@ -150,6 +156,8 @@ async function upsertPageContent(pageId: string, formData: FormData) {
   const focalX = clampNumber(formData.get("backgroundFocalX"), 0, 100, 50);
   const focalY = clampNumber(formData.get("backgroundFocalY"), 0, 100, 50);
   const zoom = clampNumber(formData.get("backgroundZoom"), 1, 3, 1);
+  const sideLeftWidth = Math.round(clampNumber(formData.get("sideLeftWidth"), 15, 35, 22));
+  const sideRightWidth = Math.round(clampNumber(formData.get("sideRightWidth"), 15, 35, 22));
   const showBanner = formData.get("showBanner") === "on";
   const showTitle = formData.get("showTitle") === "on";
 
@@ -178,6 +186,7 @@ async function upsertPageContent(pageId: string, formData: FormData) {
     sectionBgFocalX: clampNumber(b.sectionBgFocalX, 0, 100, 50),
     sectionBgFocalY: clampNumber(b.sectionBgFocalY, 0, 100, 50),
     sectionBgZoom: clampNumber(b.sectionBgZoom, 1, 3, 1),
+    sectionZone: sanitizeZone(b.sectionZone),
     sectionLayoutMode: b.sectionLayoutMode === "free" ? "free" : "grid",
     sectionFreeHeight: sanitizeFreeHeight(b.sectionFreeHeight),
     freeX: sanitizePercent(b.freeX, 10),
@@ -200,8 +209,8 @@ async function upsertPageContent(pageId: string, formData: FormData) {
 
     await tx.background.upsert({
       where: { pageId },
-      update: { overlayColor, overlayOpacity, imageUrl: backgroundImageUrl, focalX, focalY, zoom, bannerImageUrl, showBanner, showTitle },
-      create: { pageId, overlayColor, overlayOpacity, imageUrl: backgroundImageUrl, focalX, focalY, zoom, bannerImageUrl, showBanner, showTitle },
+      update: { overlayColor, overlayOpacity, imageUrl: backgroundImageUrl, focalX, focalY, zoom, bannerImageUrl, showBanner, showTitle, sideLeftWidth, sideRightWidth },
+      create: { pageId, overlayColor, overlayOpacity, imageUrl: backgroundImageUrl, focalX, focalY, zoom, bannerImageUrl, showBanner, showTitle, sideLeftWidth, sideRightWidth },
     });
   });
 
@@ -301,6 +310,7 @@ export async function duplicatePage(pageId: string) {
           sectionBgFocalX: b.sectionBgFocalX,
           sectionBgFocalY: b.sectionBgFocalY,
           sectionBgZoom: b.sectionBgZoom,
+          sectionZone: b.sectionZone,
           sectionLayoutMode: b.sectionLayoutMode,
           sectionFreeHeight: b.sectionFreeHeight,
           freeX: b.freeX,
@@ -322,6 +332,8 @@ export async function duplicatePage(pageId: string) {
               zoom: source.background.zoom,
               showBanner: source.background.showBanner,
               showTitle: source.background.showTitle,
+              sideLeftWidth: source.background.sideLeftWidth,
+              sideRightWidth: source.background.sideRightWidth,
             },
           }
         : { create: {} },
@@ -363,6 +375,7 @@ export async function restorePageVersion(pageId: string, versionId: string) {
               sectionBgFocalX?: number;
               sectionBgFocalY?: number;
               sectionBgZoom?: number;
+              sectionZone?: string;
               sectionLayoutMode?: string;
               sectionFreeHeight?: number;
               freeX?: number;
@@ -392,6 +405,7 @@ export async function restorePageVersion(pageId: string, versionId: string) {
             sectionBgFocalY: clampNumber(b.sectionBgFocalY, 0, 100, 50),
             sectionBgZoom: clampNumber(b.sectionBgZoom, 1, 3, 1),
             sectionBgOpacity: b.sectionBgOpacity ?? 0,
+            sectionZone: sanitizeZone(b.sectionZone),
             sectionLayoutMode: b.sectionLayoutMode ?? "grid",
             sectionFreeHeight: b.sectionFreeHeight ?? 400,
             freeX: b.freeX ?? 10,
@@ -415,6 +429,8 @@ export async function restorePageVersion(pageId: string, versionId: string) {
         zoom: clampNumber(snapshot.background?.zoom, 1, 3, 1),
         showBanner: snapshot.background?.showBanner ?? true,
         showTitle: snapshot.background?.showTitle ?? true,
+        sideLeftWidth: Math.round(clampNumber(snapshot.background?.sideLeftWidth, 15, 35, 22)),
+        sideRightWidth: Math.round(clampNumber(snapshot.background?.sideRightWidth, 15, 35, 22)),
       },
       create: {
         pageId,
@@ -427,6 +443,8 @@ export async function restorePageVersion(pageId: string, versionId: string) {
         zoom: clampNumber(snapshot.background?.zoom, 1, 3, 1),
         showBanner: snapshot.background?.showBanner ?? true,
         showTitle: snapshot.background?.showTitle ?? true,
+        sideLeftWidth: Math.round(clampNumber(snapshot.background?.sideLeftWidth, 15, 35, 22)),
+        sideRightWidth: Math.round(clampNumber(snapshot.background?.sideRightWidth, 15, 35, 22)),
       },
     });
   });

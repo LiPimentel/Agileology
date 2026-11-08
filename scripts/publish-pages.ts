@@ -40,7 +40,7 @@ async function main() {
         position: b.position, columnIndex: b.columnIndex, columnWidth: b.columnWidth, blockOrder: b.blockOrder,
         sectionBgImageUrl: b.sectionBgImageUrl, sectionBgColor: b.sectionBgColor, sectionBgOpacity: b.sectionBgOpacity,
         sectionBgVideoUrl: b.sectionBgVideoUrl, sectionBgGradientEnd: b.sectionBgGradientEnd,
-        sectionBgFocalX: b.sectionBgFocalX, sectionBgFocalY: b.sectionBgFocalY, sectionBgZoom: b.sectionBgZoom,
+        sectionBgFocalX: b.sectionBgFocalX, sectionBgFocalY: b.sectionBgFocalY, sectionBgZoom: b.sectionBgZoom, sectionZone: b.sectionZone,
         sectionLayoutMode: b.sectionLayoutMode, sectionFreeHeight: b.sectionFreeHeight,
         freeX: b.freeX, freeY: b.freeY, freeWidth: b.freeWidth, freeHeight: b.freeHeight, freeZIndex: b.freeZIndex,
       })),
@@ -49,6 +49,7 @@ async function main() {
             imageUrl: page.background.imageUrl, overlayColor: page.background.overlayColor,
             overlayOpacity: page.background.overlayOpacity, focalX: page.background.focalX, focalY: page.background.focalY, zoom: page.background.zoom, bannerImageUrl: page.background.bannerImageUrl,
             showBanner: page.background.showBanner, showTitle: page.background.showTitle,
+            sideLeftWidth: page.background.sideLeftWidth, sideRightWidth: page.background.sideRightWidth,
           }
         : null,
     };

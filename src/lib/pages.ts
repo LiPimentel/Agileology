@@ -32,6 +32,7 @@ export async function buildPageSnapshot(pageId: string): Promise<PageRenderData 
       sectionBgFocalX: b.sectionBgFocalX,
       sectionBgFocalY: b.sectionBgFocalY,
       sectionBgZoom: b.sectionBgZoom,
+      sectionZone: b.sectionZone,
       sectionLayoutMode: b.sectionLayoutMode,
       sectionFreeHeight: b.sectionFreeHeight,
       freeX: b.freeX,
@@ -51,6 +52,8 @@ export async function buildPageSnapshot(pageId: string): Promise<PageRenderData 
           bannerImageUrl: page.background.bannerImageUrl,
           showBanner: page.background.showBanner,
           showTitle: page.background.showTitle,
+          sideLeftWidth: page.background.sideLeftWidth,
+          sideRightWidth: page.background.sideRightWidth,
         }
       : null,
   };

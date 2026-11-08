@@ -24,6 +24,8 @@ import {
   type EditorColumn,
   type EditorFreeBlockItem,
   type EditorSection,
+  type SectionZone,
+  SECTION_ZONE_LABELS,
   convertSectionLayout,
   emptyContent,
   generateId,
@@ -398,6 +400,10 @@ export function SectionBlockEditor({
    * "+ Agregar componente" click leads straight into editing it, instead
    * of adding it collapsed and making the admin click it again to open it.
    */
+  function setSectionZone(sectionId: string, zone: SectionZone) {
+    setSections((prev) => prev.map((s) => (s.id === sectionId ? { ...s, zone } : s)));
+  }
+
   function addBlockToColumn(sectionId: string, columnId: string, type: BlockType) {
     const id = generateId();
     setSections((prev) =>
@@ -897,6 +903,29 @@ export function SectionBlockEditor({
                 />
               </div>
             )}
+
+            <div className="mb-4 flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
+              <label htmlFor={`zone-${section.id}`} className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                Ubicación en la página
+              </label>
+              <select
+                id={`zone-${section.id}`}
+                value={section.zone}
+                onChange={(e) => setSectionZone(section.id, e.target.value as SectionZone)}
+                className="rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+              >
+                {(Object.keys(SECTION_ZONE_LABELS) as SectionZone[]).map((z) => (
+                  <option key={z} value={z}>
+                    {SECTION_ZONE_LABELS[z]}
+                  </option>
+                ))}
+              </select>
+              {section.zone !== "full" && (
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                  Las secciones seguidas con Centro / Lateral forman una cuadrícula de 3 columnas.
+                </span>
+              )}
+            </div>
 
             {section.columns.length === 2 && (
               <div className="mb-4" onClick={(e) => e.stopPropagation()}>

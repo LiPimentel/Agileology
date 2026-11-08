@@ -71,9 +71,22 @@ export type SectionBackground = { imageUrl: string; color: string; opacity: numb
 // on a freeHeight-tall canvas -- "quiero poder ajustar/mover/redimensionar
 // elementos directamente ahí, aprovechando libremente el espacio de la
 // página" (opt-in per section, not a replacement of the grid system).
+// Where the section sits on the page: "full" = full width (default, as before), "main" = the centre
+// column of the three-column grid, "left"/"right" = a side rail. See PageRenderer.
+export type SectionZone = "full" | "main" | "left" | "right";
+export const SECTION_ZONE_LABELS: Record<SectionZone, string> = {
+  full: "Ancho completo",
+  main: "Centro",
+  left: "Lateral izquierdo",
+  right: "Lateral derecho",
+};
+export function parseZone(v: unknown): SectionZone {
+  return v === "main" || v === "left" || v === "right" ? v : "full";
+}
 export type EditorSection = {
   id: string;
   layoutMode: "grid" | "free";
+  zone: SectionZone;
   columns: EditorColumn[];
   freeBlocks: EditorFreeBlockItem[];
   freeHeight: number;
@@ -171,6 +184,7 @@ export function newSection(columnCount: 1 | 2 | 3): EditorSection {
   return {
     id: generateId(),
     layoutMode: "grid",
+    zone: "full",
     columns: evenWidths(columnCount).map((width) => ({ id: generateId(), width, blocks: [] })),
     freeBlocks: [],
     freeHeight: DEFAULT_FREE_HEIGHT,
@@ -202,6 +216,7 @@ export function groupBlocksIntoSections(
     sectionBgFocalX: number;
     sectionBgFocalY: number;
     sectionBgZoom: number;
+    sectionZone: string;
     sectionLayoutMode: string;
     sectionFreeHeight: number;
     freeX: number;
@@ -218,6 +233,7 @@ export function groupBlocksIntoSections(
       sections.push({
         id: generateId(),
         layoutMode: b.sectionLayoutMode === "free" ? "free" : "grid",
+        zone: parseZone(b.sectionZone),
         columns: [],
         freeBlocks: [],
         freeHeight: b.sectionFreeHeight || DEFAULT_FREE_HEIGHT,
@@ -271,6 +287,7 @@ export function serializeSections(sections: EditorSection[]) {
     sectionBgFocalX: number;
     sectionBgFocalY: number;
     sectionBgZoom: number;
+    sectionZone: SectionZone;
     sectionLayoutMode: string;
     sectionFreeHeight: number;
     freeX: number;
@@ -289,6 +306,7 @@ export function serializeSections(sections: EditorSection[]) {
       sectionBgFocalX: section.background.focalX,
       sectionBgFocalY: section.background.focalY,
       sectionBgZoom: section.background.zoom,
+      sectionZone: section.zone,
       sectionLayoutMode: section.layoutMode,
       sectionFreeHeight: section.freeHeight,
     };
