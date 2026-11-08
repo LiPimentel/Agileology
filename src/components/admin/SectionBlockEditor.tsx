@@ -402,8 +402,8 @@ export function SectionBlockEditor({
    * of adding it collapsed and making the admin click it again to open it.
    */
   /** A new empty section in one column of the three-column grid, placed after the grid's last section. */
-  function addSectionInZone(zone: SectionZone, afterIndex: number) {
-    setSections((prev) => [...prev.slice(0, afterIndex + 1), { ...newSection(1), zone }, ...prev.slice(afterIndex + 1)]);
+  function addSectionInZone(zone: SectionZone, afterIndex: number, columnCount: 1 | 2 | 3 = 1) {
+    setSections((prev) => [...prev.slice(0, afterIndex + 1), { ...newSection(columnCount), zone }, ...prev.slice(afterIndex + 1)]);
   }
 
   function setSectionZone(sectionId: string, zone: SectionZone) {
@@ -997,13 +997,18 @@ export function SectionBlockEditor({
                     <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">{c.label}</h3>
                     {inColumn.map((x) => renderSectionCard(x.section, x.index))}
                     {inColumn.length === 0 && <p className="text-xs text-slate-500 dark:text-slate-400">Vacía: no se muestra en el sitio hasta que agregues algo.</p>}
-                    <button
-                      type="button"
-                      onClick={() => addSectionInZone(c.zone, lastIndex)}
-                      className="w-full rounded-md border border-dashed border-violet-300 px-3 py-1.5 text-sm text-violet-700 hover:border-violet-500 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-300 dark:hover:bg-slate-800"
-                    >
-                      + Agregar sección aquí
-                    </button>
+                    <div className="flex flex-col gap-1.5">
+                      {([1, 2, 3] as const).map((count) => (
+                        <button
+                          key={count}
+                          type="button"
+                          onClick={() => addSectionInZone(c.zone, lastIndex, count)}
+                          className="w-full rounded-md border border-dashed border-violet-300 px-3 py-1.5 text-sm text-violet-700 hover:border-violet-500 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-300 dark:hover:bg-slate-800"
+                        >
+                          + Sección ({count === 1 ? "1 componente" : `${count} componentes`})
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 );
               })}
