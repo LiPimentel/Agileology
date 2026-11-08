@@ -1,6 +1,8 @@
 // Shared between the (client) ImageBlockEditor preview and the (server)
 // BlockRenderer public render, so both apply the exact same shape. Plain
 // data, no "use client" -- safe to import from either.
+import type { CSSProperties } from "react";
+
 export type ImageShape = "none" | "rounded" | "circle" | "oval";
 
 export const IMAGE_SHAPE_LABELS: Record<ImageShape, string> = {
@@ -65,4 +67,51 @@ export const ALIGN_CLASS: Record<string, string> = {
 /** circle/oval read as oversized at a full 2xl width; none/rounded keep the wider default. */
 export function imageMaxWidthClass(shape: ImageShape): string {
   return shape === "circle" || shape === "oval" ? "max-w-xs" : "max-w-2xl";
+}
+
+// ── Picture frame ("Marco") ─────────────────────────────────────────────────────────────────
+// A fixed-proportion window the picture is cropped to; inside it the picture can be dragged and
+// zoomed to choose what shows ("si una imagen es demasiado grande, poder arrastrarla hasta que
+// se vea lo que me interesa"). "auto" = no window: the whole picture at its own proportions
+// (how every picture saved before this existed behaves). circle/oval already are a window, with
+// the proportions of their shape.
+export type ImageFrame = "auto" | "16/9" | "4/3" | "1/1" | "3/4" | "21/9";
+export const IMAGE_FRAMES: ImageFrame[] = ["auto", "16/9", "4/3", "1/1", "3/4", "21/9"];
+export const IMAGE_FRAME_LABELS: Record<ImageFrame, string> = {
+  auto: "Libre (la imagen completa)",
+  "16/9": "Panorámico (16:9)",
+  "4/3": "Clásico (4:3)",
+  "1/1": "Cuadrado (1:1)",
+  "3/4": "Vertical (3:4)",
+  "21/9": "Cinta (21:9)",
+};
+const FRAME_ASPECT_CLASS: Record<Exclude<ImageFrame, "auto">, string> = {
+  "16/9": "aspect-video",
+  "4/3": "aspect-[4/3]",
+  "1/1": "aspect-square",
+  "3/4": "aspect-[3/4]",
+  "21/9": "aspect-[21/9]",
+};
+
+/** "fill" is internal: a free-layout box already defines the window, the picture just fills it. */
+export type ImageFrameOrFill = ImageFrame | "fill";
+
+/** Is the picture shown through a window (so it can be dragged/zoomed)? */
+export function isFramedImage(shape: ImageShape, frame: ImageFrameOrFill | undefined): boolean {
+  return isCroppableShape(shape) || (frame !== undefined && frame !== "auto");
+}
+
+export function framedWrapperClass(shape: ImageShape, frame: ImageFrameOrFill | undefined): string {
+  if (isCroppableShape(shape)) return IMAGE_SHAPE_WRAPPER_CLASS[shape];
+  const rounding = shape === "rounded" ? "rounded-2xl" : "rounded-md";
+  if (frame === "fill") return `h-full w-full overflow-hidden ${rounding}`;
+  if (frame && frame !== "auto") return `${FRAME_ASPECT_CLASS[frame]} w-full overflow-hidden ${rounding}`;
+  return IMAGE_SHAPE_WRAPPER_CLASS[shape];
+}
+
+export const FRAMED_IMG_CLASS = "h-full w-full object-cover";
+
+/** The CSS that pans/zooms the picture inside its window (same maths in the editor preview and on the page). */
+export function framedImageStyle(focalX: number, focalY: number, zoom: number): CSSProperties {
+  return { objectPosition: `${focalX}% ${focalY}%`, transform: `scale(${zoom})`, transformOrigin: `${focalX}% ${focalY}%` };
 }

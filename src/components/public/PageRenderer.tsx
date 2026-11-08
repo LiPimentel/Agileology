@@ -79,7 +79,10 @@ function groupIntoColumns(section: RenderableBlock[]) {
  */
 function forFreeBox(block: RenderableBlock): RenderableBlock {
   if (block.type !== "image" && block.type !== "video") return block;
-  return { ...block, content: { ...block.content, width: 100, alignment: "center" } };
+  // An image in a free box is shown through the box (cropped to fill it); its own pan/zoom
+  // (focalX/focalY/zoom) then chooses which part shows.
+  const frame = block.type === "image" ? { frame: "fill" } : {};
+  return { ...block, content: { ...block.content, width: 100, alignment: "center", ...frame } };
 }
 
 export function PageRenderer({ page }: { page: PageRenderData }) {

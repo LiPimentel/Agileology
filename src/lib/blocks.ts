@@ -20,6 +20,8 @@ export const imageBlockSchema = z.object({
   focalX: z.number().min(0).max(100).default(50),
   focalY: z.number().min(0).max(100).default(50),
   zoom: z.number().min(1).max(3).default(1),
+  // Fixed-proportion window ("Marco") the picture is cropped to; "auto" = the whole picture, as before.
+  frame: z.enum(["auto", "16/9", "4/3", "1/1", "3/4", "21/9"]).default("auto"),
   // Percentage of the column's width -- same "Tamaño" control video blocks
   // already have (see videoBlockSchema below). Previously there was no way
   // to shrink the shape itself, only zoom/crop the photo inside it.

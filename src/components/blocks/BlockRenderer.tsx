@@ -7,9 +7,13 @@ import {
   IMAGE_SHAPE_WRAPPER_CLASS,
   IMAGE_SHAPE_IMG_CLASS,
   VIDEO_SHAPE_WRAPPER_CLASS,
-  isCroppableShape,
+  FRAMED_IMG_CLASS,
+  framedImageStyle,
+  framedWrapperClass,
+  isFramedImage,
   imageMaxWidthClass,
   ALIGN_CLASS,
+  type ImageFrameOrFill,
   type ImageShape,
 } from "@/lib/imageShape";
 import { MapEmbed } from "@/components/public/MapEmbed";
@@ -63,6 +67,7 @@ export function BlockRenderer({ block, pageId }: { block: RenderableBlock; pageI
       const altText = String(block.content.altText ?? "");
       const alignment = String(block.content.alignment ?? "center");
       const shape = (block.content.shape as ImageShape | undefined) ?? "none";
+      const frame = (block.content.frame as ImageFrameOrFill | undefined) ?? "auto";
       const focalX = Number(block.content.focalX ?? 50);
       const focalY = Number(block.content.focalY ?? 50);
       const zoom = Number(block.content.zoom ?? 1);
@@ -73,31 +78,25 @@ export function BlockRenderer({ block, pageId }: { block: RenderableBlock; pageI
       // sizing unchanged. The "Tamaño" slider (width%) then scales down
       // from there, same pattern video blocks already use.
       const maxWidth = imageMaxWidthClass(shape);
-      const croppable = isCroppableShape(shape);
+      // Through a window (circle/oval, or a chosen "Marco", or the box of a free section): the
+      // picture fills it and can be panned/zoomed. Otherwise the whole picture, as before.
+      const framed = isFramedImage(shape, frame);
       const img = (
         <Image
           src={url}
           alt={altText}
           width={1200}
           height={800}
-          className={IMAGE_SHAPE_IMG_CLASS[shape]}
-          style={
-            croppable
-              ? {
-                  objectPosition: `${focalX}% ${focalY}%`,
-                  transform: `scale(${zoom})`,
-                  // Anchor zoom on the focal point, matching the admin
-                  // editor's ImageShapeAdjuster -- keeps the public render
-                  // pixel-identical to what was previewed while editing.
-                  transformOrigin: `${focalX}% ${focalY}%`,
-                }
-              : undefined
-          }
+          className={framed ? FRAMED_IMG_CLASS : IMAGE_SHAPE_IMG_CLASS[shape]}
+          // Anchor the zoom on the focal point, matching the admin editor's adjuster -- keeps the
+          // public render pixel-identical to what was previewed while editing.
+          style={framed ? framedImageStyle(focalX, focalY, zoom) : undefined}
         />
       );
+      const wrapperClass = framed ? framedWrapperClass(shape, frame) : IMAGE_SHAPE_WRAPPER_CLASS[shape];
       return (
         <div className={`${maxWidth} ${ALIGN_CLASS[alignment] ?? "mx-auto"}`} style={{ width: `${width}%` }}>
-          {IMAGE_SHAPE_WRAPPER_CLASS[shape] ? <div className={IMAGE_SHAPE_WRAPPER_CLASS[shape]}>{img}</div> : img}
+          {wrapperClass ? <div className={wrapperClass}>{img}</div> : img}
         </div>
       );
     }

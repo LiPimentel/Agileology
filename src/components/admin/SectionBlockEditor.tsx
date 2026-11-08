@@ -574,6 +574,18 @@ export function SectionBlockEditor({
     }
   }
 
+  /**
+   * Proportions (width / height) of a free-layout block's box: the window its picture is cropped to.
+   * Width is a % of the section's canvas, whose real width varies, so ~960 px (the page's usual
+   * content width) is assumed; height is a % of the canvas height in pixels.
+   */
+  function freeBoxAspect(sectionId: string, item: EditorFreeBlockItem): number {
+    const canvasHeight = sections.find((sec) => sec.id === sectionId)?.freeHeight ?? 400;
+    const w = (item.width / 100) * 960;
+    const h = (item.height / 100) * canvasHeight;
+    return h > 0 ? Math.max(0.2, Math.min(5, w / h)) : 1.5;
+  }
+
   /** Same per-type editor dispatch as renderBlockEditor, but writing back to a free-canvas block instead of a column's. */
   function renderFreeBlockEditor(sectionId: string, item: EditorFreeBlockItem) {
     const onChange = (v: unknown) => updateFreeBlockContent(sectionId, item.id, v);
@@ -581,7 +593,7 @@ export function SectionBlockEditor({
       case "text":
         return <TextBlockEditor html={item.block.content.html} onChange={(html) => onChange({ html })} mediaLibrary={mediaLibrary} />;
       case "image":
-        return <ImageBlockEditor value={item.block.content} onChange={onChange} mediaLibrary={mediaLibrary} />;
+        return <ImageBlockEditor value={item.block.content} onChange={onChange} mediaLibrary={mediaLibrary} boxAspect={freeBoxAspect(sectionId, item)} />;
       case "link":
         return <LinkBlockEditor value={item.block.content} onChange={onChange} pages={pages} />;
       case "video":
