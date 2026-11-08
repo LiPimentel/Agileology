@@ -84,7 +84,7 @@ li("widget Elfsight válido", { elfsightId: "98abbbfa-155c-4a56-85d3-d31f5132866
 li("widget vacío (modo manual)", { elfsightId: "" }, true);
 li("widget con texto raro", { elfsightId: "98abbbfa-155c-4a56-85d3-d31f51328669\"><script>" }, false);
 li("widget que no es un id", { elfsightId: "../../admin" }, false);
-li("alto del recuadro fuera de rango", { height: 5000 }, false);
+li("alto del recuadro fuera de rango", { height: 9000 }, false);
 bad("más de 20 diapositivas", { slides: Array.from({ length: 21 }, () => ({ kind: "image", url: "/uploads/a.webp", altText: "" })) });
 bad("intervalo fuera de rango", { slides: [], intervalSeconds: 1 });
 bad("tipo de diapositiva desconocido", { slides: [{ kind: "html", url: "/a" }] });

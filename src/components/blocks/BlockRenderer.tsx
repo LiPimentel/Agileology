@@ -198,7 +198,7 @@ export function BlockRenderer({ block, pageId }: { block: RenderableBlock; pageI
     case "linkedinPosts": {
       const elfsightId = String(block.content.elfsightId ?? "");
       if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(elfsightId)) {
-        const height = Math.min(900, Math.max(240, Number(block.content.height ?? 520)));
+        const height = Math.min(1400, Math.max(240, Number(block.content.height ?? 520)));
         const heading = String(block.content.title ?? "");
         const embedOrigin = String(block.content.embedOrigin ?? "");
         if (!/^https?:\/\/[^\s/]+$/.test(embedOrigin)) {

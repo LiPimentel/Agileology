@@ -60,7 +60,7 @@ export function LinkedinPostsBlockEditor({
         {value.elfsightId && (
           <div className="mt-2">
             <label htmlFor={`${uid}-h`} className={label}>Alto del recuadro ({value.height}px)</label>
-            <input id={`${uid}-h`} type="range" min={240} max={900} step={20} value={value.height} onChange={(e) => onChange({ ...value, height: Number(e.target.value) })} className="mt-1 w-full max-w-xs" />
+            <input id={`${uid}-h`} type="range" min={240} max={1400} step={20} value={value.height} onChange={(e) => onChange({ ...value, height: Number(e.target.value) })} className="mt-1 w-full max-w-xs" />
           </div>
         )}
       </div>

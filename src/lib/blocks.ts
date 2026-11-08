@@ -143,7 +143,7 @@ export const linkedinPostsBlockSchema = z.object({
   // the block shows that widget -- inside an isolated frame, see /embed/linkedin -- instead of the hand-filled cards.
   elfsightId: z.string().regex(/^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})?$/i, "El ID del widget no es válido.").transform((s) => s.toLowerCase()).default(""),
   // Height (px) of that frame.
-  height: z.number().int().min(240).max(900).default(520),
+  height: z.number().int().min(240).max(1400).default(520),
 });
 
 export type EditorBlock =

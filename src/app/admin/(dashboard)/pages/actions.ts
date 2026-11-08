@@ -171,6 +171,14 @@ async function upsertPageContent(pageId: string, formData: FormData) {
   // width within that row) directly -- fall back to a linear index for
   // anything malformed/missing so a bad payload still saves sensibly rather
   // than throwing.
+  // An editor tab opened before side rails existed does not send `sectionZone` at all; saving from it
+  // must not reset every section to full width, so keep the zones the page already had (by position).
+  const legacyClient = blocksRaw.length > 0 && blocksRaw.every((b) => b.sectionZone === undefined);
+  const previousZones = new Map<number, string>();
+  if (legacyClient) {
+    const prev = await prisma.contentBlock.findMany({ where: { pageId }, select: { position: true, sectionZone: true } });
+    for (const p of prev) previousZones.set(p.position, p.sectionZone);
+  }
   const blocks = blocksRaw.map((b, i) => ({
     type: b.type,
     content: sanitizeBlockContent(b.type, b.content) as object,
@@ -186,7 +194,7 @@ async function upsertPageContent(pageId: string, formData: FormData) {
     sectionBgFocalX: clampNumber(b.sectionBgFocalX, 0, 100, 50),
     sectionBgFocalY: clampNumber(b.sectionBgFocalY, 0, 100, 50),
     sectionBgZoom: clampNumber(b.sectionBgZoom, 1, 3, 1),
-    sectionZone: sanitizeZone(b.sectionZone),
+    sectionZone: sanitizeZone(legacyClient ? previousZones.get(Number.isFinite(b.position) ? Number(b.position) : i) : b.sectionZone),
     sectionLayoutMode: b.sectionLayoutMode === "free" ? "free" : "grid",
     sectionFreeHeight: sanitizeFreeHeight(b.sectionFreeHeight),
     freeX: sanitizePercent(b.freeX, 10),

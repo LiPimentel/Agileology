@@ -32,6 +32,7 @@ import {
   newSection,
   serializeSections,
 } from "@/lib/sections";
+import { buildLayoutItems } from "@/lib/pageLayout";
 
 export type { EditorSection, EditorColumn } from "@/lib/sections";
 
@@ -400,6 +401,11 @@ export function SectionBlockEditor({
    * "+ Agregar componente" click leads straight into editing it, instead
    * of adding it collapsed and making the admin click it again to open it.
    */
+  /** A new empty section in one column of the three-column grid, placed after the grid's last section. */
+  function addSectionInZone(zone: SectionZone, afterIndex: number) {
+    setSections((prev) => [...prev.slice(0, afterIndex + 1), { ...newSection(1), zone }, ...prev.slice(afterIndex + 1)]);
+  }
+
   function setSectionZone(sectionId: string, zone: SectionZone) {
     setSections((prev) => prev.map((s) => (s.id === sectionId ? { ...s, zone } : s)));
   }
@@ -800,14 +806,7 @@ export function SectionBlockEditor({
     );
   }
 
-  return (
-    // Clicking any blank canvas area (not on a block's own click handler,
-    // which stops propagation) closes whatever block is currently open --
-    // the "clic afuera para cerrar" half of click-to-select.
-    <div className="space-y-4" onClick={() => setSelectedBlockId(null)}>
-      <input type="hidden" name="blocksJson" value={JSON.stringify(serializeSections(sections))} readOnly />
-
-      {sections.map((section, i) => {
+  const renderSectionCard = (section: EditorSection, i: number) => {
         // Same rule PageRenderer uses to decide whether a section has a
         // background of its own: real image, real video, or a visible
         // color overlay.
@@ -970,6 +969,47 @@ export function SectionBlockEditor({
             )}
           </div>
         );
+  };
+
+  return (
+    // Clicking any blank canvas area (not on a block's own click handler,
+    // which stops propagation) closes whatever block is currently open --
+    // the "clic afuera para cerrar" half of click-to-select.
+    <div className="space-y-4" onClick={() => setSelectedBlockId(null)}>
+      <input type="hidden" name="blocksJson" value={JSON.stringify(serializeSections(sections))} readOnly />
+
+      {buildLayoutItems(sections, (sec) => sec.zone).map((item, n) => {
+        if (item.kind === "full") return renderSectionCard(item.section, item.index);
+        const lastIndex = item.sections[item.sections.length - 1].index;
+        const columns: Array<{ zone: SectionZone; label: string }> = [
+          { zone: "left", label: "Columna izquierda" },
+          { zone: "main", label: "Centro" },
+          { zone: "right", label: "Columna derecha" },
+        ];
+        return (
+          <div key={`grid-${n}`} className="rounded-lg border-2 border-dashed border-violet-300 bg-violet-50/40 p-3 dark:border-violet-700 dark:bg-slate-900/40" onClick={(e) => e.stopPropagation()}>
+            <p className="mb-2 text-xs font-medium text-violet-800 dark:text-violet-300">Cuadrícula de 3 columnas: cada columna es un espacio donde agregar secciones y componentes</p>
+            <div className="grid gap-3 lg:grid-cols-[1fr_2.4fr_1fr]">
+              {columns.map((c) => {
+                const inColumn = item.sections.filter((x) => x.zone === c.zone);
+                return (
+                  <div key={c.zone} className="min-w-0 space-y-3 rounded-md bg-white/60 p-2 dark:bg-slate-950/40">
+                    <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">{c.label}</h3>
+                    {inColumn.map((x) => renderSectionCard(x.section, x.index))}
+                    {inColumn.length === 0 && <p className="text-xs text-slate-500 dark:text-slate-400">Vacía: no se muestra en el sitio hasta que agregues algo.</p>}
+                    <button
+                      type="button"
+                      onClick={() => addSectionInZone(c.zone, lastIndex)}
+                      className="w-full rounded-md border border-dashed border-violet-300 px-3 py-1.5 text-sm text-violet-700 hover:border-violet-500 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-300 dark:hover:bg-slate-800"
+                    >
+                      + Agregar sección aquí
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
       })}
 
       <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
@@ -993,6 +1033,13 @@ export function SectionBlockEditor({
           className="rounded-md border border-dashed border-violet-300 px-3 py-1.5 text-sm text-violet-700 hover:border-violet-500 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-300 dark:hover:border-sky-500 dark:hover:bg-slate-800"
         >
           + Sección (3 componentes)
+        </button>
+        <button
+          type="button"
+          onClick={() => setSections((prev) => [...prev, { ...newSection(1), zone: "main" }])}
+          className="rounded-md border border-dashed border-violet-300 px-3 py-1.5 text-sm text-violet-700 hover:border-violet-500 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-300 dark:hover:border-sky-500 dark:hover:bg-slate-800"
+        >
+          + Cuadrícula de 3 columnas
         </button>
       </div>
     </div>
