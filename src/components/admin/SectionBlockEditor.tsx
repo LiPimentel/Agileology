@@ -360,62 +360,23 @@ function FreeCanvas({
   );
 }
 
-type InsertKind = 1 | 2 | 3 | "grid";
+type LayoutChoice = 1 | 2 | 3 | "grid";
 
-/**
- * Wix-style "+" between sections (and above the first / below the last): click it, choose what kind of
- * section to insert right there -- one, two or three components side by side, or a three-area grid
- * (left / centre / right) -- and then fill each slot with the component you want.
- */
-function InsertBar({ onPick }: { onPick: (kind: InsertKind) => void }) {
-  const [open, setOpen] = useState(false);
-  const options: Array<{ kind: InsertKind; label: string; hint: string }> = [
-    { kind: 1, label: "Sección simple", hint: "1 componente" },
-    { kind: 2, label: "Sección doble", hint: "2 componentes lado a lado" },
-    { kind: 3, label: "Sección triple", hint: "3 componentes lado a lado" },
-    { kind: "grid", label: "Cuadrícula de 3 áreas", hint: "izquierda, centro y derecha" },
-  ];
+/** The small square "+" on the top edge of a section (Wix-style): adds a new section right there. */
+function PlusButton({ onClick, label, className = "" }: { onClick: () => void; label: string; className?: string }) {
   return (
-    <div
-      className="group/insert relative flex h-6 items-center justify-center"
-      onClick={(e) => e.stopPropagation()}
-      onKeyDown={(e) => {
-        if (e.key === "Escape") setOpen(false);
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
       }}
-      onBlur={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOpen(false);
-      }}
+      className={`z-20 flex h-6 w-6 items-center justify-center rounded-sm border border-violet-500 bg-white text-base leading-none text-violet-700 shadow-sm hover:bg-violet-600 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-700 dark:bg-slate-900 dark:text-violet-300 ${className}`}
     >
-      <div className="absolute inset-x-0 top-1/2 h-px bg-violet-300/60 group-hover/insert:bg-violet-500 dark:bg-violet-700/60" aria-hidden="true" />
-      <button
-        type="button"
-        aria-label="Agregar una sección aquí"
-        aria-expanded={open}
-        onClick={() => setOpen((o) => !o)}
-        className="relative z-10 flex h-6 w-6 items-center justify-center rounded-full border border-violet-400 bg-white text-base leading-none text-violet-700 opacity-60 hover:bg-violet-600 hover:text-white hover:opacity-100 focus-visible:opacity-100 group-hover/insert:opacity-100 dark:bg-slate-900 dark:text-violet-300"
-      >
-        +
-      </button>
-      {open && (
-        <div role="menu" className="absolute top-7 z-30 w-64 rounded-md border border-slate-200 bg-white p-1 shadow-lg dark:border-slate-700 dark:bg-slate-900">
-          {options.map((o) => (
-            <button
-              key={String(o.kind)}
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                setOpen(false);
-                onPick(o.kind);
-              }}
-              className="block w-full rounded px-3 py-2 text-left text-sm hover:bg-violet-50 dark:hover:bg-slate-800"
-            >
-              <span className="font-medium text-slate-900 dark:text-slate-100">{o.label}</span>
-              <span className="block text-xs text-slate-500 dark:text-slate-400">{o.hint}</span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+      +
+    </button>
   );
 }
 
@@ -438,8 +399,19 @@ export function SectionBlockEditor({
   // panels.
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
 
-  function addSection(columnCount: 1 | 2 | 3) {
-    setSections((prev) => [...prev, newSection(columnCount)]);
+  /** A new section that asks which layout it should have (simple, double, triple or a 3-area grid). */
+  function insertChooser(index: number, zone: SectionZone) {
+    setSections((prev) => [...prev.slice(0, index), { ...newSection(1), zone, choosing: true }, ...prev.slice(index)]);
+  }
+  function chooseLayout(sectionId: string, kind: LayoutChoice) {
+    setSections((prev) =>
+      prev.map((s) => {
+        if (s.id !== sectionId) return s;
+        // A 3-area grid starts as its centre area; the left and right areas get their own "+" there.
+        if (kind === "grid") return { ...newSection(1), id: s.id, zone: "main" };
+        return { ...newSection(kind), id: s.id, zone: s.zone };
+      }),
+    );
   }
   function removeSection(sectionId: string) {
     setSections((prev) => prev.filter((s) => s.id !== sectionId));
@@ -460,17 +432,6 @@ export function SectionBlockEditor({
    * "+ Agregar componente" click leads straight into editing it, instead
    * of adding it collapsed and making the admin click it again to open it.
    */
-  /** Inserts a new empty section at an exact place in the page (the Wix-style "+" between sections). */
-  function addSectionAt(index: number, kind: InsertKind) {
-    const fresh: EditorSection = kind === "grid" ? { ...newSection(1), zone: "main" } : newSection(kind);
-    setSections((prev) => [...prev.slice(0, index), fresh, ...prev.slice(index)]);
-  }
-
-  /** A new empty section in one column of the three-column grid, placed after the grid's last section. */
-  function addSectionInZone(zone: SectionZone, afterIndex: number, columnCount: 1 | 2 | 3 = 1) {
-    setSections((prev) => [...prev.slice(0, afterIndex + 1), { ...newSection(columnCount), zone }, ...prev.slice(afterIndex + 1)]);
-  }
-
   function setSectionZone(sectionId: string, zone: SectionZone) {
     setSections((prev) => prev.map((s) => (s.id === sectionId ? { ...s, zone } : s)));
   }
@@ -872,6 +833,35 @@ export function SectionBlockEditor({
   }
 
   const renderSectionCard = (section: EditorSection, i: number) => {
+        if (section.choosing) {
+          const options: Array<{ kind: LayoutChoice; label: string }> = [
+            { kind: 1, label: "1 columna" },
+            { kind: 2, label: "2 columnas" },
+            { kind: 3, label: "3 columnas" },
+            ...(section.zone === "full" ? ([{ kind: "grid", label: "Cuadrícula de 3 áreas (izquierda · centro · derecha)" }] as Array<{ kind: LayoutChoice; label: string }>) : []),
+          ];
+          return (
+            <div key={section.id} className="relative rounded-lg border-2 border-dashed border-violet-300 bg-white p-4 text-center dark:border-violet-700 dark:bg-slate-900" onClick={(e) => e.stopPropagation()}>
+              <PlusButton className="absolute -top-3 left-1/2 -translate-x-1/2" label="Agregar una sección encima" onClick={() => insertChooser(i, section.zone)} />
+              <p className="mb-3 text-sm font-medium text-slate-800 dark:text-slate-200">¿Cómo quieres esta sección?</p>
+              <div className="flex flex-wrap justify-center gap-2">
+                {options.map((o) => (
+                  <button
+                    key={String(o.kind)}
+                    type="button"
+                    onClick={() => chooseLayout(section.id, o.kind)}
+                    className="rounded-md border border-violet-300 px-3 py-1.5 text-sm text-violet-800 hover:border-violet-600 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-200 dark:hover:bg-slate-800"
+                  >
+                    {o.label}
+                  </button>
+                ))}
+                <button type="button" onClick={() => removeSection(section.id)} className="rounded-md px-3 py-1.5 text-sm text-slate-600 hover:underline dark:text-slate-400">
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          );
+        }
         // Same rule PageRenderer uses to decide whether a section has a
         // background of its own: real image, real video, or a visible
         // color overlay.
@@ -897,6 +887,7 @@ export function SectionBlockEditor({
 
         return (
           <div key={section.id} className="group/section relative rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+            <PlusButton className="absolute -top-3 left-1/2 -translate-x-1/2" label={`Agregar una sección encima de la sección ${i + 1}`} onClick={() => insertChooser(i, section.zone)} />
             {/*
               Section-level chrome (move/remove/background/column widths):
               a compact badge that only appears on hover of the section,
@@ -1043,77 +1034,39 @@ export function SectionBlockEditor({
     <div className="space-y-4" onClick={() => setSelectedBlockId(null)}>
       <input type="hidden" name="blocksJson" value={JSON.stringify(serializeSections(sections))} readOnly />
 
-      {buildLayoutItems(sections, (sec) => sec.zone).map((item, n) => {
-        const startIndex = item.kind === "full" ? item.index : item.sections[0].index;
-        const bar = <InsertBar key={`bar-${n}`} onPick={(kind) => addSectionAt(startIndex, kind)} />;
-        if (item.kind === "full") return [bar, renderSectionCard(item.section, item.index)];
+      {buildLayoutItems(sections, (sec) => sec.zone).map((item) => {
+        if (item.kind === "full") return renderSectionCard(item.section, item.index);
+        const startIndex = item.sections[0].index;
         const lastIndex = item.sections[item.sections.length - 1].index;
         const columns: Array<{ zone: SectionZone; label: string }> = [
-          { zone: "left", label: "Columna izquierda" },
+          { zone: "left", label: "Izquierda" },
           { zone: "main", label: "Centro" },
-          { zone: "right", label: "Columna derecha" },
+          { zone: "right", label: "Derecha" },
         ];
-        return [bar, (
-          <div key={`grid-${n}`} className="rounded-lg border-2 border-dashed border-violet-300 bg-violet-50/40 p-3 dark:border-violet-700 dark:bg-slate-900/40" onClick={(e) => e.stopPropagation()}>
-            <p className="mb-2 text-xs font-medium text-violet-800 dark:text-violet-300">Cuadrícula de 3 columnas: cada columna es un espacio donde agregar secciones y componentes</p>
+        return (
+          <div key={`grid-${item.sections[0].section.id}`} className="relative rounded-lg border-2 border-dashed border-violet-300 bg-violet-50/40 p-3 dark:border-violet-700 dark:bg-slate-900/40" onClick={(e) => e.stopPropagation()}>
+            <PlusButton className="absolute -top-3 left-1/2 -translate-x-1/2" label="Agregar una sección encima de la cuadrícula" onClick={() => insertChooser(startIndex, "full")} />
             <div className="grid gap-3 lg:grid-cols-[1fr_2.4fr_1fr]">
               {columns.map((c) => {
                 const inColumn = item.sections.filter((x) => x.zone === c.zone);
+                const afterIndex = inColumn.length ? inColumn[inColumn.length - 1].index : lastIndex;
                 return (
                   <div key={c.zone} className="min-w-0 space-y-3 rounded-md bg-white/60 p-2 dark:bg-slate-950/40">
-                    <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">{c.label}</h3>
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{c.label}</h3>
                     {inColumn.map((x) => renderSectionCard(x.section, x.index))}
-                    {inColumn.length === 0 && <p className="text-xs text-slate-500 dark:text-slate-400">Vacía: no se muestra en el sitio hasta que agregues algo.</p>}
-                    <div className="flex flex-col gap-1.5">
-                      {([1, 2, 3] as const).map((count) => (
-                        <button
-                          key={count}
-                          type="button"
-                          onClick={() => addSectionInZone(c.zone, lastIndex, count)}
-                          className="w-full rounded-md border border-dashed border-violet-300 px-3 py-1.5 text-sm text-violet-700 hover:border-violet-500 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-300 dark:hover:bg-slate-800"
-                        >
-                          + Sección ({count === 1 ? "1 componente" : `${count} componentes`})
-                        </button>
-                      ))}
+                    <div className="flex justify-center">
+                      <PlusButton label={`Agregar una sección en el área ${c.label.toLowerCase()}`} onClick={() => insertChooser(afterIndex + 1, c.zone)} />
                     </div>
                   </div>
                 );
               })}
             </div>
           </div>
-        )];
+        );
       })}
-      <InsertBar onPick={(kind) => addSectionAt(sections.length, kind)} />
 
-      <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
-        <button
-          type="button"
-          onClick={() => addSection(1)}
-          className="rounded-md border border-dashed border-violet-300 px-3 py-1.5 text-sm text-violet-700 hover:border-violet-500 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-300 dark:hover:border-sky-500 dark:hover:bg-slate-800"
-        >
-          + Sección (1 componente)
-        </button>
-        <button
-          type="button"
-          onClick={() => addSection(2)}
-          className="rounded-md border border-dashed border-violet-300 px-3 py-1.5 text-sm text-violet-700 hover:border-violet-500 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-300 dark:hover:border-sky-500 dark:hover:bg-slate-800"
-        >
-          + Sección (2 componentes)
-        </button>
-        <button
-          type="button"
-          onClick={() => addSection(3)}
-          className="rounded-md border border-dashed border-violet-300 px-3 py-1.5 text-sm text-violet-700 hover:border-violet-500 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-300 dark:hover:border-sky-500 dark:hover:bg-slate-800"
-        >
-          + Sección (3 componentes)
-        </button>
-        <button
-          type="button"
-          onClick={() => setSections((prev) => [...prev, { ...newSection(1), zone: "main" }])}
-          className="rounded-md border border-dashed border-violet-300 px-3 py-1.5 text-sm text-violet-700 hover:border-violet-500 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-300 dark:hover:border-sky-500 dark:hover:bg-slate-800"
-        >
-          + Cuadrícula de 3 columnas
-        </button>
+      <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
+        <PlusButton label="Agregar una sección al final" onClick={() => insertChooser(sections.length, "full")} />
       </div>
     </div>
   );

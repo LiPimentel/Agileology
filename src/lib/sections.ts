@@ -87,6 +87,8 @@ export type EditorSection = {
   id: string;
   layoutMode: "grid" | "free";
   zone: SectionZone;
+  // Editor only (never saved): a just-added section that is still asking which layout it should have.
+  choosing?: boolean;
   columns: EditorColumn[];
   freeBlocks: EditorFreeBlockItem[];
   freeHeight: number;
