@@ -1,13 +1,13 @@
 import "server-only";
-import nodemailer from "nodemailer";
+import { createTransport, type Transporter } from "nodemailer";
 
-let transporter: nodemailer.Transporter | null = null;
+let transporter: Transporter | null = null;
 
 function getTransporter() {
   if (transporter) return transporter;
   const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
   if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) return null;
-  transporter = nodemailer.createTransport({
+  transporter = createTransport({
     host: SMTP_HOST,
     port: Number(SMTP_PORT ?? 465),
     secure: Number(SMTP_PORT ?? 465) === 465,
