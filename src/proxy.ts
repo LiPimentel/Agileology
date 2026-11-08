@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { SESSION_COOKIE, touchSession, sessionCookieOptions } from "@/lib/session-db";
 import { findRedirect } from "@/lib/redirects";
+import { buildCsp, HSTS_VALUE } from "@/lib/csp";
 
 /**
  * Gates the backoffice (RF-01, RF-03) and slides the session's inactivity
@@ -15,7 +16,7 @@ import { findRedirect } from "@/lib/redirects";
  * rewriting it to the `/admin` path, while still allowing direct `/admin`
  * access for local development or until the subdomain DNS is configured.
  */
-export async function proxy(request: NextRequest) {
+async function route(request: NextRequest, requestHeaders: Headers) {
   const { pathname } = request.nextUrl;
   const host = request.headers.get("host") ?? "";
   const isAdminHost = host.startsWith("admin.");
@@ -34,7 +35,7 @@ export async function proxy(request: NextRequest) {
   if (isAdminHost && !pathname.startsWith("/admin")) {
     const url = request.nextUrl.clone();
     url.pathname = `/admin${pathname === "/" ? "" : pathname}`;
-    return NextResponse.rewrite(url);
+    return NextResponse.rewrite(url, { request: { headers: requestHeaders } });
   }
 
   if (pathname.startsWith("/admin") && !pathname.startsWith("/admin/login")) {
@@ -58,14 +59,30 @@ export async function proxy(request: NextRequest) {
     // page/action) does its own independent, accurate DB lookup and is the
     // real authority on whether the session is valid.
     const expiresAt = await touchSession(token);
-    const res = NextResponse.next();
+    const res = NextResponse.next({ request: { headers: requestHeaders } });
     if (expiresAt) {
       res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions(expiresAt));
     }
     return res;
   }
 
-  return NextResponse.next();
+  return NextResponse.next({ request: { headers: requestHeaders } });
+}
+
+export async function proxy(request: NextRequest) {
+  // A fresh, unguessable value per request: scripts without it do not run (see lib/csp.ts).
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  const https = request.headers.get("x-forwarded-proto") === "https" || request.nextUrl.protocol === "https:";
+  const csp = buildCsp(nonce, { https, dev: process.env.NODE_ENV === "development" });
+
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("Content-Security-Policy", csp);
+
+  const res = await route(request, requestHeaders);
+  res.headers.set("Content-Security-Policy", csp);
+  if (https) res.headers.set("Strict-Transport-Security", HSTS_VALUE);
+  return res;
 }
 
 export const config = {
