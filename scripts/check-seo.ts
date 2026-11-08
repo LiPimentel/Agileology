@@ -1,5 +1,5 @@
 /** Checks for the SEO fallback rule (run: npx tsx scripts/check-seo.ts). */
-import { resolveSeo, SEO_TITLE_MAX, SEO_DESCRIPTION_MAX } from "../src/lib/seo";
+import { resolveSeo, fullTitle, SEO_TITLE_MAX, SEO_DESCRIPTION_MAX } from "../src/lib/seo";
 
 let fails = 0;
 const check = (name: string, ok: boolean, extra = "") => { console.log(`${ok ? "✔" : "✘"} ${name}${extra ? ` — ${extra}` : ""}`); if (!ok) fails++; };
@@ -15,4 +15,8 @@ const bare = resolveSeo({ ...base, defaultDescription: "" });
 check("sin descripción propia ni por defecto, queda sin descripción", bare.description === undefined && bare.descriptionSource === "none");
 check("los espacios solos cuentan como vacío", resolveSeo({ ...base, seoTitle: "   ", seoDescription: "  " }).titleSource === "page");
 check("los límites recomendados son 60 y 160", SEO_TITLE_MAX === 60 && SEO_DESCRIPTION_MAX === 160);
+check("el nombre del sitio se añade a los títulos que no lo tienen", fullTitle("Sobre mí", "Agileology Wave", false).text === "Sobre mí — Agileology Wave" && !fullTitle("Sobre mí", "Agileology Wave", false).absolute);
+check("no se duplica si el título ya lo incluye", fullTitle("Contacto — Agileology Wave", "Agileology Wave", false).text === "Contacto — Agileology Wave" && fullTitle("Contacto — Agileology Wave", "Agileology Wave", false).absolute);
+check("la portada nunca lleva el nombre añadido", fullTitle("Agileology Wave", "Agileology Wave", true).absolute);
+check("comparación sin importar mayúsculas", fullTitle("contacto | agileology wave", "Agileology Wave", false).absolute);
 process.exit(fails ? 1 : 0);

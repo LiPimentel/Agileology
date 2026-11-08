@@ -37,3 +37,14 @@ export function resolveSeo(i: SeoInput): SeoResult {
       : { value: undefined, source: "none" as const };
   return { title: title.value, titleSource: title.source, description: description.value, descriptionSource: description.source };
 }
+
+/**
+ * The title as it will really appear: the layout adds " — {site name}" to every page title, so a
+ * title that already contains the site name (typed by hand, as in "Contacto — Agileology Wave") is
+ * used as is instead of getting the name twice. `absolute` tells Next to skip the template.
+ */
+export function fullTitle(title: string, siteTitle: string, isHome: boolean): { text: string; absolute: boolean } {
+  const hasSiteName = siteTitle.trim() !== "" && title.toLowerCase().includes(siteTitle.trim().toLowerCase());
+  const absolute = isHome || hasSiteName;
+  return { text: absolute ? title : `${title} — ${siteTitle}`, absolute };
+}

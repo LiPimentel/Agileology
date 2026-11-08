@@ -4,7 +4,7 @@ import { useActionState, useMemo, useState } from "react";
 import Link from "next/link";
 import { SaveFeedback } from "@/components/admin/SaveFeedback";
 import { isHomeSlug } from "@/lib/home";
-import { resolveSeo, SEO_DESCRIPTION_MAX, SEO_TITLE_MAX } from "@/lib/seo";
+import { fullTitle, resolveSeo, SEO_DESCRIPTION_MAX, SEO_TITLE_MAX } from "@/lib/seo";
 import { saveSeo, type SeoState } from "./actions";
 
 type PageRow = { id: string; title: string; slug: string; status: "draft" | "published"; seoTitle: string | null; seoDescription: string | null };
@@ -86,7 +86,7 @@ export function SeoForm({ pages, siteTitle, defaultDescription }: { pages: PageR
         {shown.map((p) => {
           const v = values[p.id];
           const seo = resolveSeo({ pageTitle: p.title, seoTitle: v.t, seoDescription: v.d, siteTitle, defaultDescription: defDesc, isHome: isHomeSlug(p.slug) });
-          const shownTitle = isHomeSlug(p.slug) ? seo.title : `${seo.title} — ${siteTitle}`;
+          const shownTitle = fullTitle(seo.title, siteTitle, isHomeSlug(p.slug)).text;
           const tId = `t-${p.id}`;
           const dId = `d-${p.id}`;
           return (

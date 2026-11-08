@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { isHomeSlug } from "@/lib/home";
-import { resolveSeo } from "@/lib/seo";
+import { fullTitle, resolveSeo } from "@/lib/seo";
 import { notFound } from "next/navigation";
 import { getPublishedPageBySlug } from "@/lib/pages";
 import { getSiteSettings } from "@/lib/settings";
@@ -22,8 +22,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     defaultDescription: settings.defaultMetaDescription,
     isHome: home,
   });
-  // The home page's title is the site name itself: do not let the layout template repeat it.
-  const title = home ? { absolute: seo.title } : seo.title;
+  // The layout template adds " — site name"; skip it when the title already has it (or is the home page).
+  const full = fullTitle(seo.title, settings.siteTitle, home);
+  const title = full.absolute ? { absolute: seo.title } : seo.title;
   const description = seo.description;
   const ogImage = page.snapshot.background?.bannerImageUrl ?? page.snapshot.background?.imageUrl ?? undefined;
   return {
