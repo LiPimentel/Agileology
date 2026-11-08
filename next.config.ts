@@ -19,7 +19,11 @@ const nextConfig: NextConfig = {
   // Do not announce the framework ("X-Powered-By: Next.js") to every visitor.
   poweredByHeader: false,
   async headers() {
-    return [{ source: "/:path*", headers: SECURITY_HEADERS }];
+    return [
+      { source: "/:path*", headers: SECURITY_HEADERS },
+      // The widget host page is framed by this site's own pages (see src/lib/csp.ts buildEmbedCsp); a later rule wins for the same header.
+      { source: "/embed/:path*", headers: [{ key: "X-Frame-Options", value: "SAMEORIGIN" }] },
+    ];
   },
   experimental: {
     serverActions: {

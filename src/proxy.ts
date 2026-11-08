@@ -4,7 +4,7 @@ import { SESSION_COOKIE, touchSession, sessionCookieOptions } from "@/lib/sessio
 import { findRedirect } from "@/lib/redirects";
 import { canonicalRedirectTarget } from "@/lib/siteUrl";
 import { getCanonicalConfig } from "@/lib/canonicalConfig";
-import { buildCsp, HSTS_VALUE } from "@/lib/csp";
+import { buildCsp, buildEmbedCsp, HSTS_VALUE } from "@/lib/csp";
 
 /**
  * Gates the backoffice (RF-01, RF-03) and slides the session's inactivity
@@ -91,7 +91,9 @@ export async function proxy(request: NextRequest) {
   // A fresh, unguessable value per request: scripts without it do not run (see lib/csp.ts).
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const https = request.headers.get("x-forwarded-proto") === "https" || request.nextUrl.protocol === "https:";
-  const csp = buildCsp(nonce, { https, dev: process.env.NODE_ENV === "development" });
+  const csp = request.nextUrl.pathname.startsWith("/embed/")
+    ? buildEmbedCsp({ https })
+    : buildCsp(nonce, { https, dev: process.env.NODE_ENV === "development" });
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);

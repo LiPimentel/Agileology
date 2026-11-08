@@ -5,10 +5,10 @@ import { MediaGrid, type MediaItem } from "@/components/admin/MediaGrid";
 import { MediaUploadForm } from "@/components/admin/MediaUploadForm";
 
 export type LinkedinPostValue = { url: string; text: string; date: string; image: string };
-export type LinkedinPostsBlockValue = { title: string; posts: LinkedinPostValue[]; visible: number; autoplay: boolean; intervalSeconds: number };
+export type LinkedinPostsBlockValue = { title: string; posts: LinkedinPostValue[]; visible: number; autoplay: boolean; intervalSeconds: number; elfsightId: string; height: number };
 
 export const MAX_LINKEDIN_POSTS = 5;
-export const EMPTY_LINKEDIN_POSTS: LinkedinPostsBlockValue = { title: "Últimas publicaciones en LinkedIn", posts: [], visible: 4, autoplay: true, intervalSeconds: 6 };
+export const EMPTY_LINKEDIN_POSTS: LinkedinPostsBlockValue = { title: "Últimas publicaciones en LinkedIn", posts: [], visible: 4, autoplay: true, intervalSeconds: 6, elfsightId: "", height: 520 };
 
 const field = "rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100";
 const label = "block text-sm font-medium text-slate-700 dark:text-slate-300";
@@ -36,8 +36,34 @@ export function LinkedinPostsBlockEditor({
   };
   const badLink = (u: string) => u !== "" && !/^https:\/\/((([a-z]{2,3}|www)\.)?linkedin\.com\/|lnkd\.in\/)\S*$/i.test(u);
 
+  // Accepts the whole Elfsight embed snippet (or just the id) and keeps only the widget id.
+  const [snippet, setSnippet] = useState(value.elfsightId);
+  const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+  const found = snippet.trim() === "" ? "" : (snippet.match(UUID)?.[0] ?? null);
+  const setSnippetAndId = (text: string) => {
+    setSnippet(text);
+    const id = text.trim() === "" ? "" : (text.match(UUID)?.[0]?.toLowerCase() ?? null);
+    if (id !== null) onChange({ ...value, elfsightId: id });
+  };
+
   return (
     <div className="space-y-4">
+      <div className="rounded-md border border-slate-200 p-3 dark:border-slate-700">
+        <label htmlFor={`${uid}-elf`} className={label}>Modo automático (Elfsight)</label>
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          Pega aquí el código de inserción de tu widget «LinkedIn Feed» de Elfsight (o solo su ID). Se muestra solo y se actualiza solo; al guardarlo, las tarjetas manuales de abajo dejan de usarse. Déjalo vacío para usar las tarjetas manuales.
+        </p>
+        <textarea id={`${uid}-elf`} value={snippet} onChange={(e) => setSnippetAndId(e.target.value)} rows={3} spellCheck={false} className={`${field} mt-2 w-full font-mono text-xs`} />
+        <p role="status" className="mt-1 text-xs text-slate-600 dark:text-slate-400">
+          {found === null ? "No encuentro un ID de widget en ese texto." : found ? `ID del widget: ${found.toLowerCase()}` : "Modo manual (sin widget)."}
+        </p>
+        {value.elfsightId && (
+          <div className="mt-2">
+            <label htmlFor={`${uid}-h`} className={label}>Alto del recuadro ({value.height}px)</label>
+            <input id={`${uid}-h`} type="range" min={240} max={900} step={20} value={value.height} onChange={(e) => onChange({ ...value, height: Number(e.target.value) })} className="mt-1 w-full max-w-xs" />
+          </div>
+        )}
+      </div>
       <p className="text-sm text-slate-600 dark:text-slate-400">
         Tarjetas compactas con tus últimas publicaciones de LinkedIn (hasta {MAX_LINKEDIN_POSTS}). LinkedIn no permite leerlas automáticamente, así que las llenas tú: pega el enlace de la publicación y un extracto corto.
       </p>

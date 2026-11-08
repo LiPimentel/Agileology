@@ -80,6 +80,11 @@ li("http sin cifrar", { posts: [post({ url: "http://www.linkedin.com/posts/x" })
 li("fecha mal formada", { posts: [post({ date: "01/11/2026" })] }, false);
 li("imagen javascript:", { posts: [post({ image: "javascript:alert(1)" })] }, false);
 li("visible fuera de rango", { visible: 9 }, false);
+li("widget Elfsight válido", { elfsightId: "98abbbfa-155c-4a56-85d3-d31f51328669" }, true);
+li("widget vacío (modo manual)", { elfsightId: "" }, true);
+li("widget con texto raro", { elfsightId: "98abbbfa-155c-4a56-85d3-d31f51328669\"><script>" }, false);
+li("widget que no es un id", { elfsightId: "../../admin" }, false);
+li("alto del recuadro fuera de rango", { height: 5000 }, false);
 bad("más de 20 diapositivas", { slides: Array.from({ length: 21 }, () => ({ kind: "image", url: "/uploads/a.webp", altText: "" })) });
 bad("intervalo fuera de rango", { slides: [], intervalSeconds: 1 });
 bad("tipo de diapositiva desconocido", { slides: [{ kind: "html", url: "/a" }] });

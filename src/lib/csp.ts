@@ -19,7 +19,7 @@ export function buildCsp(nonce: string, opts: { https: boolean; dev: boolean }):
     `img-src 'self' data: blob: https:`,
     `media-src 'self'`,
     `font-src 'self' data: https://fonts.gstatic.com`,
-    `frame-src https://www.youtube-nocookie.com https://player.vimeo.com https://www.google.com/maps/`,
+    `frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.google.com/maps/`,
     `connect-src 'self'${opts.dev ? " ws: wss:" : ""}`,
     `manifest-src 'self'`,
     `object-src 'none'`,
@@ -29,6 +29,30 @@ export function buildCsp(nonce: string, opts: { https: boolean; dev: boolean }):
   ];
   // Only over HTTPS: on plain HTTP (local testing) it would make the browser rewrite every
   // request to https:// and break the site.
+  if (opts.https) directives.push("upgrade-insecure-requests");
+  return directives.join("; ");
+}
+
+/**
+ * CSP for /embed/* only: the tiny page that hosts a third-party widget (Elfsight) so that its
+ * scripts never run in the site's own pages. It may be framed only by this site (and the frame is
+ * sandboxed without same-origin, so it cannot read the site's cookies or storage).
+ */
+export function buildEmbedCsp(opts: { https: boolean }): string {
+  const directives = [
+    `default-src 'none'`,
+    `script-src https://static.elfsight.com https://*.elfsight.com https://*.elfsightcdn.com`,
+    `style-src 'unsafe-inline' https:`,
+    `img-src https: data: blob:`,
+    `font-src https: data:`,
+    `media-src https:`,
+    `connect-src https://*.elfsight.com https://*.elfsightcdn.com`,
+    `frame-src 'none'`,
+    `object-src 'none'`,
+    `base-uri 'none'`,
+    `form-action 'none'`,
+    `frame-ancestors 'self'`,
+  ];
   if (opts.https) directives.push("upgrade-insecure-requests");
   return directives.join("; ");
 }

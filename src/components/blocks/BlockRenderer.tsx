@@ -196,6 +196,26 @@ export function BlockRenderer({ block, pageId }: { block: RenderableBlock; pageI
       );
     }
     case "linkedinPosts": {
+      const elfsightId = String(block.content.elfsightId ?? "");
+      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(elfsightId)) {
+        const height = Math.min(900, Math.max(240, Number(block.content.height ?? 520)));
+        const heading = String(block.content.title ?? "");
+        return (
+          <section aria-label={heading || "Publicaciones de LinkedIn"} className="w-full">
+            {heading && <h2 className="mb-2 text-base font-semibold text-[#1F2A44]">{heading}</h2>}
+            {/* Third-party widget: isolated in a sandboxed frame without same-origin, so its scripts cannot touch this site. */}
+            <iframe
+              src={`/embed/linkedin/${elfsightId.toLowerCase()}`}
+              title={heading || "Publicaciones de LinkedIn"}
+              loading="lazy"
+              sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"
+              referrerPolicy="no-referrer"
+              className="w-full rounded-md border-0"
+              style={{ height: `${height}px` }}
+            />
+          </section>
+        );
+      }
       const posts = Array.isArray(block.content.posts) ? (block.content.posts as LinkedinPostsValue["posts"]) : [];
       if (posts.length === 0) return null;
       return (
