@@ -231,6 +231,11 @@ model ContentBlock {
   // client's own reference screenshot ("Selector de color" with a
   // gradient bar).
   sectionBgGradientEnd String?
+  // Which part of the background picture shows (focal point, % from the top-left) and how much it is
+  // zoomed. 50/50/1 = centred, as every background looked before this existed.
+  sectionBgFocalX Float @default(50)
+  sectionBgFocalY Float @default(50)
+  sectionBgZoom   Float @default(1)
 
   // Free-position ("Wix-style") layout, opt-in per section -- "quiero
   // poder ajustar/mover/redimensionar elementos directamente ahí,
@@ -272,6 +277,10 @@ model Background {
   // arriba" -- there was no way to place an actual image element there,
   // only the cover background.
   bannerImageUrl String?
+  // Focal point (% from the top-left) and zoom of the cover picture `imageUrl`; 50/50/1 = centred (as before).
+  focalX Float @default(50)
+  focalY Float @default(50)
+  zoom   Float @default(1)
   // Whether the title/background banner block renders at all, above the
   // page's own sections. Previously this was forced on every page with no
   // way to turn it off -- "eso no puede estar fijo como obligatorio en

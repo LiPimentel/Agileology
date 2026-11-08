@@ -67,6 +67,9 @@ type SubmittedBlock = {
   sectionBgOpacity?: number;
   sectionBgVideoUrl?: string;
   sectionBgGradientEnd?: string;
+  sectionBgFocalX?: number;
+  sectionBgFocalY?: number;
+  sectionBgZoom?: number;
   sectionLayoutMode?: string;
   sectionFreeHeight?: number;
   freeX?: number;
@@ -91,6 +94,11 @@ function sanitizeColumnWidth(width: unknown) {
   const n = Number(width);
   if (!Number.isFinite(n)) return 100;
   return Math.min(100, Math.max(10, Math.round(n)));
+}
+
+function clampNumber(v: unknown, min: number, max: number, fallback: number) {
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback;
 }
 
 function sanitizeOpacity(opacity: unknown) {
@@ -139,6 +147,9 @@ async function upsertPageContent(pageId: string, formData: FormData) {
   const overlayOpacity = Math.min(1, Math.max(0, Number(formData.get("overlayOpacity") ?? 0.5)));
   const backgroundImageUrl = String(formData.get("backgroundImageUrl") ?? "") || null;
   const bannerImageUrl = String(formData.get("bannerImageUrl") ?? "") || null;
+  const focalX = clampNumber(formData.get("backgroundFocalX"), 0, 100, 50);
+  const focalY = clampNumber(formData.get("backgroundFocalY"), 0, 100, 50);
+  const zoom = clampNumber(formData.get("backgroundZoom"), 1, 3, 1);
   const showBanner = formData.get("showBanner") === "on";
   const showTitle = formData.get("showTitle") === "on";
 
@@ -164,6 +175,9 @@ async function upsertPageContent(pageId: string, formData: FormData) {
     sectionBgOpacity: sanitizeOpacity(b.sectionBgOpacity),
     sectionBgVideoUrl: sectionVideoOrNull(b.sectionBgVideoUrl),
     sectionBgGradientEnd: String(b.sectionBgGradientEnd ?? "") || null,
+    sectionBgFocalX: clampNumber(b.sectionBgFocalX, 0, 100, 50),
+    sectionBgFocalY: clampNumber(b.sectionBgFocalY, 0, 100, 50),
+    sectionBgZoom: clampNumber(b.sectionBgZoom, 1, 3, 1),
     sectionLayoutMode: b.sectionLayoutMode === "free" ? "free" : "grid",
     sectionFreeHeight: sanitizeFreeHeight(b.sectionFreeHeight),
     freeX: sanitizePercent(b.freeX, 10),
@@ -186,8 +200,8 @@ async function upsertPageContent(pageId: string, formData: FormData) {
 
     await tx.background.upsert({
       where: { pageId },
-      update: { overlayColor, overlayOpacity, imageUrl: backgroundImageUrl, bannerImageUrl, showBanner, showTitle },
-      create: { pageId, overlayColor, overlayOpacity, imageUrl: backgroundImageUrl, bannerImageUrl, showBanner, showTitle },
+      update: { overlayColor, overlayOpacity, imageUrl: backgroundImageUrl, focalX, focalY, zoom, bannerImageUrl, showBanner, showTitle },
+      create: { pageId, overlayColor, overlayOpacity, imageUrl: backgroundImageUrl, focalX, focalY, zoom, bannerImageUrl, showBanner, showTitle },
     });
   });
 
@@ -284,6 +298,9 @@ export async function duplicatePage(pageId: string) {
           sectionBgOpacity: b.sectionBgOpacity,
           sectionBgVideoUrl: b.sectionBgVideoUrl,
           sectionBgGradientEnd: b.sectionBgGradientEnd,
+          sectionBgFocalX: b.sectionBgFocalX,
+          sectionBgFocalY: b.sectionBgFocalY,
+          sectionBgZoom: b.sectionBgZoom,
           sectionLayoutMode: b.sectionLayoutMode,
           sectionFreeHeight: b.sectionFreeHeight,
           freeX: b.freeX,
@@ -300,6 +317,9 @@ export async function duplicatePage(pageId: string) {
               overlayColor: source.background.overlayColor,
               overlayOpacity: source.background.overlayOpacity,
               bannerImageUrl: source.background.bannerImageUrl,
+              focalX: source.background.focalX,
+              focalY: source.background.focalY,
+              zoom: source.background.zoom,
               showBanner: source.background.showBanner,
               showTitle: source.background.showTitle,
             },
@@ -340,6 +360,9 @@ export async function restorePageVersion(pageId: string, versionId: string) {
               sectionBgOpacity?: number;
               sectionBgVideoUrl?: string | null;
               sectionBgGradientEnd?: string | null;
+              sectionBgFocalX?: number;
+              sectionBgFocalY?: number;
+              sectionBgZoom?: number;
               sectionLayoutMode?: string;
               sectionFreeHeight?: number;
               freeX?: number;
@@ -365,6 +388,9 @@ export async function restorePageVersion(pageId: string, versionId: string) {
             sectionBgColor: b.sectionBgColor ?? "#000000",
             sectionBgVideoUrl: b.sectionBgVideoUrl ?? null,
             sectionBgGradientEnd: b.sectionBgGradientEnd ?? null,
+            sectionBgFocalX: clampNumber(b.sectionBgFocalX, 0, 100, 50),
+            sectionBgFocalY: clampNumber(b.sectionBgFocalY, 0, 100, 50),
+            sectionBgZoom: clampNumber(b.sectionBgZoom, 1, 3, 1),
             sectionBgOpacity: b.sectionBgOpacity ?? 0,
             sectionLayoutMode: b.sectionLayoutMode ?? "grid",
             sectionFreeHeight: b.sectionFreeHeight ?? 400,
@@ -384,6 +410,9 @@ export async function restorePageVersion(pageId: string, versionId: string) {
         overlayColor: snapshot.background?.overlayColor ?? "#3B0764",
         overlayOpacity: snapshot.background?.overlayOpacity ?? 0.5,
         bannerImageUrl: snapshot.background?.bannerImageUrl ?? null,
+        focalX: clampNumber(snapshot.background?.focalX, 0, 100, 50),
+        focalY: clampNumber(snapshot.background?.focalY, 0, 100, 50),
+        zoom: clampNumber(snapshot.background?.zoom, 1, 3, 1),
         showBanner: snapshot.background?.showBanner ?? true,
         showTitle: snapshot.background?.showTitle ?? true,
       },
@@ -393,6 +422,9 @@ export async function restorePageVersion(pageId: string, versionId: string) {
         overlayColor: snapshot.background?.overlayColor ?? "#3B0764",
         overlayOpacity: snapshot.background?.overlayOpacity ?? 0.5,
         bannerImageUrl: snapshot.background?.bannerImageUrl ?? null,
+        focalX: clampNumber(snapshot.background?.focalX, 0, 100, 50),
+        focalY: clampNumber(snapshot.background?.focalY, 0, 100, 50),
+        zoom: clampNumber(snapshot.background?.zoom, 1, 3, 1),
         showBanner: snapshot.background?.showBanner ?? true,
         showTitle: snapshot.background?.showTitle ?? true,
       },

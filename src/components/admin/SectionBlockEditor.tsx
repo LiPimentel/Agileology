@@ -480,7 +480,7 @@ export function SectionBlockEditor({
           ? s
           : {
               ...s,
-              background: { imageUrl: bg.imageUrl, color: bg.color, opacity: bg.opacity, videoUrl: bg.videoUrl, gradientEnd: bg.gradientEnd },
+              background: { imageUrl: bg.imageUrl, color: bg.color, opacity: bg.opacity, videoUrl: bg.videoUrl, gradientEnd: bg.gradientEnd, focalX: bg.focalX, focalY: bg.focalY, zoom: bg.zoom },
             },
       ),
     );
@@ -922,6 +922,9 @@ export function SectionBlockEditor({
                 overlayOpacity={section.background.opacity}
                 videoUrl={section.background.videoUrl}
                 gradientEnd={section.background.gradientEnd}
+                focalX={section.background.focalX}
+                focalY={section.background.focalY}
+                zoom={section.background.zoom}
               >
                 <div className="rounded-md p-4">{columnsRow}</div>
               </BackgroundOverlay>

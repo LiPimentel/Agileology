@@ -29,6 +29,9 @@ export type PageEditorData = {
     overlayColor: string;
     overlayOpacity: number;
     bannerImageUrl: string | null;
+    focalX: number;
+    focalY: number;
+    zoom: number;
     showBanner: boolean;
     showTitle: boolean;
   } | null;
@@ -180,6 +183,9 @@ export function PageEditorForm({
             initialColor={page.background?.overlayColor ?? "#3B0764"}
             initialOpacity={page.background?.overlayOpacity ?? 0.5}
             initialBannerImageUrl={page.background?.bannerImageUrl ?? null}
+            initialFocalX={page.background?.focalX}
+            initialFocalY={page.background?.focalY}
+            initialZoom={page.background?.zoom}
             mediaLibrary={mediaLibrary}
           />
         </div>

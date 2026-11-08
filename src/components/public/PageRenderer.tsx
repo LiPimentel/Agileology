@@ -9,6 +9,9 @@ export type PageRenderData = {
     imageUrl?: string | null;
     overlayColor?: string | null;
     overlayOpacity?: number | null;
+    focalX?: number | null;
+    focalY?: number | null;
+    zoom?: number | null;
     // A real image (logo, hero photo) shown in the banner above the
     // title -- distinct from imageUrl, which is a full-bleed CSS
     // background-cover behind everything.
@@ -118,6 +121,9 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
           imageUrl={page.background?.imageUrl}
           overlayColor={page.background?.overlayColor}
           overlayOpacity={page.background?.overlayOpacity}
+          focalX={page.background?.focalX}
+          focalY={page.background?.focalY}
+          zoom={page.background?.zoom}
         >
           <div className={`mx-auto max-w-4xl px-6 py-16 ${page.background?.bannerImageUrl ? "text-center" : ""}`}>
             {page.background?.bannerImageUrl && (
@@ -225,6 +231,9 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
                   overlayOpacity={first?.sectionBgOpacity}
                   videoUrl={first?.sectionBgVideoUrl}
                   gradientEnd={first?.sectionBgGradientEnd}
+                  focalX={first?.sectionBgFocalX}
+                  focalY={first?.sectionBgFocalY}
+                  zoom={first?.sectionBgZoom}
                 >
                   {/* A section with a background video is a hero: tall (like Wix's first screen), content centred, bigger heading. */}
                   <div
@@ -245,6 +254,9 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
               overlayOpacity={first?.sectionBgOpacity}
               videoUrl={first?.sectionBgVideoUrl}
               gradientEnd={first?.sectionBgGradientEnd}
+                  focalX={first?.sectionBgFocalX}
+                  focalY={first?.sectionBgFocalY}
+                  zoom={first?.sectionBgZoom}
             >
               <div className={isFree ? "" : "rounded-md p-6"}>{row}</div>
             </BackgroundOverlay>

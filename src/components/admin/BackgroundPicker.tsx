@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useRef, useState } from "react";
+import { backgroundPictureStyle } from "@/lib/backgroundPicture";
 import type { MediaItem } from "@/components/admin/MediaGrid";
 import { MediaGrid } from "@/components/admin/MediaGrid";
 import { MediaUploadForm } from "@/components/admin/MediaUploadForm";
 
-export type BackgroundValue = { imageUrl: string; color: string; opacity: number; videoUrl: string; gradientEnd: string };
+export type BackgroundValue = { imageUrl: string; color: string; opacity: number; videoUrl: string; gradientEnd: string; focalX: number; focalY: number; zoom: number };
 
 const IMAGE_ITEMS = (items: MediaItem[]) => items.filter((i) => !i.mimeType?.startsWith("video/"));
 const VIDEO_ITEMS = (items: MediaItem[]) => items.filter((i) => i.mimeType?.startsWith("video/"));
@@ -16,6 +17,9 @@ export function BackgroundPicker({
   initialOpacity,
   initialVideoUrl,
   initialBannerImageUrl,
+  initialFocalX,
+  initialFocalY,
+  initialZoom,
   mediaLibrary,
   value,
   onChange,
@@ -31,6 +35,10 @@ export function BackgroundPicker({
   // background (controlled mode, `compact`) doesn't have a title/banner to
   // place this kind of image in front of.
   initialBannerImageUrl?: string | null;
+  // Page-level only: where the background picture is positioned (uncontrolled mode; controlled mode reads `value`).
+  initialFocalX?: number;
+  initialFocalY?: number;
+  initialZoom?: number;
   mediaLibrary: MediaItem[];
   // Controlled mode (used for per-section backgrounds, where the caller
   // owns the value as part of a larger section/editor state and
@@ -46,6 +54,9 @@ export function BackgroundPicker({
   const [localOpacity, setLocalOpacity] = useState(initialOpacity);
   const [localVideoUrl, setLocalVideoUrl] = useState(initialVideoUrl ?? "");
   const [localGradientEnd, setLocalGradientEnd] = useState("");
+  const [localFocalX, setLocalFocalX] = useState(initialFocalX ?? 50);
+  const [localFocalY, setLocalFocalY] = useState(initialFocalY ?? 50);
+  const [localZoom, setLocalZoom] = useState(initialZoom ?? 1);
   const [bannerImageUrl, setBannerImageUrl] = useState(initialBannerImageUrl ?? "");
   const [pickerOpen, setPickerOpen] = useState(false);
   const [bannerPickerOpen, setBannerPickerOpen] = useState(false);
@@ -56,6 +67,9 @@ export function BackgroundPicker({
   const opacity = controlled ? value.opacity : localOpacity;
   const videoUrl = controlled ? value.videoUrl : localVideoUrl;
   const gradientEnd = controlled ? value.gradientEnd : localGradientEnd;
+  const focalX = controlled ? value.focalX : localFocalX;
+  const focalY = controlled ? value.focalY : localFocalY;
+  const zoom = controlled ? value.zoom : localZoom;
   const isGradient = Boolean(gradientEnd);
 
   // Which of the three tabs is open -- only meaningful in compact (section)
@@ -65,13 +79,16 @@ export function BackgroundPicker({
 
   function set(next: Partial<BackgroundValue>) {
     if (controlled) {
-      onChange({ imageUrl, color, opacity, videoUrl, gradientEnd, ...next });
+      onChange({ imageUrl, color, opacity, videoUrl, gradientEnd, focalX, focalY, zoom, ...next });
     } else {
       if (next.imageUrl !== undefined) setLocalImageUrl(next.imageUrl);
       if (next.color !== undefined) setLocalColor(next.color);
       if (next.opacity !== undefined) setLocalOpacity(next.opacity);
       if (next.videoUrl !== undefined) setLocalVideoUrl(next.videoUrl);
       if (next.gradientEnd !== undefined) setLocalGradientEnd(next.gradientEnd);
+      if (next.focalX !== undefined) setLocalFocalX(next.focalX);
+      if (next.focalY !== undefined) setLocalFocalY(next.focalY);
+      if (next.zoom !== undefined) setLocalZoom(next.zoom);
     }
   }
 
@@ -80,7 +97,7 @@ export function BackgroundPicker({
   // color/opacity stays an overlay tint on top of whichever is active in
   // either case.
   function pickImage(url: string) {
-    set({ imageUrl: url, videoUrl: "" });
+    set({ imageUrl: url, videoUrl: "", focalX: 50, focalY: 50, zoom: 1 });
     setPickerOpen(false);
   }
   function pickVideo(url: string) {
@@ -95,14 +112,17 @@ export function BackgroundPicker({
           <input type="hidden" name="backgroundImageUrl" value={imageUrl} readOnly />
           <input type="hidden" name="overlayColor" value={color} readOnly />
           <input type="hidden" name="overlayOpacity" value={opacity} readOnly />
+          <input type="hidden" name="backgroundFocalX" value={focalX} readOnly />
+          <input type="hidden" name="backgroundFocalY" value={focalY} readOnly />
+          <input type="hidden" name="backgroundZoom" value={zoom} readOnly />
           <input type="hidden" name="bannerImageUrl" value={bannerImageUrl} readOnly />
         </>
       )}
 
       <div
-        className={`relative flex items-center justify-center overflow-hidden rounded-md border border-slate-200 bg-cover bg-center dark:border-slate-700 ${compact ? "h-20" : "h-32"}`}
-        style={imageUrl ? { backgroundImage: `url(${imageUrl})` } : undefined}
+        className={`relative flex items-center justify-center overflow-hidden rounded-md border border-slate-200 dark:border-slate-700 ${compact ? "h-20" : "h-32"}`}
       >
+        {imageUrl && <div className="absolute inset-0 bg-cover" style={backgroundPictureStyle(imageUrl, focalX, focalY, zoom)} />}
         {videoUrl && (
           <video src={videoUrl} autoPlay muted loop playsInline className="absolute inset-0 h-full w-full object-cover" />
         )}
@@ -187,6 +207,9 @@ export function BackgroundPicker({
       {(!compact || tab === "image") && (
         <div className="space-y-2">
           {imageUrl && (
+            <BackgroundPositioner url={imageUrl} focalX={focalX} focalY={focalY} zoom={zoom} onChange={(p) => set(p)} />
+          )}
+          {imageUrl && (
             <button type="button" onClick={() => set({ imageUrl: "" })} className="block text-sm text-red-600 hover:underline dark:text-red-400">
               Quitar imagen de fondo
             </button>
@@ -268,6 +291,79 @@ export function BackgroundPicker({
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Pan + zoom the background picture: drag it with the mouse or a finger to choose what shows, or use
+ * the sliders (keyboard friendly). It is drawn with the same CSS as the page (backgroundPictureStyle).
+ * Only a wide strip is shown; the real section/banner has other proportions, so the focal point is
+ * what is guaranteed to stay in view.
+ */
+function BackgroundPositioner({
+  url,
+  focalX,
+  focalY,
+  zoom,
+  onChange,
+}: {
+  url: string;
+  focalX: number;
+  focalY: number;
+  zoom: number;
+  onChange: (p: { focalX?: number; focalY?: number; zoom?: number }) => void;
+}) {
+  const uid = useId();
+  const boxRef = useRef<HTMLDivElement>(null);
+  const dragging = useRef(false);
+  const clamp = (n: number) => Math.min(100, Math.max(0, n));
+  const label = "block text-xs font-medium text-slate-700 dark:text-slate-300";
+  return (
+    <div className="space-y-2">
+      <div
+        ref={boxRef}
+        role="img"
+        aria-label="Imagen de fondo: arrástrala para elegir qué parte se ve"
+        onPointerDown={(e) => {
+          dragging.current = true;
+          e.currentTarget.setPointerCapture(e.pointerId);
+        }}
+        onPointerMove={(e) => {
+          if (!dragging.current || !boxRef.current) return;
+          const r = boxRef.current.getBoundingClientRect();
+          // Dragging moves the picture itself; the focal point moves the opposite way (and a zoomed picture needs a smaller step).
+          onChange({ focalX: clamp(focalX - (e.movementX / r.width / zoom) * 100), focalY: clamp(focalY - (e.movementY / r.height / zoom) * 100) });
+        }}
+        onPointerUp={(e) => {
+          dragging.current = false;
+          if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
+        }}
+        onPointerCancel={() => { dragging.current = false; }}
+        className="relative aspect-[3/1] w-full cursor-move touch-none select-none overflow-hidden rounded-md border border-slate-300 dark:border-slate-600"
+      >
+        <div className="absolute inset-0 bg-cover" style={backgroundPictureStyle(url, focalX, focalY, zoom)} />
+      </div>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs text-slate-600 dark:text-slate-400">Arrastra la imagen para elegir qué parte se ve, o usa los controles.</p>
+        <button type="button" onClick={() => onChange({ focalX: 50, focalY: 50, zoom: 1 })} className="shrink-0 text-xs text-violet-700 underline dark:text-sky-400">
+          Centrar
+        </button>
+      </div>
+      <div className="grid max-w-md gap-3 sm:grid-cols-3">
+        <label className={label} htmlFor={`${uid}-z`}>
+          Zoom ({zoom.toFixed(1)}x)
+          <input id={`${uid}-z`} type="range" min={1} max={3} step={0.1} value={zoom} onChange={(e) => onChange({ zoom: Number(e.target.value) })} className="mt-1 w-full" />
+        </label>
+        <label className={label} htmlFor={`${uid}-x`}>
+          Horizontal ({Math.round(focalX)}%)
+          <input id={`${uid}-x`} type="range" min={0} max={100} step={1} value={focalX} onChange={(e) => onChange({ focalX: Number(e.target.value) })} className="mt-1 w-full" />
+        </label>
+        <label className={label} htmlFor={`${uid}-y`}>
+          Vertical ({Math.round(focalY)}%)
+          <input id={`${uid}-y`} type="range" min={0} max={100} step={1} value={focalY} onChange={(e) => onChange({ focalY: Number(e.target.value) })} className="mt-1 w-full" />
+        </label>
+      </div>
     </div>
   );
 }

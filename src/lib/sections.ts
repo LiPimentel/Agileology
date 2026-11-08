@@ -62,7 +62,7 @@ export type EditorColumn = { id: string; width: number; blocks: EditorBlockItem[
 export type EditorFreeBlockItem = EditorBlockItem & { x: number; y: number; width: number; height: number; zIndex: number };
 // videoUrl: an uploaded mp4/webm shown instead of imageUrl when set (the
 // section background picker's "Video" tab) -- see BackgroundOverlay.tsx.
-export type SectionBackground = { imageUrl: string; color: string; opacity: number; videoUrl: string; gradientEnd: string };
+export type SectionBackground = { imageUrl: string; color: string; opacity: number; videoUrl: string; gradientEnd: string; focalX: number; focalY: number; zoom: number };
 // "grid" (default): columns[] holds the content, exactly as before this
 // existed -- every page built before free sections did keeps rendering
 // identically. "free": freeBlocks[] holds the content instead, positioned
@@ -84,6 +84,9 @@ export const EMPTY_SECTION_BACKGROUND: SectionBackground = {
   opacity: 0,
   videoUrl: "",
   gradientEnd: "",
+  focalX: 50,
+  focalY: 50,
+  zoom: 1,
 };
 
 export const DEFAULT_FREE_HEIGHT = 400;
@@ -192,6 +195,9 @@ export function groupBlocksIntoSections(
     sectionBgOpacity: number;
     sectionBgVideoUrl: string | null;
     sectionBgGradientEnd: string | null;
+    sectionBgFocalX: number;
+    sectionBgFocalY: number;
+    sectionBgZoom: number;
     sectionLayoutMode: string;
     sectionFreeHeight: number;
     freeX: number;
@@ -217,6 +223,9 @@ export function groupBlocksIntoSections(
           opacity: b.sectionBgOpacity,
           videoUrl: b.sectionBgVideoUrl ?? "",
           gradientEnd: b.sectionBgGradientEnd ?? "",
+          focalX: b.sectionBgFocalX ?? 50,
+          focalY: b.sectionBgFocalY ?? 50,
+          zoom: b.sectionBgZoom ?? 1,
         },
       });
       currentPosition = b.position;
@@ -255,6 +264,9 @@ export function serializeSections(sections: EditorSection[]) {
     sectionBgOpacity: number;
     sectionBgVideoUrl: string;
     sectionBgGradientEnd: string;
+    sectionBgFocalX: number;
+    sectionBgFocalY: number;
+    sectionBgZoom: number;
     sectionLayoutMode: string;
     sectionFreeHeight: number;
     freeX: number;
@@ -270,6 +282,9 @@ export function serializeSections(sections: EditorSection[]) {
       sectionBgOpacity: section.background.opacity,
       sectionBgVideoUrl: section.background.videoUrl,
       sectionBgGradientEnd: section.background.gradientEnd,
+      sectionBgFocalX: section.background.focalX,
+      sectionBgFocalY: section.background.focalY,
+      sectionBgZoom: section.background.zoom,
       sectionLayoutMode: section.layoutMode,
       sectionFreeHeight: section.freeHeight,
     };

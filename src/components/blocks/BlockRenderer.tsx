@@ -38,6 +38,9 @@ export type RenderableBlock = {
   sectionBgOpacity?: number;
   sectionBgVideoUrl?: string | null;
   sectionBgGradientEnd?: string | null;
+  sectionBgFocalX?: number;
+  sectionBgFocalY?: number;
+  sectionBgZoom?: number;
   // Free-position ("Wix-style") layout, opt-in per section -- see the
   // comment on sections.ts's EditorSection.layoutMode. sectionLayoutMode
   // "free" means PageRenderer positions this block itself via free*
