@@ -15,6 +15,10 @@ FROM node:22-slim AS runner
 WORKDIR /app
 RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 ENV NODE_ENV=production
+# Next's standalone server binds to $HOSTNAME, which Docker sets to the container id: it would not
+# answer on 127.0.0.1 (breaking the health check). Listen on every interface of the container;
+# what the outside world can reach is decided by the published port (APP_BIND in docker-compose.yml).
+ENV HOSTNAME=0.0.0.0 PORT=3000
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
