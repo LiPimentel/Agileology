@@ -118,7 +118,7 @@ export function LatestPosts({ value }: { value: LatestPostsValue }) {
       aria-roledescription="carrusel"
       aria-label="Entradas recientes. Usa las flechas izquierda y derecha para cambiar de entradas."
       tabIndex={rotates ? 0 : undefined}
-      className={`w-full rounded-md ${FOCUS}`}
+      className={`w-full min-w-0 max-w-full rounded-md ${FOCUS}`}
       onPointerEnter={(e) => e.pointerType === "mouse" && setHovered(true)}
       onPointerLeave={(e) => e.pointerType === "mouse" && setHovered(false)}
       onFocus={() => setFocused(true)}
@@ -144,7 +144,7 @@ export function LatestPosts({ value }: { value: LatestPostsValue }) {
           {announce}
         </p>
       )}
-      <div className="overflow-hidden">
+      <div className="w-0 min-w-full overflow-hidden">
         <div
           className="-mx-3 flex items-stretch"
           style={{

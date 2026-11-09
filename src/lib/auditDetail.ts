@@ -140,6 +140,7 @@ export const ACTION_LABELS: Record<string, string> = {
   create_page: "Creó una página",
   save_draft: "Guardó un borrador",
   publish_page: "Publicó una página",
+  unpublish_page: "Despublicó una página",
   delete_page: "Eliminó una página",
   duplicate_page: "Duplicó una página",
   restore_version: "Restauró una versión",

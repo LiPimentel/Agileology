@@ -98,14 +98,14 @@ export function Quotes({ value }: { value: QuotesValue }) {
   const slideWidth = 100 / visible;
 
   return (
-    <section className="w-full">
+    <section className="w-full min-w-0 max-w-full">
     {value.title && <h2 className="mb-4 text-center text-2xl font-semibold text-[#1F2A44]">{value.title}</h2>}
     <div
       role="group"
       aria-roledescription="carrusel"
       aria-label={`${value.title || "Frases"}. Usa las flechas izquierda y derecha para cambiar de frases.`}
       tabIndex={rotates ? 0 : undefined}
-      className={`w-full rounded-md ${FOCUS}`}
+      className={`w-full min-w-0 max-w-full rounded-md ${FOCUS}`}
       onPointerEnter={(e) => e.pointerType === "mouse" && setHovered(true)}
       onPointerLeave={(e) => e.pointerType === "mouse" && setHovered(false)}
       onFocus={() => setFocused(true)}
@@ -131,7 +131,7 @@ export function Quotes({ value }: { value: QuotesValue }) {
           {announce}
         </p>
       )}
-      <div className="overflow-hidden">
+      <div className="w-0 min-w-full overflow-hidden">
         <div
           className="-mx-3 flex items-stretch"
           style={{

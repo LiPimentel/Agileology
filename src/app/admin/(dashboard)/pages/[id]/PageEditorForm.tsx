@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { savePage, type PageFormState } from "../actions";
+import { savePage, unpublishPage, type PageFormState } from "../actions";
 import { BackgroundPicker } from "@/components/admin/BackgroundPicker";
 import { SectionBlockEditor, type EditorSection } from "@/components/admin/SectionBlockEditor";
 import type { MediaItem } from "@/components/admin/MediaGrid";
@@ -57,6 +57,8 @@ export function PageEditorForm({
   const [state, formAction, pending] = useActionState(savePage, initialState);
   const formRef = useRef<HTMLFormElement>(null);
   const draftButtonRef = useRef<HTMLButtonElement>(null);
+  const [unpublishing, setUnpublishing] = useState(false);
+  const [unpublishError, setUnpublishError] = useState<string | null>(null);
   const [showBanner, setShowBanner] = useState(page.background?.showBanner ?? true);
   const [showTitle, setShowTitle] = useState(page.background?.showTitle ?? true);
   const [leftW, setLeftW] = useState(page.background?.sideLeftWidth ?? 22);
@@ -263,6 +265,29 @@ export function PageEditorForm({
         >
           Guardar y publicar
         </button>
+        {page.status === "published" && (
+          <button
+            type="button"
+            disabled={pending || unpublishing}
+            onClick={async () => {
+              if (!window.confirm(`¿Despublicar «${page.title}»? Dejará de verse en el sitio (el contenido y el historial se conservan). Puedes volver a publicarla cuando quieras.`)) return;
+              setUnpublishing(true);
+              setUnpublishError(null);
+              try {
+                await unpublishPage(page.id);
+                router.refresh();
+              } catch (e) {
+                setUnpublishError(e instanceof Error ? e.message : "No se pudo despublicar.");
+              } finally {
+                setUnpublishing(false);
+              }
+            }}
+            className="rounded-md border border-red-300 px-5 py-2 font-medium text-red-700 hover:bg-red-50 disabled:opacity-60 dark:border-red-500/60 dark:text-red-300 dark:hover:bg-slate-800"
+          >
+            {unpublishing ? "Despublicando..." : "Despublicar"}
+          </button>
+        )}
+        {unpublishError && <p role="alert" className="self-center text-sm text-red-700 dark:text-red-300">{unpublishError}</p>}
         <Link
           href={`/admin/pages/${page.id}/versions`}
           className="ml-auto rounded-md border border-slate-300 px-5 py-2 font-medium text-slate-700 hover:bg-white dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"

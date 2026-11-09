@@ -278,6 +278,20 @@ export async function savePage(_prev: PageFormState, formData: FormData): Promis
   return { pageId, savedAt: Date.now() };
 }
 
+/** Takes a page off the public site (back to draft). Its content and versions are kept; publish again to bring it back. */
+export async function unpublishPage(pageId: string) {
+  const admin = await requireAdmin();
+  const page = await prisma.page.findUnique({ where: { id: pageId } });
+  if (!page) throw new Error("No existe la página.");
+  if (isHomeSlug(page.slug)) throw new Error("La página de inicio no se puede despublicar: el sitio se quedaría sin portada.");
+  if (page.status !== "published") return;
+  await prisma.page.update({ where: { id: pageId }, data: { status: "draft" } });
+  await logAudit({ adminId: admin.id, action: "unpublish_page", entityType: "Page", entityId: pageId, detail: { entity: `Página «${page.title}»`, summary: `Se despublicó /${page.slug} (vuelve a borrador; el contenido se conserva)` } });
+  revalidatePath("/admin/pages");
+  revalidatePath(`/${page.slug}`);
+  revalidatePath("/", "layout");
+}
+
 export async function deletePage(pageId: string) {
   const admin = await requireAdmin();
   const page = await prisma.page.findUnique({ where: { id: pageId } });
