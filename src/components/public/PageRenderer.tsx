@@ -29,6 +29,7 @@ export type PageRenderData = {
     sideLeftWidth?: number;
     sideRightWidth?: number;
     gridMaxWidth?: number;
+    wideLayout?: boolean;
   } | null;
 };
 
@@ -122,7 +123,7 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
   // `where`: "full" = a full-width section (centred in a readable column); "center" / "rail" = inside the
   // three-column grid, where the section fills its column instead of being centred in a narrow strip.
   // A page that uses the three-column grid anywhere is laid out as one wide page (shared width, one type scale).
-  const wide = sections.some((sec) => ['main', 'left', 'right'].includes(String(sec[0]?.sectionZone)));
+  const wide = page.background?.wideLayout === true || sections.some((sec) => ['main', 'left', 'right'].includes(String(sec[0]?.sectionZone)));
   const gridMax = Math.min(1920, Math.max(800, page.background?.gridMaxWidth ?? 1280));
   const renderSection = (section: RenderableBlock[], i: number, where: "full" | "center" | "rail" = "full") => {
     const inGrid = where !== "full";

@@ -102,9 +102,18 @@ export function BlockRenderer({ block, pageId }: { block: RenderableBlock; pageI
         />
       );
       const wrapperClass = framed ? framedWrapperClass(shape, frame) : IMAGE_SHAPE_WRAPPER_CLASS[shape];
+      const inner = wrapperClass ? <div className={wrapperClass}>{img}</div> : img;
+      const hover = String(block.content.hoverEffect ?? "none");
+      const fx = hover === "zoom" || hover === "lift" || hover === "focus" ? hover : "";
+      // The effect lives on a clipping wrapper (the picture's own transform is used by pan/zoom).
+      const radius = shape === "circle" || shape === "oval" ? "rounded-full" : shape === "rounded" ? "rounded-2xl" : "rounded-md";
       return (
         <div className={`${maxWidth} ${ALIGN_CLASS[alignment] ?? "mx-auto"}`} style={{ width: `${width}%` }}>
-          {wrapperClass ? <div className={wrapperClass}>{img}</div> : img}
+          {fx ? (
+            <div className={`img-fx img-fx-${fx} overflow-hidden ${radius}`}>
+              <div className="img-fx-inner">{inner}</div>
+            </div>
+          ) : inner}
         </div>
       );
     }

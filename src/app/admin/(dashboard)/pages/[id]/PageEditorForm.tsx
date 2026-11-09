@@ -37,6 +37,7 @@ export type PageEditorData = {
     sideLeftWidth: number;
     sideRightWidth: number;
     gridMaxWidth: number;
+    wideLayout?: boolean;
   } | null;
   sections: EditorSection[];
 };
@@ -61,6 +62,7 @@ export function PageEditorForm({
   const [leftW, setLeftW] = useState(page.background?.sideLeftWidth ?? 22);
   const [rightW, setRightW] = useState(page.background?.sideRightWidth ?? 22);
   const [gridMax, setGridMax] = useState(page.background?.gridMaxWidth ?? 1280);
+  const [wideLayout, setWideLayout] = useState(page.background?.wideLayout ?? false);
 
   // Autosave draft periodically (7.14) so unsaved edits survive an accidental tab close.
   useEffect(() => {
@@ -207,6 +209,11 @@ export function PageEditorForm({
           <p className="mb-2 text-xs text-slate-500 dark:text-slate-400">
             Para tener una columna a cada lado, elige «Lateral izquierdo» o «Lateral derecho» en la ubicación de una sección, y «Centro» en las del medio. La sección de ancho completo (por ejemplo el video) queda arriba o abajo de esa cuadrícula. Aquí defines el ancho de cada lateral.
           </p>
+          <input type="hidden" name="wideLayoutField" value="1" />
+          <label className="mb-3 flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+            <input type="checkbox" name="wideLayout" checked={wideLayout} onChange={(e) => setWideLayout(e.target.checked)} className="mt-1" />
+            <span><strong>Página ancha</strong>: todas las secciones usan el «Ancho total de la cuadrícula» (en vez del ancho estrecho de lectura), aunque no uses los laterales. Se activa sola si pones algo en Izquierda, Centro o Derecha.</span>
+          </label>
           <div className="grid gap-4 sm:grid-cols-3">
             <label className="text-sm text-slate-700 dark:text-slate-300">
               Lateral izquierdo: {leftW}%

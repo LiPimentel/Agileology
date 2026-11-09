@@ -12,6 +12,17 @@ export const IMAGE_SHAPE_LABELS: Record<ImageShape, string> = {
   oval: "Óvalo",
 };
 
+// Effect when the pointer passes over a picture (public site). "none" = static, as before.
+// Reusable: any block that shows pictures can take the same value and class.
+export type ImageHoverEffect = "none" | "zoom" | "lift" | "focus";
+export const IMAGE_HOVER_EFFECTS: ImageHoverEffect[] = ["none", "zoom", "lift", "focus"];
+export const IMAGE_HOVER_LABELS: Record<ImageHoverEffect, string> = {
+  none: "Ninguno",
+  zoom: "Acercamiento suave (zoom)",
+  lift: "Levantar con sombra",
+  focus: "Enfoque (se aclara y se acerca)",
+};
+
 // circle/oval force a fixed aspect ratio + crop the image to fill the
 // frame. The outer "wrapper" class owns the aspect ratio + overflow
 // clipping; the inner "img" class fills that wrapper and is the element

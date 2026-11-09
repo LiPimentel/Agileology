@@ -295,6 +295,8 @@ model Background {
   sideRightWidth Int @default(22)
   // Widest the three-column grid may be (px); on wider screens it is centred, so the side columns sit close to the content.
   gridMaxWidth   Int @default(1280)
+  // Lay the page out wide (shared width, one type scale) even without anything in the side areas.
+  wideLayout     Boolean @default(false)
   // Whether the title/background banner block renders at all, above the
   // page's own sections. Previously this was forced on every page with no
   // way to turn it off -- "eso no puede estar fijo como obligatorio en

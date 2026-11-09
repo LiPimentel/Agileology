@@ -2,12 +2,24 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { NavLink } from "@/lib/settings";
 import { safeHref } from "@/lib/href";
 
-function LinkItem({ link: rawLink, className }: { link: NavLink; className?: string }) {
+// The page the link points to (or a page inside it, e.g. /blog/some-post under /blog).
+function isActivePath(pathname: string, href: string) {
+  if (!href.startsWith("/")) return false;
+  const target = href.split(/[?#]/)[0] || "/";
+  if (target === "/") return pathname === "/";
+  return pathname === target || pathname.startsWith(`${target}/`);
+}
+
+function LinkItem({ link: rawLink, className, active: forceActive }: { link: NavLink; className?: string; active?: boolean }) {
+  const pathname = usePathname();
   const link = { ...rawLink, href: safeHref(rawLink.href) };
   const isExternal = /^https?:\/\//i.test(link.href);
+  const active = forceActive ?? (!isExternal && isActivePath(pathname, link.href));
+  className = `nav-link ${active ? "nav-link-active" : ""} ${className ?? ""}`;
   if (isExternal) {
     return (
       <a
@@ -21,7 +33,7 @@ function LinkItem({ link: rawLink, className }: { link: NavLink; className?: str
     );
   }
   return (
-    <Link href={link.href} target={link.newTab ? "_blank" : undefined} className={className}>
+    <Link href={link.href} target={link.newTab ? "_blank" : undefined} className={className} aria-current={active ? "page" : undefined}>
       {link.label}
     </Link>
   );
@@ -37,6 +49,8 @@ function LinkItem({ link: rawLink, className }: { link: NavLink; className?: str
 export function NavItem({ link }: { link: NavLink }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLLIElement>(null);
+  const pathname = usePathname();
+  const childActive = (link.children ?? []).some((c) => isActivePath(pathname, safeHref(c.href)));
 
   useEffect(() => {
     if (!open) return;
@@ -50,7 +64,7 @@ export function NavItem({ link }: { link: NavLink }) {
   if (!link.children || link.children.length === 0) {
     return (
       <li>
-        <LinkItem link={link} className="rounded-sm hover:text-white hover:underline focus-visible:text-white focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" />
+        <LinkItem link={link} className="rounded-sm hover:text-white focus-visible:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" />
       </li>
     );
   }
@@ -58,7 +72,7 @@ export function NavItem({ link }: { link: NavLink }) {
   return (
     <li ref={ref} className="relative">
       <span className="flex items-center gap-1">
-        <LinkItem link={link} className="rounded-sm hover:text-white hover:underline focus-visible:text-white focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" />
+        <LinkItem link={link} active={childActive || undefined} className="rounded-sm hover:text-white focus-visible:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" />
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}

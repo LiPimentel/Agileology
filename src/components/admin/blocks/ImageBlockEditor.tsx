@@ -17,7 +17,10 @@ import {
   imageMaxWidthClass,
   isCroppableShape,
   isFramedImage,
+  IMAGE_HOVER_EFFECTS,
+  IMAGE_HOVER_LABELS,
   type ImageFrame,
+  type ImageHoverEffect,
   type ImageShape,
 } from "@/lib/imageShape";
 
@@ -32,6 +35,8 @@ export type ImageBlockValue = {
   width: number;
   /** Fixed-proportion window the picture is cropped to; absent/"auto" = the whole picture. */
   frame?: ImageFrame;
+  /** Effect on mouse-over (public site). */
+  hoverEffect?: ImageHoverEffect;
 };
 
 function clamp(n: number, min: number, max: number) {
@@ -245,6 +250,14 @@ export function ImageBlockEditor({
             </select>
           </div>
         )}
+        <div>
+          <label htmlFor={`${uid}-hover`} className={labelCls}>Efecto al pasar el mouse</label>
+          <select id={`${uid}-hover`} value={value.hoverEffect ?? "none"} onChange={(e) => onChange({ ...value, hoverEffect: e.target.value as ImageHoverEffect })} className={selectCls}>
+            {IMAGE_HOVER_EFFECTS.map((f) => (
+              <option key={f} value={f}>{IMAGE_HOVER_LABELS[f]}</option>
+            ))}
+          </select>
+        </div>
         <div>
           <label htmlFor={`${uid}-width`} className={labelCls}>Tamaño ({width}%)</label>
           <input id={`${uid}-width`} type="range" min={20} max={100} step={5} value={width} onChange={(e) => onChange({ ...value, width: Number(e.target.value) })} className="mt-3 w-40" />

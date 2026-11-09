@@ -160,6 +160,9 @@ async function upsertPageContent(pageId: string, formData: FormData) {
   const sideLeftWidth = Math.round(clampNumber(formData.get("sideLeftWidth"), 10, 40, 22));
   const sideRightWidth = Math.round(clampNumber(formData.get("sideRightWidth"), 10, 40, 22));
   const gridMaxWidth = Math.round(clampNumber(formData.get("gridMaxWidth"), 800, 1920, 1280));
+  // Only overwritten when the form that sent this has the checkbox (an old editor tab does not).
+  const wideLayoutSent = formData.has("wideLayoutField");
+  const wideLayout = formData.get("wideLayout") === "on";
   const showBanner = formData.get("showBanner") === "on";
   const showTitle = formData.get("showTitle") === "on";
 
@@ -220,8 +223,8 @@ async function upsertPageContent(pageId: string, formData: FormData) {
 
     await tx.background.upsert({
       where: { pageId },
-      update: { overlayColor, overlayOpacity, imageUrl: backgroundImageUrl, focalX, focalY, zoom, bannerImageUrl, showBanner, showTitle, sideLeftWidth, sideRightWidth, gridMaxWidth },
-      create: { pageId, overlayColor, overlayOpacity, imageUrl: backgroundImageUrl, focalX, focalY, zoom, bannerImageUrl, showBanner, showTitle, sideLeftWidth, sideRightWidth, gridMaxWidth },
+      update: { overlayColor, overlayOpacity, imageUrl: backgroundImageUrl, focalX, focalY, zoom, bannerImageUrl, showBanner, showTitle, sideLeftWidth, sideRightWidth, gridMaxWidth, ...(wideLayoutSent ? { wideLayout } : {}) },
+      create: { pageId, overlayColor, overlayOpacity, imageUrl: backgroundImageUrl, focalX, focalY, zoom, bannerImageUrl, showBanner, showTitle, sideLeftWidth, sideRightWidth, gridMaxWidth, wideLayout },
     });
   });
 
@@ -347,6 +350,7 @@ export async function duplicatePage(pageId: string) {
               sideLeftWidth: source.background.sideLeftWidth,
               sideRightWidth: source.background.sideRightWidth,
               gridMaxWidth: source.background.gridMaxWidth,
+              wideLayout: source.background.wideLayout,
             },
           }
         : { create: {} },
@@ -450,6 +454,7 @@ export async function restorePageVersion(pageId: string, versionId: string) {
         sideLeftWidth: Math.round(clampNumber(snapshot.background?.sideLeftWidth, 10, 40, 22)),
         sideRightWidth: Math.round(clampNumber(snapshot.background?.sideRightWidth, 10, 40, 22)),
         gridMaxWidth: Math.round(clampNumber(snapshot.background?.gridMaxWidth, 800, 1920, 1280)),
+        wideLayout: snapshot.background?.wideLayout === true,
       },
       create: {
         pageId,
@@ -465,6 +470,7 @@ export async function restorePageVersion(pageId: string, versionId: string) {
         sideLeftWidth: Math.round(clampNumber(snapshot.background?.sideLeftWidth, 10, 40, 22)),
         sideRightWidth: Math.round(clampNumber(snapshot.background?.sideRightWidth, 10, 40, 22)),
         gridMaxWidth: Math.round(clampNumber(snapshot.background?.gridMaxWidth, 800, 1920, 1280)),
+        wideLayout: snapshot.background?.wideLayout === true,
       },
     });
   });

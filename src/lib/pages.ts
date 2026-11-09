@@ -56,6 +56,7 @@ export async function buildPageSnapshot(pageId: string): Promise<PageRenderData 
           sideLeftWidth: page.background.sideLeftWidth,
           sideRightWidth: page.background.sideRightWidth,
           gridMaxWidth: page.background.gridMaxWidth,
+          wideLayout: page.background.wideLayout,
         }
       : null,
   };

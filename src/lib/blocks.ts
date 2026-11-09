@@ -26,6 +26,8 @@ export const imageBlockSchema = z.object({
   // already have (see videoBlockSchema below). Previously there was no way
   // to shrink the shape itself, only zoom/crop the photo inside it.
   width: z.number().min(20).max(100).default(100),
+  // Effect on mouse-over (public site). Absent in older blocks = none.
+  hoverEffect: z.enum(["none", "zoom", "lift", "focus"]).default("none"),
 });
 export const linkBlockSchema = z.object({
   label: z.string(),

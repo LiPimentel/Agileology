@@ -56,3 +56,31 @@ body {
 .site-public :is(h1, h2, h3, h4) {
   font-family: "Alegreya SC", "Alegreya", Georgia, serif;
 }
+
+/* Picture effects on mouse-over / keyboard focus (image block "Efecto al pasar el mouse"). */
+.img-fx { transition: transform 0.35s ease, box-shadow 0.35s ease; }
+.img-fx-inner { transition: transform 0.6s ease, filter 0.6s ease; will-change: transform; }
+.img-fx-zoom:hover .img-fx-inner,
+.img-fx-zoom:focus-within .img-fx-inner { transform: scale(1.08); }
+.img-fx-lift:hover,
+.img-fx-lift:focus-within { transform: translateY(-6px); box-shadow: 0 14px 28px -10px rgba(31, 42, 68, 0.35); }
+.img-fx-focus .img-fx-inner { filter: brightness(0.92) saturate(0.9); }
+.img-fx-focus:hover .img-fx-inner,
+.img-fx-focus:focus-within .img-fx-inner { transform: scale(1.05); filter: brightness(1.03) saturate(1.1); }
+@media (prefers-reduced-motion: reduce) {
+  .img-fx, .img-fx-inner { transition: none; }
+  .img-fx-zoom:hover .img-fx-inner, .img-fx-zoom:focus-within .img-fx-inner,
+  .img-fx-focus:hover .img-fx-inner, .img-fx-focus:focus-within .img-fx-inner { transform: none; }
+  .img-fx-lift:hover, .img-fx-lift:focus-within { transform: none; }
+}
+
+/* Public menu: animated underline on hover/focus; the current page keeps it, in white. */
+.nav-link { position: relative; display: inline-block; padding-bottom: 2px; transition: color 0.2s ease; }
+.nav-link::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; border-radius: 2px;
+  background: #a99cf0; transform: scaleX(0); transform-origin: left; transition: transform 0.28s ease;
+}
+.nav-link:hover::after, .nav-link:focus-visible::after { transform: scaleX(1); }
+.nav-link-active { color: #fff; font-weight: 600; }
+.nav-link-active::after { transform: scaleX(1); background: #fff; }
+@media (prefers-reduced-motion: reduce) { .nav-link, .nav-link::after { transition: none; } }
