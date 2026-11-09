@@ -19,7 +19,7 @@ export function buildCsp(nonce: string, opts: { https: boolean; dev: boolean; em
     `img-src 'self' data: blob: https:`,
     `media-src 'self'`,
     `font-src 'self' data: https://fonts.gstatic.com`,
-    `frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.google.com/maps/${opts.embedOrigin ? ` ${opts.embedOrigin}` : ""}`,
+    `frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.google.com/maps https://www.google.com/maps/${opts.embedOrigin ? ` ${opts.embedOrigin}` : ""}`,
     `connect-src 'self'${opts.dev ? " ws: wss:" : ""}`,
     `manifest-src 'self'`,
     `object-src 'none'`,
