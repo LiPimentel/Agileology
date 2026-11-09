@@ -13,6 +13,7 @@ import type { ContactFormBlockValue } from "@/components/admin/blocks/ContactFor
 import type { CustomFormBlockValue } from "@/components/admin/blocks/CustomFormBlockEditor";
 import { EMPTY_CAROUSEL, type CarouselBlockValue } from "@/components/admin/blocks/CarouselBlockEditor";
 import { EMPTY_LATEST_POSTS, type LatestPostsBlockValue } from "@/components/admin/blocks/LatestPostsBlockEditor";
+import { EMPTY_QUOTES, type QuotesBlockValue } from "@/components/admin/blocks/QuotesBlockEditor";
 import { EMPTY_LINKEDIN_POSTS, type LinkedinPostsBlockValue } from "@/components/admin/blocks/LinkedinPostsBlockEditor";
 
 // Pages only (posts keep the simpler, single-column BlockEditor -- blog
@@ -32,7 +33,7 @@ import { EMPTY_LINKEDIN_POSTS, type LinkedinPostsBlockValue } from "@/components
 // section needs at least one filled column for its background to have
 // somewhere to be saved; a fully empty section has no rows to carry it.
 
-export type BlockType = "text" | "image" | "link" | "video" | "map" | "contactForm" | "customForm" | "carousel" | "latestPosts" | "linkedinPosts";
+export type BlockType = "text" | "image" | "link" | "video" | "map" | "contactForm" | "customForm" | "carousel" | "latestPosts" | "linkedinPosts" | "quotes";
 
 export type BlockValue =
   | { type: "text"; content: { html: string } }
@@ -49,7 +50,8 @@ export type BlockValue =
   | { type: "customForm"; content: CustomFormBlockValue }
   | { type: "carousel"; content: CarouselBlockValue }
   | { type: "latestPosts"; content: LatestPostsBlockValue }
-  | { type: "linkedinPosts"; content: LinkedinPostsBlockValue };
+  | { type: "linkedinPosts"; content: LinkedinPostsBlockValue }
+  | { type: "quotes"; content: QuotesBlockValue };
 
 // One entry in a column's stack -- `id` is the ContentBlock row's id (or a
 // generated placeholder for a not-yet-saved block), separate from the
@@ -174,6 +176,8 @@ export function emptyContent(type: BlockType): BlockValue {
       return { type, content: { ...EMPTY_LATEST_POSTS } };
     case "linkedinPosts":
       return { type, content: { ...EMPTY_LINKEDIN_POSTS, posts: [] } };
+    case "quotes":
+      return { type, content: { ...EMPTY_QUOTES, quotes: [] } };
   }
 }
 

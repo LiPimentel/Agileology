@@ -12,6 +12,7 @@ import { LinkBlockEditor } from "@/components/admin/blocks/LinkBlockEditor";
 import { VideoBlockEditor } from "@/components/admin/blocks/VideoBlockEditor";
 import { CarouselBlockEditor } from "@/components/admin/blocks/CarouselBlockEditor";
 import { LatestPostsBlockEditor } from "@/components/admin/blocks/LatestPostsBlockEditor";
+import { QuotesBlockEditor } from "@/components/admin/blocks/QuotesBlockEditor";
 import { LinkedinPostsBlockEditor } from "@/components/admin/blocks/LinkedinPostsBlockEditor";
 import { MapBlockEditor } from "@/components/admin/blocks/MapBlockEditor";
 import { ContactFormBlockEditor } from "@/components/admin/blocks/ContactFormBlockEditor";
@@ -47,6 +48,7 @@ const BLOCK_LABELS: Record<BlockType, string> = {
   carousel: "Carrusel",
   latestPosts: "Entradas recientes (rotan)",
   linkedinPosts: "Publicaciones de LinkedIn (rotan)",
+  quotes: "Frases (rotan)",
 };
 const BLOCK_TYPE_OPTIONS = (Object.keys(BLOCK_LABELS) as BlockType[]).map((type) => ({ type, label: BLOCK_LABELS[type] }));
 
@@ -77,6 +79,8 @@ function hasContent(block: BlockValue): boolean {
       return true;
     case "linkedinPosts":
       return block.content.posts.length > 0;
+    case "quotes":
+      return block.content.quotes.length > 0;
   }
 }
 
@@ -731,6 +735,8 @@ export function SectionBlockEditor({
         return <LatestPostsBlockEditor value={item.block.content} onChange={onChange} />;
       case "linkedinPosts":
         return <LinkedinPostsBlockEditor value={item.block.content} onChange={onChange} mediaLibrary={mediaLibrary} />;
+      case "quotes":
+        return <QuotesBlockEditor value={item.block.content} onChange={onChange} />;
     }
   }
 
@@ -770,6 +776,8 @@ export function SectionBlockEditor({
         return <LatestPostsBlockEditor value={item.block.content} onChange={onChange} />;
       case "linkedinPosts":
         return <LinkedinPostsBlockEditor value={item.block.content} onChange={onChange} mediaLibrary={mediaLibrary} />;
+      case "quotes":
+        return <QuotesBlockEditor value={item.block.content} onChange={onChange} />;
     }
   }
 

@@ -39,6 +39,8 @@ enum BlockType {
   latestPosts
   // Hand-filled compact cards linking to LinkedIn posts (up to 5, a few shown at a time, rotating).
   linkedinPosts
+  // Rotating quotes ("frases"): text + author, a few shown at a time; stored in content.
+  quotes
 }
 
 enum BlogLayout {

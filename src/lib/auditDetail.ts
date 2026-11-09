@@ -48,6 +48,7 @@ const TYPE_LABELS: Record<string, string> = {
   carousel: "Carrusel",
   latestPosts: "Entradas recientes",
   linkedinPosts: "Publicaciones de LinkedIn",
+  quotes: "Frases",
 };
 
 /** Short description of what a block shows, for before/after lines. */
@@ -70,6 +71,8 @@ export function blockPreview(b: BlockLike): string {
       return `${c.count ?? 6} entradas`;
     case "linkedinPosts":
       return `${Array.isArray(c.posts) ? c.posts.length : 0} publicaciones`;
+    case "quotes":
+      return `${Array.isArray(c.quotes) ? c.quotes.length : 0} frases`;
     default:
       return fmt(c.formId ?? "");
   }

@@ -2,6 +2,7 @@ import Image from "next/image";
 import { Carousel, type CarouselValue } from "@/components/blocks/Carousel";
 import { LatestPosts, type LatestPostsValue } from "@/components/blocks/LatestPosts";
 import { LinkedinPosts, type LinkedinPostsValue } from "@/components/blocks/LinkedinPosts";
+import { Quotes, type QuotesValue } from "@/components/blocks/Quotes";
 import { ElfsightFrame } from "@/components/blocks/ElfsightFrame";
 import { isUploadedVideo, parseVideoEmbed } from "@/lib/video";
 import { TrackedLink } from "@/components/public/TrackedLink";
@@ -24,7 +25,7 @@ import { CustomFormRenderer, type PublicFormField } from "@/components/public/Cu
 
 export type RenderableBlock = {
   id?: string;
-  type: "text" | "image" | "link" | "video" | "map" | "contactForm" | "customForm" | "carousel" | "latestPosts" | "linkedinPosts";
+  type: "text" | "image" | "link" | "video" | "map" | "contactForm" | "customForm" | "carousel" | "latestPosts" | "linkedinPosts" | "quotes";
   content: Record<string, unknown>;
   // Section/column layout (pages only -- see PageRenderer, which groups
   // blocks sharing the same `position` into one row and lays them out
@@ -243,6 +244,20 @@ export function BlockRenderer({ block, pageId }: { block: RenderableBlock; pageI
             visible: Number(block.content.visible ?? 4),
             autoplay: block.content.autoplay !== false,
             intervalSeconds: Number(block.content.intervalSeconds ?? 6),
+          }}
+        />
+      );
+    }
+    case "quotes": {
+      const quotes = Array.isArray(block.content.quotes) ? (block.content.quotes as QuotesValue["quotes"]).filter((q) => String(q?.text ?? "").trim() !== "") : [];
+      if (quotes.length === 0) return null;
+      return (
+        <Quotes
+          value={{
+            title: String(block.content.title ?? ""),
+            quotes,
+            autoplay: block.content.autoplay !== false,
+            intervalSeconds: Number(block.content.intervalSeconds ?? 7),
           }}
         />
       );

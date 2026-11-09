@@ -116,6 +116,19 @@ export const latestPostsBlockSchema = z.object({
   author: z.string().max(80).default("Lissette Pimentel Sosa"),
 });
 
+// Rotating quotes: a pool of phrases (text + author), 3 shown at a time (fewer on small screens).
+export const MAX_QUOTES = 40;
+export const quoteSchema = z.object({
+  text: z.string().max(300).default(""),
+  author: z.string().max(80).default(""),
+});
+export const quotesBlockSchema = z.object({
+  title: z.string().max(80).default(""),
+  quotes: z.array(quoteSchema).max(MAX_QUOTES).default([]),
+  autoplay: z.boolean().default(true),
+  intervalSeconds: z.number().min(3).max(15).default(7),
+});
+
 // Compact cards linking to LinkedIn posts, filled in by hand (LinkedIn has no free public feed):
 // up to 5, `visible` of them shown at a time and rotating. Links must point at LinkedIn.
 export const MAX_LINKEDIN_POSTS = 5;
@@ -158,7 +171,8 @@ export type EditorBlock =
   | { id: string; type: "customForm"; content: z.infer<typeof customFormBlockSchema> }
   | { id: string; type: "carousel"; content: z.infer<typeof carouselBlockSchema> }
   | { id: string; type: "latestPosts"; content: z.infer<typeof latestPostsBlockSchema> }
-  | { id: string; type: "linkedinPosts"; content: z.infer<typeof linkedinPostsBlockSchema> };
+  | { id: string; type: "linkedinPosts"; content: z.infer<typeof linkedinPostsBlockSchema> }
+  | { id: string; type: "quotes"; content: z.infer<typeof quotesBlockSchema> };
 
 /** Sanitizes a block's content before it's persisted (RS-06). */
 export function sanitizeBlockContent(type: string, content: unknown) {
@@ -208,6 +222,16 @@ export function sanitizeBlockContent(type: string, content: unknown) {
         ...parsed,
         title: sanitizePlainText(parsed.title),
         posts: parsed.posts.map((p) => ({ ...p, text: sanitizePlainText(p.text) })),
+      };
+    }
+    case "quotes": {
+      const parsed = quotesBlockSchema.parse(content);
+      return {
+        ...parsed,
+        title: sanitizePlainText(parsed.title),
+        quotes: parsed.quotes
+          .map((q) => ({ text: sanitizePlainText(q.text), author: sanitizePlainText(q.author) }))
+          .filter((q) => q.text.trim() !== ""),
       };
     }
     default:

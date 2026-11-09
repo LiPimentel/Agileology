@@ -56,7 +56,7 @@ function sectionVideoOrNull(raw: unknown): string | null {
 
 type SubmittedBlock = {
   id: string;
-  type: "text" | "image" | "link" | "video" | "map" | "contactForm" | "customForm" | "carousel" | "latestPosts" | "linkedinPosts";
+  type: "text" | "image" | "link" | "video" | "map" | "contactForm" | "customForm" | "carousel" | "latestPosts" | "linkedinPosts" | "quotes";
   content: unknown;
   position?: number;
   columnIndex?: number;
