@@ -28,14 +28,17 @@ const perViewNow = () => (window.matchMedia(BIG).matches ? 3 : window.matchMedia
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3A3F7A]";
 const NAV = `flex h-10 w-10 items-center justify-center rounded-full bg-[#1F2A44] text-white hover:bg-[#3A3F7A] ${FOCUS}`;
 
-function Card({ quote }: { quote: Quote }) {
+// Agileology palette, rotated card by card: dark blue, lilac, blue. All three keep white text above 4.5:1.
+const TONES = ["bg-[#1F2A44]", "bg-[#6B5BBE]", "bg-[#2F5B9E]"];
+
+function Card({ quote, tone }: { quote: Quote; tone: number }) {
   return (
-    <figure className="flex h-full flex-col justify-between gap-4 rounded-md border border-slate-300 bg-white p-6">
-      <blockquote className="text-lg leading-relaxed text-slate-800">
-        <span aria-hidden="true" className="mr-1 text-3xl leading-none text-[#3A3F7A]">“</span>
+    <figure className={`flex h-full flex-col justify-between gap-4 rounded-md p-6 text-white shadow-sm ${TONES[tone % TONES.length]}`}>
+      <blockquote className="text-lg leading-relaxed">
+        <span aria-hidden="true" className="mr-1 text-3xl leading-none text-white/70">“</span>
         {quote.text}
       </blockquote>
-      {quote.author && <figcaption className="text-base font-semibold text-[#3A3F7A]">— {quote.author}</figcaption>}
+      {quote.author && <figcaption className="text-base font-semibold">— {quote.author}</figcaption>}
     </figure>
   );
 }
@@ -158,7 +161,7 @@ export function Quotes({ value }: { value: QuotesValue }) {
                 inert={rotates && (!inView || isCopy)}
                 aria-hidden={rotates && (!inView || isCopy) ? true : undefined}
               >
-                <Card quote={p} />
+                <Card quote={p} tone={i % n} />
               </div>
             );
           })}

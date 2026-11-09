@@ -53,6 +53,12 @@ export const videoBlockSchema = z.object({
   // full width, matching the client's ask for an "ajustable size" video
   // component.
   width: z.number().min(20).max(100).default(100),
+  // Playback options for an uploaded video file (YouTube/Vimeo embeds ignore them).
+  // Autoplay is only honoured muted, and keeps the controls on (a way to pause), see UploadedVideo.
+  loop: z.boolean().default(false),
+  autoplay: z.boolean().default(false),
+  muted: z.boolean().default(false),
+  controls: z.boolean().default(true),
 });
 // Map/contact form used to be page-level singletons (a fixed "Componentes
 // de contacto" section shown on every page's editor, with no way to place

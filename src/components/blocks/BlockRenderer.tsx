@@ -2,6 +2,7 @@ import Image from "next/image";
 import { Carousel, type CarouselValue } from "@/components/blocks/Carousel";
 import { LatestPosts, type LatestPostsValue } from "@/components/blocks/LatestPosts";
 import { LinkedinPosts, type LinkedinPostsValue } from "@/components/blocks/LinkedinPosts";
+import { UploadedVideo } from "@/components/blocks/UploadedVideo";
 import { Quotes, type QuotesValue } from "@/components/blocks/Quotes";
 import { ElfsightFrame } from "@/components/blocks/ElfsightFrame";
 import { isUploadedVideo, parseVideoEmbed } from "@/lib/video";
@@ -143,7 +144,14 @@ export function BlockRenderer({ block, pageId }: { block: RenderableBlock; pageI
         return (
           <div className={`max-w-3xl ${ALIGN_CLASS[alignment] ?? "mx-auto"}`} style={{ width: `${width}%` }}>
             <div className={VIDEO_SHAPE_WRAPPER_CLASS[shape]}>
-              <video src={url} controls playsInline preload="metadata" className={`h-full w-full ${fit}`} />
+              <UploadedVideo
+                src={url}
+                className={`h-full w-full ${fit}`}
+                loop={block.content.loop === true}
+                autoplay={block.content.autoplay === true}
+                muted={block.content.muted === true}
+                controls={block.content.controls !== false}
+              />
             </div>
           </div>
         );
