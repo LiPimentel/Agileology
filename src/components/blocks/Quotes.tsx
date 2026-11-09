@@ -30,15 +30,24 @@ const NAV = `flex h-10 w-10 items-center justify-center rounded-full bg-[#1F2A44
 
 // Agileology palette, rotated card by card: dark blue, lilac, blue. All three keep white text above 4.5:1.
 const TONES = ["bg-[#1F2A44]", "bg-[#6B5BBE]", "bg-[#2F5B9E]"];
+// The logo symbol as a faint, cropped watermark behind the text (8% white keeps the contrast above 4.5:1).
+// Each card shows it in a different corner and size, so the row reads as pieces of the logo.
+const MARKS = [
+  "-bottom-10 -right-8 w-48",
+  "-left-8 -top-8 w-44 -rotate-12",
+  "-bottom-8 -left-10 w-52 rotate-6",
+];
 
 function Card({ quote, tone }: { quote: Quote; tone: number }) {
   return (
-    <figure className={`flex h-full flex-col justify-between gap-4 rounded-md p-6 text-white shadow-sm ${TONES[tone % TONES.length]}`}>
-      <blockquote className="text-lg leading-relaxed">
+    <figure className={`relative flex h-full flex-col justify-between gap-4 overflow-hidden rounded-md p-6 text-white shadow-sm ${TONES[tone % TONES.length]}`}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/brand/symbol-white.png" alt="" aria-hidden="true" className={`pointer-events-none absolute select-none opacity-[0.08] ${MARKS[tone % MARKS.length]}`} />
+      <blockquote className="relative text-lg leading-relaxed">
         <span aria-hidden="true" className="mr-1 text-3xl leading-none text-white/70">“</span>
         {quote.text}
       </blockquote>
-      {quote.author && <figcaption className="text-base font-semibold">— {quote.author}</figcaption>}
+      {quote.author && <figcaption className="relative text-base font-semibold">— {quote.author}</figcaption>}
     </figure>
   );
 }
