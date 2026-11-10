@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { SESSION_COOKIE, touchSession, sessionCookieOptions } from "@/lib/session-db";
-import { findRedirect } from "@/lib/redirects";
+import { findAppLink, findRedirect } from "@/lib/redirects";
 import { canonicalRedirectTarget } from "@/lib/siteUrl";
 import { getCanonicalConfig } from "@/lib/canonicalConfig";
 import { buildCsp, buildEmbedCsp, HSTS_VALUE } from "@/lib/csp";
@@ -38,6 +38,13 @@ async function route(request: NextRequest, requestHeaders: Headers) {
       });
       if (target) return NextResponse.redirect(target, 301);
     }
+  }
+
+  // Short URLs of Lissette's own apps (/gantt, /vitr, ...) -> their external address. Temporary (302) on
+  // purpose: the destinations will move to subdomains. Fixed targets from src/data/appLinks.ts only.
+  if ((request.method === "GET" || request.method === "HEAD") && !isAdminHost && !pathname.startsWith("/admin")) {
+    const app = findAppLink(pathname);
+    if (app) return NextResponse.redirect(app, 302);
   }
 
   // Old Wix URLs -> new ones (permanent, 301). The table lives in src/data/redirects.ts.
