@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { savePage, type PageFormState } from "../actions";
+import { savePage, unpublishPage, type PageFormState } from "../actions";
 import { BackgroundPicker } from "@/components/admin/BackgroundPicker";
 import { SectionBlockEditor, type EditorSection } from "@/components/admin/SectionBlockEditor";
 import type { MediaItem } from "@/components/admin/MediaGrid";
@@ -29,8 +29,15 @@ export type PageEditorData = {
     overlayColor: string;
     overlayOpacity: number;
     bannerImageUrl: string | null;
+    focalX: number;
+    focalY: number;
+    zoom: number;
     showBanner: boolean;
     showTitle: boolean;
+    sideLeftWidth: number;
+    sideRightWidth: number;
+    gridMaxWidth: number;
+    wideLayout?: boolean;
   } | null;
   sections: EditorSection[];
 };
@@ -50,8 +57,14 @@ export function PageEditorForm({
   const [state, formAction, pending] = useActionState(savePage, initialState);
   const formRef = useRef<HTMLFormElement>(null);
   const draftButtonRef = useRef<HTMLButtonElement>(null);
+  const [unpublishing, setUnpublishing] = useState(false);
+  const [unpublishError, setUnpublishError] = useState<string | null>(null);
   const [showBanner, setShowBanner] = useState(page.background?.showBanner ?? true);
   const [showTitle, setShowTitle] = useState(page.background?.showTitle ?? true);
+  const [leftW, setLeftW] = useState(page.background?.sideLeftWidth ?? 22);
+  const [rightW, setRightW] = useState(page.background?.sideRightWidth ?? 22);
+  const [gridMax, setGridMax] = useState(page.background?.gridMaxWidth ?? 1280);
+  const [wideLayout, setWideLayout] = useState(page.background?.wideLayout ?? false);
 
   // Autosave draft periodically (7.14) so unsaved edits survive an accidental tab close.
   useEffect(() => {
@@ -180,6 +193,9 @@ export function PageEditorForm({
             initialColor={page.background?.overlayColor ?? "#3B0764"}
             initialOpacity={page.background?.overlayOpacity ?? 0.5}
             initialBannerImageUrl={page.background?.bannerImageUrl ?? null}
+            initialFocalX={page.background?.focalX}
+            initialFocalY={page.background?.focalY}
+            initialZoom={page.background?.zoom}
             mediaLibrary={mediaLibrary}
           />
         </div>
@@ -190,7 +206,41 @@ export function PageEditorForm({
         <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">
           Agrega el mapa o el formulario de contacto como un componente más, en la sección donde los quieras.
         </p>
-        <SectionBlockEditor initialSections={page.sections} mediaLibrary={mediaLibrary} pages={pages} formDefinitions={formDefinitions} />
+        <fieldset className="mb-4 rounded-md border border-slate-200 p-3 dark:border-slate-700">
+          <legend className="px-1 text-sm font-medium text-slate-700 dark:text-slate-300">Laterales</legend>
+          <p className="mb-2 text-xs text-slate-500 dark:text-slate-400">
+            Para tener una columna a cada lado, elige «Lateral izquierdo» o «Lateral derecho» en la ubicación de una sección, y «Centro» en las del medio. La sección de ancho completo (por ejemplo el video) queda arriba o abajo de esa cuadrícula. Aquí defines el ancho de cada lateral.
+          </p>
+          <input type="hidden" name="wideLayoutField" value="1" />
+          <label className="mb-3 flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+            <input type="checkbox" name="wideLayout" checked={wideLayout} onChange={(e) => setWideLayout(e.target.checked)} className="mt-1" />
+            <span><strong>Página ancha</strong>: todas las secciones usan el «Ancho total de la cuadrícula» (en vez del ancho estrecho de lectura), aunque no uses los laterales. Se activa sola si pones algo en Izquierda, Centro o Derecha.</span>
+          </label>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <label className="text-sm text-slate-700 dark:text-slate-300">
+              Lateral izquierdo: {leftW}%
+              <input type="range" name="sideLeftWidth" min={10} max={40} step={1} value={leftW} onChange={(e) => setLeftW(Number(e.target.value))} className="mt-1 w-full" />
+            </label>
+            <label className="text-sm text-slate-700 dark:text-slate-300">
+              Lateral derecho: {rightW}%
+              <input type="range" name="sideRightWidth" min={10} max={40} step={1} value={rightW} onChange={(e) => setRightW(Number(e.target.value))} className="mt-1 w-full" />
+            </label>
+            <label className="text-sm text-slate-700 dark:text-slate-300">
+              Ancho total de la cuadrícula: {gridMax >= 1920 ? "todo el ancho" : `${gridMax}px`}
+              <input type="range" name="gridMaxWidth" min={800} max={1920} step={40} value={gridMax} onChange={(e) => setGridMax(Number(e.target.value))} className="mt-1 w-full" />
+            </label>
+          </div>
+          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+            Si ves mucho espacio vacío entre las columnas, baja el ancho total: los laterales se acercan al contenido. El centro ocupa lo que dejan los laterales.
+          </p>
+        </fieldset>
+        <SectionBlockEditor
+          initialSections={page.sections}
+          mediaLibrary={mediaLibrary}
+          pages={pages}
+          formDefinitions={formDefinitions}
+          rails={{ left: leftW, right: rightW, onChange: (l, r) => { setLeftW(l); setRightW(r); } }}
+        />
       </section>
 
       <SaveFeedback state={state} />
@@ -215,6 +265,29 @@ export function PageEditorForm({
         >
           Guardar y publicar
         </button>
+        {page.status === "published" && (
+          <button
+            type="button"
+            disabled={pending || unpublishing}
+            onClick={async () => {
+              if (!window.confirm(`¿Despublicar «${page.title}»? Dejará de verse en el sitio (el contenido y el historial se conservan). Puedes volver a publicarla cuando quieras.`)) return;
+              setUnpublishing(true);
+              setUnpublishError(null);
+              try {
+                await unpublishPage(page.id);
+                router.refresh();
+              } catch (e) {
+                setUnpublishError(e instanceof Error ? e.message : "No se pudo despublicar.");
+              } finally {
+                setUnpublishing(false);
+              }
+            }}
+            className="rounded-md border border-red-300 px-5 py-2 font-medium text-red-700 hover:bg-red-50 disabled:opacity-60 dark:border-red-500/60 dark:text-red-300 dark:hover:bg-slate-800"
+          >
+            {unpublishing ? "Despublicando..." : "Despublicar"}
+          </button>
+        )}
+        {unpublishError && <p role="alert" className="self-center text-sm text-red-700 dark:text-red-300">{unpublishError}</p>}
         <Link
           href={`/admin/pages/${page.id}/versions`}
           className="ml-auto rounded-md border border-slate-300 px-5 py-2 font-medium text-slate-700 hover:bg-white dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"

@@ -56,7 +56,7 @@ function sectionVideoOrNull(raw: unknown): string | null {
 
 type SubmittedBlock = {
   id: string;
-  type: "text" | "image" | "link" | "video" | "map" | "contactForm" | "customForm" | "carousel" | "latestPosts";
+  type: "text" | "image" | "link" | "video" | "map" | "contactForm" | "customForm" | "carousel" | "latestPosts" | "linkedinPosts" | "quotes";
   content: unknown;
   position?: number;
   columnIndex?: number;
@@ -67,6 +67,11 @@ type SubmittedBlock = {
   sectionBgOpacity?: number;
   sectionBgVideoUrl?: string;
   sectionBgGradientEnd?: string;
+  sectionBgFocalX?: number;
+  sectionBgFocalY?: number;
+  sectionBgZoom?: number;
+  sectionZone?: string;
+  sectionMinHeight?: number;
   sectionLayoutMode?: string;
   sectionFreeHeight?: number;
   freeX?: number;
@@ -91,6 +96,16 @@ function sanitizeColumnWidth(width: unknown) {
   const n = Number(width);
   if (!Number.isFinite(n)) return 100;
   return Math.min(100, Math.max(10, Math.round(n)));
+}
+
+/** Where a section sits: full width (default), the centre column, or a side rail. */
+function sanitizeZone(v: unknown): "full" | "main" | "left" | "right" {
+  return v === "main" || v === "left" || v === "right" ? v : "full";
+}
+
+function clampNumber(v: unknown, min: number, max: number, fallback: number) {
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback;
 }
 
 function sanitizeOpacity(opacity: unknown) {
@@ -139,6 +154,15 @@ async function upsertPageContent(pageId: string, formData: FormData) {
   const overlayOpacity = Math.min(1, Math.max(0, Number(formData.get("overlayOpacity") ?? 0.5)));
   const backgroundImageUrl = String(formData.get("backgroundImageUrl") ?? "") || null;
   const bannerImageUrl = String(formData.get("bannerImageUrl") ?? "") || null;
+  const focalX = clampNumber(formData.get("backgroundFocalX"), 0, 100, 50);
+  const focalY = clampNumber(formData.get("backgroundFocalY"), 0, 100, 50);
+  const zoom = clampNumber(formData.get("backgroundZoom"), 1, 3, 1);
+  const sideLeftWidth = Math.round(clampNumber(formData.get("sideLeftWidth"), 10, 40, 22));
+  const sideRightWidth = Math.round(clampNumber(formData.get("sideRightWidth"), 10, 40, 22));
+  const gridMaxWidth = Math.round(clampNumber(formData.get("gridMaxWidth"), 800, 1920, 1280));
+  // Only overwritten when the form that sent this has the checkbox (an old editor tab does not).
+  const wideLayoutSent = formData.has("wideLayoutField");
+  const wideLayout = formData.get("wideLayout") === "on";
   const showBanner = formData.get("showBanner") === "on";
   const showTitle = formData.get("showTitle") === "on";
 
@@ -152,6 +176,14 @@ async function upsertPageContent(pageId: string, formData: FormData) {
   // width within that row) directly -- fall back to a linear index for
   // anything malformed/missing so a bad payload still saves sensibly rather
   // than throwing.
+  // An editor tab opened before side rails existed does not send `sectionZone` at all; saving from it
+  // must not reset every section to full width, so keep the zones the page already had (by position).
+  const legacyClient = blocksRaw.length > 0 && blocksRaw.every((b) => b.sectionZone === undefined);
+  const previousZones = new Map<number, string>();
+  if (legacyClient) {
+    const prev = await prisma.contentBlock.findMany({ where: { pageId }, select: { position: true, sectionZone: true } });
+    for (const p of prev) previousZones.set(p.position, p.sectionZone);
+  }
   const blocks = blocksRaw.map((b, i) => ({
     type: b.type,
     content: sanitizeBlockContent(b.type, b.content) as object,
@@ -164,6 +196,11 @@ async function upsertPageContent(pageId: string, formData: FormData) {
     sectionBgOpacity: sanitizeOpacity(b.sectionBgOpacity),
     sectionBgVideoUrl: sectionVideoOrNull(b.sectionBgVideoUrl),
     sectionBgGradientEnd: String(b.sectionBgGradientEnd ?? "") || null,
+    sectionBgFocalX: clampNumber(b.sectionBgFocalX, 0, 100, 50),
+    sectionBgFocalY: clampNumber(b.sectionBgFocalY, 0, 100, 50),
+    sectionBgZoom: clampNumber(b.sectionBgZoom, 1, 3, 1),
+    sectionZone: sanitizeZone(legacyClient ? previousZones.get(Number.isFinite(b.position) ? Number(b.position) : i) : b.sectionZone),
+    sectionMinHeight: Math.round(clampNumber(b.sectionMinHeight, 0, 2000, 0)),
     sectionLayoutMode: b.sectionLayoutMode === "free" ? "free" : "grid",
     sectionFreeHeight: sanitizeFreeHeight(b.sectionFreeHeight),
     freeX: sanitizePercent(b.freeX, 10),
@@ -186,8 +223,8 @@ async function upsertPageContent(pageId: string, formData: FormData) {
 
     await tx.background.upsert({
       where: { pageId },
-      update: { overlayColor, overlayOpacity, imageUrl: backgroundImageUrl, bannerImageUrl, showBanner, showTitle },
-      create: { pageId, overlayColor, overlayOpacity, imageUrl: backgroundImageUrl, bannerImageUrl, showBanner, showTitle },
+      update: { overlayColor, overlayOpacity, imageUrl: backgroundImageUrl, focalX, focalY, zoom, bannerImageUrl, showBanner, showTitle, sideLeftWidth, sideRightWidth, gridMaxWidth, ...(wideLayoutSent ? { wideLayout } : {}) },
+      create: { pageId, overlayColor, overlayOpacity, imageUrl: backgroundImageUrl, focalX, focalY, zoom, bannerImageUrl, showBanner, showTitle, sideLeftWidth, sideRightWidth, gridMaxWidth, wideLayout },
     });
   });
 
@@ -241,6 +278,20 @@ export async function savePage(_prev: PageFormState, formData: FormData): Promis
   return { pageId, savedAt: Date.now() };
 }
 
+/** Takes a page off the public site (back to draft). Its content and versions are kept; publish again to bring it back. */
+export async function unpublishPage(pageId: string) {
+  const admin = await requireAdmin();
+  const page = await prisma.page.findUnique({ where: { id: pageId } });
+  if (!page) throw new Error("No existe la página.");
+  if (isHomeSlug(page.slug)) throw new Error("La página de inicio no se puede despublicar: el sitio se quedaría sin portada.");
+  if (page.status !== "published") return;
+  await prisma.page.update({ where: { id: pageId }, data: { status: "draft" } });
+  await logAudit({ adminId: admin.id, action: "unpublish_page", entityType: "Page", entityId: pageId, detail: { entity: `Página «${page.title}»`, summary: `Se despublicó /${page.slug} (vuelve a borrador; el contenido se conserva)` } });
+  revalidatePath("/admin/pages");
+  revalidatePath(`/${page.slug}`);
+  revalidatePath("/", "layout");
+}
+
 export async function deletePage(pageId: string) {
   const admin = await requireAdmin();
   const page = await prisma.page.findUnique({ where: { id: pageId } });
@@ -284,6 +335,11 @@ export async function duplicatePage(pageId: string) {
           sectionBgOpacity: b.sectionBgOpacity,
           sectionBgVideoUrl: b.sectionBgVideoUrl,
           sectionBgGradientEnd: b.sectionBgGradientEnd,
+          sectionBgFocalX: b.sectionBgFocalX,
+          sectionBgFocalY: b.sectionBgFocalY,
+          sectionBgZoom: b.sectionBgZoom,
+          sectionZone: b.sectionZone,
+          sectionMinHeight: b.sectionMinHeight,
           sectionLayoutMode: b.sectionLayoutMode,
           sectionFreeHeight: b.sectionFreeHeight,
           freeX: b.freeX,
@@ -300,8 +356,15 @@ export async function duplicatePage(pageId: string) {
               overlayColor: source.background.overlayColor,
               overlayOpacity: source.background.overlayOpacity,
               bannerImageUrl: source.background.bannerImageUrl,
+              focalX: source.background.focalX,
+              focalY: source.background.focalY,
+              zoom: source.background.zoom,
               showBanner: source.background.showBanner,
               showTitle: source.background.showTitle,
+              sideLeftWidth: source.background.sideLeftWidth,
+              sideRightWidth: source.background.sideRightWidth,
+              gridMaxWidth: source.background.gridMaxWidth,
+              wideLayout: source.background.wideLayout,
             },
           }
         : { create: {} },
@@ -312,7 +375,10 @@ export async function duplicatePage(pageId: string) {
   revalidatePath("/admin/pages");
 }
 
-/** RF-23: rolls a page back to a previously published snapshot by re-publishing it. */
+/**
+ * RF-23: brings an earlier saved version back into the page's working copy (the draft). It does NOT
+ * publish: the editor reviews it first and publishes when ready.
+ */
 export async function restorePageVersion(pageId: string, versionId: string) {
   const admin = await requireAdmin();
   const version = await prisma.pageVersion.findUnique({ where: { id: versionId } });
@@ -340,6 +406,11 @@ export async function restorePageVersion(pageId: string, versionId: string) {
               sectionBgOpacity?: number;
               sectionBgVideoUrl?: string | null;
               sectionBgGradientEnd?: string | null;
+              sectionBgFocalX?: number;
+              sectionBgFocalY?: number;
+              sectionBgZoom?: number;
+              sectionZone?: string;
+              sectionMinHeight?: number;
               sectionLayoutMode?: string;
               sectionFreeHeight?: number;
               freeX?: number;
@@ -365,7 +436,12 @@ export async function restorePageVersion(pageId: string, versionId: string) {
             sectionBgColor: b.sectionBgColor ?? "#000000",
             sectionBgVideoUrl: b.sectionBgVideoUrl ?? null,
             sectionBgGradientEnd: b.sectionBgGradientEnd ?? null,
+            sectionBgFocalX: clampNumber(b.sectionBgFocalX, 0, 100, 50),
+            sectionBgFocalY: clampNumber(b.sectionBgFocalY, 0, 100, 50),
+            sectionBgZoom: clampNumber(b.sectionBgZoom, 1, 3, 1),
             sectionBgOpacity: b.sectionBgOpacity ?? 0,
+            sectionZone: sanitizeZone(b.sectionZone),
+            sectionMinHeight: Math.round(clampNumber(b.sectionMinHeight, 0, 2000, 0)),
             sectionLayoutMode: b.sectionLayoutMode ?? "grid",
             sectionFreeHeight: b.sectionFreeHeight ?? 400,
             freeX: b.freeX ?? 10,
@@ -384,8 +460,15 @@ export async function restorePageVersion(pageId: string, versionId: string) {
         overlayColor: snapshot.background?.overlayColor ?? "#3B0764",
         overlayOpacity: snapshot.background?.overlayOpacity ?? 0.5,
         bannerImageUrl: snapshot.background?.bannerImageUrl ?? null,
+        focalX: clampNumber(snapshot.background?.focalX, 0, 100, 50),
+        focalY: clampNumber(snapshot.background?.focalY, 0, 100, 50),
+        zoom: clampNumber(snapshot.background?.zoom, 1, 3, 1),
         showBanner: snapshot.background?.showBanner ?? true,
         showTitle: snapshot.background?.showTitle ?? true,
+        sideLeftWidth: Math.round(clampNumber(snapshot.background?.sideLeftWidth, 10, 40, 22)),
+        sideRightWidth: Math.round(clampNumber(snapshot.background?.sideRightWidth, 10, 40, 22)),
+        gridMaxWidth: Math.round(clampNumber(snapshot.background?.gridMaxWidth, 800, 1920, 1280)),
+        wideLayout: snapshot.background?.wideLayout === true,
       },
       create: {
         pageId,
@@ -393,13 +476,19 @@ export async function restorePageVersion(pageId: string, versionId: string) {
         overlayColor: snapshot.background?.overlayColor ?? "#3B0764",
         overlayOpacity: snapshot.background?.overlayOpacity ?? 0.5,
         bannerImageUrl: snapshot.background?.bannerImageUrl ?? null,
+        focalX: clampNumber(snapshot.background?.focalX, 0, 100, 50),
+        focalY: clampNumber(snapshot.background?.focalY, 0, 100, 50),
+        zoom: clampNumber(snapshot.background?.zoom, 1, 3, 1),
         showBanner: snapshot.background?.showBanner ?? true,
         showTitle: snapshot.background?.showTitle ?? true,
+        sideLeftWidth: Math.round(clampNumber(snapshot.background?.sideLeftWidth, 10, 40, 22)),
+        sideRightWidth: Math.round(clampNumber(snapshot.background?.sideRightWidth, 10, 40, 22)),
+        gridMaxWidth: Math.round(clampNumber(snapshot.background?.gridMaxWidth, 800, 1920, 1280)),
+        wideLayout: snapshot.background?.wideLayout === true,
       },
     });
   });
 
-  await publishPage(pageId);
-  await logAudit({ adminId: admin.id, action: "restore_version", entityType: "Page", entityId: pageId, detail: { entity: `Página «${(await prisma.page.findUnique({ where: { id: pageId }, select: { title: true } }))?.title ?? pageId}»`, summary: `Restauró la versión del ${version.createdAt.toISOString()}` } });
+  await logAudit({ adminId: admin.id, action: "restore_version", entityType: "Page", entityId: pageId, detail: { entity: `Página «${(await prisma.page.findUnique({ where: { id: pageId }, select: { title: true } }))?.title ?? pageId}»`, summary: `Restauró como borrador la versión del ${version.createdAt.toISOString()} (sin publicar)` } });
   revalidatePath(`/admin/pages/${pageId}`);
 }

@@ -1,4 +1,5 @@
 import { REDIRECTS } from "@/data/redirects";
+import { APP_LINKS } from "@/data/appLinks";
 
 /** Accent-, case- and trailing-slash-insensitive form used as the lookup key. */
 function normalizePath(path: string): string {
@@ -31,4 +32,15 @@ export function findRedirect(pathname: string): string | null {
   }
   const bare = current.length > 1 ? current.replace(/\/+$/, "") : current;
   return bare === to ? null : to;
+}
+
+const APP_BY_SOURCE = new Map(APP_LINKS.map((r) => [normalizePath(r.from), r.to]));
+
+/**
+ * The external app URL for a short path like /gantt (exact match, case and trailing slash ignored),
+ * or null. Destinations come only from APP_LINKS; the query string and anything else in the
+ * request is never copied, so this cannot become an open redirect. Used with a 302.
+ */
+export function findAppLink(pathname: string): string | null {
+  return APP_BY_SOURCE.get(normalizePath(pathname)) ?? null;
 }

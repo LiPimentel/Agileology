@@ -37,6 +37,10 @@ enum BlockType {
   carousel
   // Rotating cards of the most recent published posts; filled in at render time (lib/latestPosts.ts).
   latestPosts
+  // Hand-filled compact cards linking to LinkedIn posts (up to 5, a few shown at a time, rotating).
+  linkedinPosts
+  // Rotating quotes ("frases"): text + author, a few shown at a time; stored in content.
+  quotes
 }
 
 enum BlogLayout {
@@ -231,6 +235,18 @@ model ContentBlock {
   // client's own reference screenshot ("Selector de color" with a
   // gradient bar).
   sectionBgGradientEnd String?
+  // Which part of the background picture shows (focal point, % from the top-left) and how much it is
+  // zoomed. 50/50/1 = centred, as every background looked before this existed.
+  sectionBgFocalX Float @default(50)
+  sectionBgFocalY Float @default(50)
+  sectionBgZoom   Float @default(1)
+  // Where this section sits on the page: "full" = full width (today's behaviour, the default),
+  // "main" = the centre column between the side rails, "left"/"right" = a side rail. Repeated on
+  // every block of the section like the sectionBg* fields. Consecutive non-"full" sections are laid
+  // out together as one three-column grid (see PageRenderer).
+  sectionZone String @default("full")
+  // Minimum height (px) of this section, set by dragging its bottom edge in the editor; 0 = as tall as its content.
+  sectionMinHeight Int @default(0)
 
   // Free-position ("Wix-style") layout, opt-in per section -- "quiero
   // poder ajustar/mover/redimensionar elementos directamente ahí,
@@ -272,6 +288,17 @@ model Background {
   // arriba" -- there was no way to place an actual image element there,
   // only the cover background.
   bannerImageUrl String?
+  // Focal point (% from the top-left) and zoom of the cover picture `imageUrl`; 50/50/1 = centred (as before).
+  focalX Float @default(50)
+  focalY Float @default(50)
+  zoom   Float @default(1)
+  // Width (% of the page) of the left/right side rails when a page has sections placed in them.
+  sideLeftWidth  Int @default(22)
+  sideRightWidth Int @default(22)
+  // Widest the three-column grid may be (px); on wider screens it is centred, so the side columns sit close to the content.
+  gridMaxWidth   Int @default(1280)
+  // Lay the page out wide (shared width, one type scale) even without anything in the side areas.
+  wideLayout     Boolean @default(false)
   // Whether the title/background banner block renders at all, above the
   // page's own sections. Previously this was forced on every page with no
   // way to turn it off -- "eso no puede estar fijo como obligatorio en
@@ -408,6 +435,12 @@ model SiteSettings {
   linkedinUrl           String?
   instagramUrl          String?
   telegramUrl           String?
+  // Public address of the site (e.g. https://agileologywave.com): used by the sitemap, robots, RSS,
+  // canonical links and the links in e-mails. Editable at /admin/settings/domain; falls back to the
+  // NEXT_PUBLIC_SITE_URL variable when empty.
+  publicUrl             String?
+  // "none" | "apex" | "www": which spelling of the domain is the official one; the other one redirects (301).
+  canonicalHost         String  @default("none")
   // Optional custom icon per network, uploaded from /admin/settings/site --
   // when unset, the footer falls back to a built-in Facebook/X/LinkedIn/
   // Instagram SVG icon instead of the old plain-text link.

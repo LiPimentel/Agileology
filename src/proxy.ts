@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { SESSION_COOKIE, touchSession, sessionCookieOptions } from "@/lib/session-db";
-import { findRedirect } from "@/lib/redirects";
-import { buildCsp, HSTS_VALUE } from "@/lib/csp";
+import { findAppLink, findRedirect } from "@/lib/redirects";
+import { canonicalRedirectTarget } from "@/lib/siteUrl";
+import { getCanonicalConfig } from "@/lib/canonicalConfig";
+import { buildCsp, buildEmbedCsp, HSTS_VALUE } from "@/lib/csp";
+import { embedAncestors, resolveEmbedOrigin } from "@/lib/embedOrigin";
 
 /**
  * Gates the backoffice (RF-01, RF-03) and slides the session's inactivity
@@ -20,6 +23,29 @@ async function route(request: NextRequest, requestHeaders: Headers) {
   const { pathname } = request.nextUrl;
   const host = request.headers.get("host") ?? "";
   const isAdminHost = host.startsWith("admin.");
+
+  // One official spelling of the domain (with or without www), chosen in /admin/settings/domain:
+  // the other one is redirected (301) so search engines see a single site. Never for the backoffice.
+  if ((request.method === "GET" || request.method === "HEAD") && !isAdminHost && !pathname.startsWith("/admin")) {
+    const config = await getCanonicalConfig();
+    if (config && config.canonicalHost !== "none") {
+      const target = canonicalRedirectTarget({
+        host, // the Host header only: x-forwarded-host is client-controllable
+        pathname,
+        search: request.nextUrl.search,
+        publicUrl: config.publicUrl,
+        canonicalHost: config.canonicalHost,
+      });
+      if (target) return NextResponse.redirect(target, 301);
+    }
+  }
+
+  // Short URLs of Lissette's own apps (/gantt, /vitr, ...) -> their external address. Temporary (302) on
+  // purpose: the destinations will move to subdomains. Fixed targets from src/data/appLinks.ts only.
+  if ((request.method === "GET" || request.method === "HEAD") && !isAdminHost && !pathname.startsWith("/admin")) {
+    const app = findAppLink(pathname);
+    if (app) return NextResponse.redirect(app, 302);
+  }
 
   // Old Wix URLs -> new ones (permanent, 301). The table lives in src/data/redirects.ts.
   // GET/HEAD only, and never for the backoffice.
@@ -73,13 +99,24 @@ export async function proxy(request: NextRequest) {
   // A fresh, unguessable value per request: scripts without it do not run (see lib/csp.ts).
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const https = request.headers.get("x-forwarded-proto") === "https" || request.nextUrl.protocol === "https:";
-  const csp = buildCsp(nonce, { https, dev: process.env.NODE_ENV === "development" });
+  const embedOrigin = resolveEmbedOrigin(process.env.EMBED_ORIGIN, process.env.NEXT_PUBLIC_SITE_URL);
+  const isEmbedPath = request.nextUrl.pathname.startsWith("/embed/");
+  const csp = isEmbedPath
+    ? buildEmbedCsp({ https, ancestors: embedAncestors(process.env.NEXT_PUBLIC_SITE_URL) })
+    : buildCsp(nonce, { https, dev: process.env.NODE_ENV === "development", embedOrigin });
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);
   requestHeaders.set("Content-Security-Policy", csp);
 
-  const res = await route(request, requestHeaders);
+  // Widget host: /embed/* is served only on the embed origin's own host, and that host serves nothing else.
+  // With no (valid) EMBED_ORIGIN the feature is off and /embed/* does not exist.
+  const embedHost = embedOrigin ? new URL(embedOrigin).host : null;
+  const onEmbedHost = embedHost !== null && (request.headers.get("host") ?? "") === embedHost;
+  const res =
+    isEmbedPath !== onEmbedHost || (isEmbedPath && !embedHost)
+      ? new NextResponse("No encontrado", { status: 404, headers: { "Content-Type": "text/plain; charset=utf-8" } })
+      : await route(request, requestHeaders);
   res.headers.set("Content-Security-Policy", csp);
   if (https) res.headers.set("Strict-Transport-Security", HSTS_VALUE);
   return res;

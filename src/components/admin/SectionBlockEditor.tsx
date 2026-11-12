@@ -12,6 +12,8 @@ import { LinkBlockEditor } from "@/components/admin/blocks/LinkBlockEditor";
 import { VideoBlockEditor } from "@/components/admin/blocks/VideoBlockEditor";
 import { CarouselBlockEditor } from "@/components/admin/blocks/CarouselBlockEditor";
 import { LatestPostsBlockEditor } from "@/components/admin/blocks/LatestPostsBlockEditor";
+import { QuotesBlockEditor } from "@/components/admin/blocks/QuotesBlockEditor";
+import { LinkedinPostsBlockEditor } from "@/components/admin/blocks/LinkedinPostsBlockEditor";
 import { MapBlockEditor } from "@/components/admin/blocks/MapBlockEditor";
 import { ContactFormBlockEditor } from "@/components/admin/blocks/ContactFormBlockEditor";
 import { CustomFormBlockEditor } from "@/components/admin/blocks/CustomFormBlockEditor";
@@ -23,12 +25,15 @@ import {
   type EditorColumn,
   type EditorFreeBlockItem,
   type EditorSection,
+  type SectionZone,
+  SECTION_ZONE_LABELS,
   convertSectionLayout,
   emptyContent,
   generateId,
   newSection,
   serializeSections,
 } from "@/lib/sections";
+import { buildLayoutItems } from "@/lib/pageLayout";
 
 export type { EditorSection, EditorColumn } from "@/lib/sections";
 
@@ -42,6 +47,8 @@ const BLOCK_LABELS: Record<BlockType, string> = {
   customForm: "Formulario (biblioteca)",
   carousel: "Carrusel",
   latestPosts: "Entradas recientes (rotan)",
+  linkedinPosts: "Publicaciones de LinkedIn (rotan)",
+  quotes: "Frases (rotan)",
 };
 const BLOCK_TYPE_OPTIONS = (Object.keys(BLOCK_LABELS) as BlockType[]).map((type) => ({ type, label: BLOCK_LABELS[type] }));
 
@@ -70,6 +77,10 @@ function hasContent(block: BlockValue): boolean {
       return block.content.slides.length > 0;
     case "latestPosts":
       return true;
+    case "linkedinPosts":
+      return block.content.posts.length > 0;
+    case "quotes":
+      return block.content.quotes.length > 0;
   }
 }
 
@@ -353,18 +364,150 @@ function FreeCanvas({
   );
 }
 
+type LayoutChoice = 1 | 2 | 3 | "grid";
+
+/** The small square "+" on the top edge of a section (Wix-style): adds a new section right there. */
+function PlusButton({ onClick, label, className = "" }: { onClick: () => void; label: string; className?: string }) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      className={`z-20 flex h-6 w-6 items-center justify-center rounded-sm border border-violet-500 bg-white text-base leading-none text-violet-700 shadow-sm hover:bg-violet-600 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-700 dark:bg-slate-900 dark:text-violet-300 ${className}`}
+    >
+      +
+    </button>
+  );
+}
+
+/**
+ * Handle on a section's bottom edge: drag it down to make the section taller than its content (up to 2000px),
+ * double-click to go back to "as tall as the content". Also adjustable with the arrow keys.
+ */
+function HeightHandle({ minHeight, cardRef, onChange }: { minHeight: number; cardRef: React.RefObject<HTMLDivElement | null>; onChange: (px: number) => void }) {
+  const start = useRef<{ y: number; h: number } | null>(null);
+  const clamp = (n: number) => Math.min(2000, Math.max(0, Math.round(n / 10) * 10));
+  const currentHeight = () => Math.round(cardRef.current?.getBoundingClientRect().height ?? minHeight);
+  return (
+    <div
+      role="slider"
+      aria-orientation="vertical"
+      aria-label="Alto de la sección"
+      aria-valuemin={0}
+      aria-valuemax={2000}
+      aria-valuenow={minHeight}
+      aria-valuetext={minHeight > 0 ? `${minHeight} píxeles` : "automático"}
+      tabIndex={0}
+      title={minHeight > 0 ? `Alto mínimo: ${minHeight}px. Arrastra para cambiarlo; doble clic = automático` : "Arrastra hacia abajo para hacer la sección más alta"}
+      onClick={(e) => e.stopPropagation()}
+      onDoubleClick={() => onChange(0)}
+      onPointerDown={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.currentTarget.setPointerCapture(e.pointerId);
+        start.current = { y: e.clientY, h: currentHeight() };
+      }}
+      onPointerMove={(e) => {
+        if (!start.current || !e.currentTarget.hasPointerCapture(e.pointerId)) return;
+        onChange(clamp(start.current.h + (e.clientY - start.current.y)));
+      }}
+      onPointerUp={() => {
+        start.current = null;
+      }}
+      onKeyDown={(e) => {
+        if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+        e.preventDefault();
+        const step = e.shiftKey ? 100 : 20;
+        onChange(clamp((minHeight || currentHeight()) + (e.key === "ArrowDown" ? step : -step)));
+      }}
+      className="absolute -bottom-2 left-1/2 z-20 flex h-4 w-28 -translate-x-1/2 cursor-row-resize touch-none items-center justify-center rounded-full hover:bg-violet-200/80 focus-visible:bg-violet-300 focus-visible:outline-2 focus-visible:outline-violet-700 dark:hover:bg-violet-800/60"
+    >
+      <span className="h-1 w-14 rounded bg-violet-500" aria-hidden="true" />
+      {minHeight > 0 && <span className="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded bg-violet-700 px-1.5 py-0.5 text-[10px] text-white">{minHeight}px</span>}
+    </div>
+  );
+}
+
+/** A draggable (and keyboard-adjustable) divider between two columns of the three-area grid. */
+function RailHandle({
+  label,
+  value,
+  containerRef,
+  edge,
+  onChange,
+  style,
+}: {
+  label: string;
+  value: number;
+  containerRef: React.RefObject<HTMLDivElement | null>;
+  edge: "left" | "right";
+  onChange: (v: number) => void;
+  style: React.CSSProperties;
+}) {
+  const clamp = (n: number) => Math.min(40, Math.max(10, Math.round(n)));
+  const fromPointer = (clientX: number) => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect || rect.width === 0) return;
+    onChange(clamp(edge === "left" ? ((clientX - rect.left) / rect.width) * 100 : ((rect.right - clientX) / rect.width) * 100));
+  };
+  return (
+    <div
+      role="separator"
+      aria-orientation="vertical"
+      aria-label={label}
+      aria-valuemin={10}
+      aria-valuemax={40}
+      aria-valuenow={value}
+      tabIndex={0}
+      title={`${label}: arrastra para cambiar el ancho (${value}%)`}
+      onClick={(e) => e.stopPropagation()}
+      onPointerDown={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.currentTarget.setPointerCapture(e.pointerId);
+      }}
+      onPointerMove={(e) => {
+        if (e.currentTarget.hasPointerCapture(e.pointerId)) fromPointer(e.clientX);
+      }}
+      onKeyDown={(e) => {
+        const step = e.shiftKey ? 5 : 1;
+        if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+          e.preventDefault();
+          const grow = (e.key === "ArrowRight") === (edge === "left");
+          onChange(clamp(value + (grow ? step : -step)));
+        }
+      }}
+      className="absolute top-0 z-20 hidden h-full w-3 -translate-x-1/2 cursor-col-resize touch-none items-center justify-center rounded-sm hover:bg-violet-200/70 focus-visible:bg-violet-300 focus-visible:outline-2 focus-visible:outline-violet-700 lg:flex dark:hover:bg-violet-800/60"
+      style={style}
+    >
+      <span className="h-10 w-1 rounded bg-violet-500" aria-hidden="true" />
+    </div>
+  );
+}
+
 export function SectionBlockEditor({
   initialSections,
   mediaLibrary,
   pages,
   formDefinitions = [],
+  rails,
 }: {
+  // Side column widths (%), owned by the page form (it saves them); dragging the dividers changes them.
+  rails?: { left: number; right: number; onChange: (left: number, right: number) => void };
   initialSections: EditorSection[];
   mediaLibrary: MediaItem[];
   pages: Array<{ slug: string; title: string }>;
   formDefinitions?: Array<{ id: string; name: string }>;
 }) {
   const [sections, setSections] = useState<EditorSection[]>(initialSections);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const railLeft = rails?.left ?? 22;
+  const railRight = rails?.right ?? 22;
   const [openBgPickers, setOpenBgPickers] = useState<Record<string, boolean>>({});
   // Only one block editable at a time, canvas-wide -- clicking a different
   // block (or blank canvas space) closes whatever was open, matching a
@@ -372,8 +515,19 @@ export function SectionBlockEditor({
   // panels.
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
 
-  function addSection(columnCount: 1 | 2 | 3) {
-    setSections((prev) => [...prev, newSection(columnCount)]);
+  /** A new section that asks which layout it should have (simple, double, triple or a 3-area grid). */
+  function insertChooser(index: number, zone: SectionZone) {
+    setSections((prev) => [...prev.slice(0, index), { ...newSection(1), zone, choosing: true }, ...prev.slice(index)]);
+  }
+  function chooseLayout(sectionId: string, kind: LayoutChoice) {
+    setSections((prev) =>
+      prev.map((s) => {
+        if (s.id !== sectionId) return s;
+        // A 3-area grid starts as its centre area; the left and right areas get their own "+" there.
+        if (kind === "grid") return { ...newSection(1), id: s.id, zone: "main" };
+        return { ...newSection(kind), id: s.id, zone: s.zone };
+      }),
+    );
   }
   function removeSection(sectionId: string) {
     setSections((prev) => prev.filter((s) => s.id !== sectionId));
@@ -394,6 +548,14 @@ export function SectionBlockEditor({
    * "+ Agregar componente" click leads straight into editing it, instead
    * of adding it collapsed and making the admin click it again to open it.
    */
+  function setSectionMinHeight(sectionId: string, px: number) {
+    setSections((prev) => prev.map((s) => (s.id === sectionId ? { ...s, minHeight: px } : s)));
+  }
+
+  function setSectionZone(sectionId: string, zone: SectionZone) {
+    setSections((prev) => prev.map((s) => (s.id === sectionId ? { ...s, zone } : s)));
+  }
+
   function addBlockToColumn(sectionId: string, columnId: string, type: BlockType) {
     const id = generateId();
     setSections((prev) =>
@@ -480,7 +642,7 @@ export function SectionBlockEditor({
           ? s
           : {
               ...s,
-              background: { imageUrl: bg.imageUrl, color: bg.color, opacity: bg.opacity, videoUrl: bg.videoUrl, gradientEnd: bg.gradientEnd },
+              background: { imageUrl: bg.imageUrl, color: bg.color, opacity: bg.opacity, videoUrl: bg.videoUrl, gradientEnd: bg.gradientEnd, focalX: bg.focalX, focalY: bg.focalY, zoom: bg.zoom },
             },
       ),
     );
@@ -571,7 +733,23 @@ export function SectionBlockEditor({
         return <CarouselBlockEditor value={item.block.content} onChange={onChange} mediaLibrary={mediaLibrary} />;
       case "latestPosts":
         return <LatestPostsBlockEditor value={item.block.content} onChange={onChange} />;
+      case "linkedinPosts":
+        return <LinkedinPostsBlockEditor value={item.block.content} onChange={onChange} mediaLibrary={mediaLibrary} />;
+      case "quotes":
+        return <QuotesBlockEditor value={item.block.content} onChange={onChange} />;
     }
+  }
+
+  /**
+   * Proportions (width / height) of a free-layout block's box: the window its picture is cropped to.
+   * Width is a % of the section's canvas, whose real width varies, so ~960 px (the page's usual
+   * content width) is assumed; height is a % of the canvas height in pixels.
+   */
+  function freeBoxAspect(sectionId: string, item: EditorFreeBlockItem): number {
+    const canvasHeight = sections.find((sec) => sec.id === sectionId)?.freeHeight ?? 400;
+    const w = (item.width / 100) * 960;
+    const h = (item.height / 100) * canvasHeight;
+    return h > 0 ? Math.max(0.2, Math.min(5, w / h)) : 1.5;
   }
 
   /** Same per-type editor dispatch as renderBlockEditor, but writing back to a free-canvas block instead of a column's. */
@@ -581,7 +759,7 @@ export function SectionBlockEditor({
       case "text":
         return <TextBlockEditor html={item.block.content.html} onChange={(html) => onChange({ html })} mediaLibrary={mediaLibrary} />;
       case "image":
-        return <ImageBlockEditor value={item.block.content} onChange={onChange} mediaLibrary={mediaLibrary} />;
+        return <ImageBlockEditor value={item.block.content} onChange={onChange} mediaLibrary={mediaLibrary} boxAspect={freeBoxAspect(sectionId, item)} />;
       case "link":
         return <LinkBlockEditor value={item.block.content} onChange={onChange} pages={pages} />;
       case "video":
@@ -596,6 +774,10 @@ export function SectionBlockEditor({
         return <CarouselBlockEditor value={item.block.content} onChange={onChange} mediaLibrary={mediaLibrary} />;
       case "latestPosts":
         return <LatestPostsBlockEditor value={item.block.content} onChange={onChange} />;
+      case "linkedinPosts":
+        return <LinkedinPostsBlockEditor value={item.block.content} onChange={onChange} mediaLibrary={mediaLibrary} />;
+      case "quotes":
+        return <QuotesBlockEditor value={item.block.content} onChange={onChange} />;
     }
   }
 
@@ -774,14 +956,36 @@ export function SectionBlockEditor({
     );
   }
 
-  return (
-    // Clicking any blank canvas area (not on a block's own click handler,
-    // which stops propagation) closes whatever block is currently open --
-    // the "clic afuera para cerrar" half of click-to-select.
-    <div className="space-y-4" onClick={() => setSelectedBlockId(null)}>
-      <input type="hidden" name="blocksJson" value={JSON.stringify(serializeSections(sections))} readOnly />
-
-      {sections.map((section, i) => {
+  const renderSectionCard = (section: EditorSection, i: number) => {
+        if (section.choosing) {
+          const options: Array<{ kind: LayoutChoice; label: string }> = [
+            { kind: 1, label: "1 columna" },
+            { kind: 2, label: "2 columnas" },
+            { kind: 3, label: "3 columnas" },
+            ...(section.zone === "full" ? ([{ kind: "grid", label: "Cuadrícula de 3 áreas (izquierda · centro · derecha)" }] as Array<{ kind: LayoutChoice; label: string }>) : []),
+          ];
+          return (
+            <div key={section.id} className="relative rounded-lg border-2 border-dashed border-violet-300 bg-white p-4 text-center dark:border-violet-700 dark:bg-slate-900" onClick={(e) => e.stopPropagation()}>
+              <PlusButton className="absolute -top-3 left-1/2 -translate-x-1/2" label="Agregar una sección encima" onClick={() => insertChooser(i, section.zone)} />
+              <p className="mb-3 text-sm font-medium text-slate-800 dark:text-slate-200">¿Cómo quieres esta sección?</p>
+              <div className="flex flex-wrap justify-center gap-2">
+                {options.map((o) => (
+                  <button
+                    key={String(o.kind)}
+                    type="button"
+                    onClick={() => chooseLayout(section.id, o.kind)}
+                    className="rounded-md border border-violet-300 px-3 py-1.5 text-sm text-violet-800 hover:border-violet-600 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-200 dark:hover:bg-slate-800"
+                  >
+                    {o.label}
+                  </button>
+                ))}
+                <button type="button" onClick={() => removeSection(section.id)} className="rounded-md px-3 py-1.5 text-sm text-slate-600 hover:underline dark:text-slate-400">
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          );
+        }
         // Same rule PageRenderer uses to decide whether a section has a
         // background of its own: real image, real video, or a visible
         // color overlay.
@@ -806,7 +1010,20 @@ export function SectionBlockEditor({
           );
 
         return (
-          <div key={section.id} className="group/section relative rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+          <div
+            key={section.id}
+            ref={(el) => {
+              cardRefs.current[section.id] = el;
+            }}
+            style={section.minHeight ? { minHeight: `${section.minHeight}px` } : undefined}
+            className="group/section relative rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
+          >
+            <HeightHandle
+              minHeight={section.minHeight ?? 0}
+              cardRef={{ get current() { return cardRefs.current[section.id] ?? null; } } as React.RefObject<HTMLDivElement | null>}
+              onChange={(px) => setSectionMinHeight(section.id, px)}
+            />
+            <PlusButton className="absolute -top-3 left-1/2 -translate-x-1/2" label={`Agregar una sección encima de la sección ${i + 1}`} onClick={() => insertChooser(i, section.zone)} />
             {/*
               Section-level chrome (move/remove/background/column widths):
               a compact badge that only appears on hover of the section,
@@ -878,6 +1095,29 @@ export function SectionBlockEditor({
               </div>
             )}
 
+            <div className="mb-4 flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
+              <label htmlFor={`zone-${section.id}`} className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                Ubicación en la página
+              </label>
+              <select
+                id={`zone-${section.id}`}
+                value={section.zone}
+                onChange={(e) => setSectionZone(section.id, e.target.value as SectionZone)}
+                className="rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+              >
+                {(Object.keys(SECTION_ZONE_LABELS) as SectionZone[]).map((z) => (
+                  <option key={z} value={z}>
+                    {SECTION_ZONE_LABELS[z]}
+                  </option>
+                ))}
+              </select>
+              {section.zone !== "full" && (
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                  Las secciones seguidas con Centro / Lateral forman una cuadrícula de 3 columnas.
+                </span>
+              )}
+            </div>
+
             {section.columns.length === 2 && (
               <div className="mb-4" onClick={(e) => e.stopPropagation()}>
                 <label className="block text-xs font-medium text-slate-500 dark:text-slate-400">
@@ -910,6 +1150,9 @@ export function SectionBlockEditor({
                 overlayOpacity={section.background.opacity}
                 videoUrl={section.background.videoUrl}
                 gradientEnd={section.background.gradientEnd}
+                focalX={section.background.focalX}
+                focalY={section.background.focalY}
+                zoom={section.background.zoom}
               >
                 <div className="rounded-md p-4">{columnsRow}</div>
               </BackgroundOverlay>
@@ -918,30 +1161,54 @@ export function SectionBlockEditor({
             )}
           </div>
         );
+  };
+
+  return (
+    // Clicking any blank canvas area (not on a block's own click handler,
+    // which stops propagation) closes whatever block is currently open --
+    // the "clic afuera para cerrar" half of click-to-select.
+    <div className="space-y-4" onClick={() => setSelectedBlockId(null)}>
+      <input type="hidden" name="blocksJson" value={JSON.stringify(serializeSections(sections))} readOnly />
+
+      {buildLayoutItems(sections, (sec) => sec.zone).map((item) => {
+        if (item.kind === "full") return renderSectionCard(item.section, item.index);
+        const startIndex = item.sections[0].index;
+        const lastIndex = item.sections[item.sections.length - 1].index;
+        const columns: Array<{ zone: SectionZone; label: string }> = [
+          { zone: "left", label: "Izquierda" },
+          { zone: "main", label: "Centro" },
+          { zone: "right", label: "Derecha" },
+        ];
+        return (
+          <div key={`grid-${item.sections[0].section.id}`} className="relative rounded-lg border-2 border-dashed border-violet-300 bg-violet-50/40 p-3 dark:border-violet-700 dark:bg-slate-900/40" onClick={(e) => e.stopPropagation()}>
+            <PlusButton className="absolute -top-3 left-1/2 -translate-x-1/2" label="Agregar una sección encima de la cuadrícula" onClick={() => insertChooser(startIndex, "full")} />
+            <div ref={gridRef} className="relative grid gap-3" style={{ gridTemplateColumns: `${railLeft}% minmax(0,1fr) ${railRight}%` }}>
+              {rails && (
+                <>
+                  <RailHandle label="Borde entre la columna izquierda y el centro" value={railLeft} edge="left" containerRef={gridRef} onChange={(v) => rails.onChange(v, railRight)} style={{ left: `calc(${railLeft}% - 6px)` }} />
+                  <RailHandle label="Borde entre el centro y la columna derecha" value={railRight} edge="right" containerRef={gridRef} onChange={(v) => rails.onChange(railLeft, v)} style={{ left: `calc(${100 - railRight}% + 6px)` }} />
+                </>
+              )}
+              {columns.map((c) => {
+                const inColumn = item.sections.filter((x) => x.zone === c.zone);
+                const afterIndex = inColumn.length ? inColumn[inColumn.length - 1].index : lastIndex;
+                return (
+                  <div key={c.zone} className="min-w-0 space-y-3 rounded-md bg-white/60 p-2 dark:bg-slate-950/40">
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{c.label}</h3>
+                    {inColumn.map((x) => renderSectionCard(x.section, x.index))}
+                    <div className="flex justify-center">
+                      <PlusButton label={`Agregar una sección en el área ${c.label.toLowerCase()}`} onClick={() => insertChooser(afterIndex + 1, c.zone)} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
       })}
 
-      <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
-        <button
-          type="button"
-          onClick={() => addSection(1)}
-          className="rounded-md border border-dashed border-violet-300 px-3 py-1.5 text-sm text-violet-700 hover:border-violet-500 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-300 dark:hover:border-sky-500 dark:hover:bg-slate-800"
-        >
-          + Sección (1 componente)
-        </button>
-        <button
-          type="button"
-          onClick={() => addSection(2)}
-          className="rounded-md border border-dashed border-violet-300 px-3 py-1.5 text-sm text-violet-700 hover:border-violet-500 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-300 dark:hover:border-sky-500 dark:hover:bg-slate-800"
-        >
-          + Sección (2 componentes)
-        </button>
-        <button
-          type="button"
-          onClick={() => addSection(3)}
-          className="rounded-md border border-dashed border-violet-300 px-3 py-1.5 text-sm text-violet-700 hover:border-violet-500 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-300 dark:hover:border-sky-500 dark:hover:bg-slate-800"
-        >
-          + Sección (3 componentes)
-        </button>
+      <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
+        <PlusButton label="Agregar una sección al final" onClick={() => insertChooser(sections.length, "full")} />
       </div>
     </div>
   );

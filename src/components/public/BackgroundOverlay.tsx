@@ -1,3 +1,4 @@
+import { backgroundPictureStyle } from "@/lib/backgroundPicture";
 import { BackgroundVideo } from "@/components/public/BackgroundVideo";
 
 export function BackgroundOverlay({
@@ -6,6 +7,9 @@ export function BackgroundOverlay({
   overlayOpacity,
   videoUrl,
   gradientEnd,
+  focalX,
+  focalY,
+  zoom,
   children,
 }: {
   imageUrl?: string | null;
@@ -19,6 +23,11 @@ export function BackgroundOverlay({
   // gradientEnd) instead of a solid color -- the Color tab's "Degradado"
   // option.
   gradientEnd?: string | null;
+  // Which part of the picture shows: focal point in % from the top-left, and zoom (1 = just covering).
+  // Defaults (50/50/1) are the centred look every background had before this existed.
+  focalX?: number | null;
+  focalY?: number | null;
+  zoom?: number | null;
   children: React.ReactNode;
 }) {
   // A color-only overlay (no background image/video) is a valid combination
@@ -34,11 +43,12 @@ export function BackgroundOverlay({
         <BackgroundVideo src={videoUrl} />
       ) : (
         imageUrl && (
-          <div
-            className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url(${imageUrl})` }}
-            aria-hidden
-          />
+          <div className="absolute inset-0 overflow-hidden" aria-hidden>
+            <div
+              className="absolute inset-0 bg-cover"
+              style={backgroundPictureStyle(imageUrl, focalX, focalY, zoom)}
+            />
+          </div>
         )
       )}
       {hasOverlay && (

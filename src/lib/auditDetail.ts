@@ -47,6 +47,8 @@ const TYPE_LABELS: Record<string, string> = {
   customForm: "Formulario",
   carousel: "Carrusel",
   latestPosts: "Entradas recientes",
+  linkedinPosts: "Publicaciones de LinkedIn",
+  quotes: "Frases",
 };
 
 /** Short description of what a block shows, for before/after lines. */
@@ -66,7 +68,11 @@ export function blockPreview(b: BlockLike): string {
     case "carousel":
       return `${Array.isArray(c.slides) ? c.slides.length : 0} diapositivas`;
     case "latestPosts":
-      return `${c.count ?? 5} entradas`;
+      return `${c.count ?? 6} entradas`;
+    case "linkedinPosts":
+      return `${Array.isArray(c.posts) ? c.posts.length : 0} publicaciones`;
+    case "quotes":
+      return `${Array.isArray(c.quotes) ? c.quotes.length : 0} frases`;
     default:
       return fmt(c.formId ?? "");
   }
@@ -134,6 +140,7 @@ export const ACTION_LABELS: Record<string, string> = {
   create_page: "Creó una página",
   save_draft: "Guardó un borrador",
   publish_page: "Publicó una página",
+  unpublish_page: "Despublicó una página",
   delete_page: "Eliminó una página",
   duplicate_page: "Duplicó una página",
   restore_version: "Restauró una versión",
@@ -142,6 +149,8 @@ export const ACTION_LABELS: Record<string, string> = {
   delete_post: "Eliminó una entrada",
   update_site_settings: "Cambió los ajustes del sitio",
   update_menu: "Cambió el menú del sitio",
+  update_seo: "Cambió el SEO de las páginas",
+  update_domain: "Cambió el dominio y la publicación",
   update_blog_settings: "Cambió el diseño del blog",
   update_communication_settings: "Cambió las comunicaciones",
   upload_media: "Subió un archivo",

@@ -12,6 +12,10 @@ export type VideoBlockValue = {
   alignment: "left" | "center" | "right";
   shape: ImageShape;
   width: number;
+  loop?: boolean;
+  autoplay?: boolean;
+  muted?: boolean;
+  controls?: boolean;
 };
 
 const field = "rounded-md border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100";
@@ -116,6 +120,29 @@ export function VideoBlockEditor({
             )}
           </div>
         </ResizableBlockBox>
+      )}
+
+      {mode === "file" && (
+        <fieldset>
+          <legend className="text-sm font-medium text-slate-700 dark:text-slate-300">Reproducción</legend>
+          <div className="mt-1 flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-700 dark:text-slate-300">
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={value.loop ?? false} onChange={(e) => onChange({ ...value, loop: e.target.checked })} /> Repetir sin parar
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={value.autoplay ?? false} onChange={(e) => onChange({ ...value, autoplay: e.target.checked, ...(e.target.checked ? { muted: true, controls: true } : {}) })} /> Empezar solo (sin sonido)
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={value.autoplay ? true : (value.muted ?? false)} disabled={value.autoplay} onChange={(e) => onChange({ ...value, muted: e.target.checked })} /> Sin sonido
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={value.autoplay ? true : (value.controls ?? true)} disabled={value.autoplay} onChange={(e) => onChange({ ...value, controls: e.target.checked })} /> Mostrar controles (pausa, volumen)
+            </label>
+          </div>
+          <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
+            Si empieza solo, siempre va sin sonido y con controles, para que el visitante pueda pausarlo. No se mueve solo si el visitante pidió «reducir movimiento». Estas opciones no aplican a videos de YouTube o Vimeo.
+          </p>
+        </fieldset>
       )}
 
       <div className="flex flex-wrap gap-4">

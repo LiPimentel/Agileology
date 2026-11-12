@@ -22,7 +22,7 @@ function readingMinutes(snapshot: unknown): number {
 export async function resolveLatestPostsBlocks(blocks: RenderableBlock[]): Promise<RenderableBlock[]> {
   const wanted = blocks.filter((b) => b.type === "latestPosts");
   if (wanted.length === 0) return blocks;
-  const max = Math.min(5, Math.max(...wanted.map((b) => Number(b.content.count ?? 5))));
+  const max = Math.min(6, Math.max(...wanted.map((b) => Number(b.content.count ?? 6))));
 
   const rows = await prisma.post.findMany({
     where: { status: "published", AND: [{ OR: [{ publishAt: null }, { publishAt: { lte: new Date() } }] }] },
@@ -47,6 +47,6 @@ export async function resolveLatestPostsBlocks(blocks: RenderableBlock[]): Promi
     }));
 
   return blocks.map((b) =>
-    b.type === "latestPosts" ? { ...b, content: { ...b.content, posts: posts.slice(0, Math.min(5, Number(b.content.count ?? 5))) } } : b,
+    b.type === "latestPosts" ? { ...b, content: { ...b.content, posts: posts.slice(0, Math.min(6, Number(b.content.count ?? 6))) } } : b,
   );
 }

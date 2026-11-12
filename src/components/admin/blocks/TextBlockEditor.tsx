@@ -65,6 +65,17 @@ const TOOLBAR_GROUPS: Array<Array<{ title: string; Icon: (p: { className?: strin
 
 // Real, stable Google Fonts family names (see the <link> in app/layout.tsx
 // for why not next/font/google -- these values get saved into content).
+// execCommand("fontSize") takes 1-7; with styleWithCSS on it writes the matching CSS keyword
+// (x-small ... xxx-large), which the server-side sanitizer allows.
+const SIZE_OPTIONS: Array<{ label: string; value: string }> = [
+  { label: "Pequeño", value: "2" },
+  { label: "Normal", value: "3" },
+  { label: "Grande", value: "4" },
+  { label: "Muy grande", value: "5" },
+  { label: "Enorme", value: "6" },
+  { label: "Gigante", value: "7" },
+];
+
 const FONT_OPTIONS: Array<{ label: string; value: string }> = [
   { label: "Predeterminada", value: "" },
   { label: "Roboto", value: "Roboto, Arial, sans-serif" },
@@ -329,6 +340,27 @@ export function TextBlockEditor({
             Fuente
           </option>
           {FONT_OPTIONS.map((f) => (
+            <option key={f.label} value={f.value}>
+              {f.label}
+            </option>
+          ))}
+        </select>
+
+        <select
+          onMouseDown={saveSelection}
+          onChange={(e) => {
+            execWithRestoredSelection("fontSize", e.target.value);
+            e.target.value = "";
+          }}
+          defaultValue=""
+          className="rounded border border-slate-300 bg-white px-1.5 py-1 text-xs text-slate-700 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
+          title="Tamaño de letra (selecciona el texto primero)"
+          aria-label="Tamaño de letra"
+        >
+          <option value="" disabled>
+            Tamaño
+          </option>
+          {SIZE_OPTIONS.map((f) => (
             <option key={f.label} value={f.value}>
               {f.label}
             </option>

@@ -52,3 +52,6 @@ next-env.d.ts
 # playwright
 /test-results/
 /playwright-report/
+
+# Claude Code local files
+.claude/

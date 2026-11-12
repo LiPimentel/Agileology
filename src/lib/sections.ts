@@ -13,6 +13,8 @@ import type { ContactFormBlockValue } from "@/components/admin/blocks/ContactFor
 import type { CustomFormBlockValue } from "@/components/admin/blocks/CustomFormBlockEditor";
 import { EMPTY_CAROUSEL, type CarouselBlockValue } from "@/components/admin/blocks/CarouselBlockEditor";
 import { EMPTY_LATEST_POSTS, type LatestPostsBlockValue } from "@/components/admin/blocks/LatestPostsBlockEditor";
+import { EMPTY_QUOTES, type QuotesBlockValue } from "@/components/admin/blocks/QuotesBlockEditor";
+import { EMPTY_LINKEDIN_POSTS, type LinkedinPostsBlockValue } from "@/components/admin/blocks/LinkedinPostsBlockEditor";
 
 // Pages only (posts keep the simpler, single-column BlockEditor -- blog
 // posts have their own format per the client's explicit call).
@@ -31,7 +33,7 @@ import { EMPTY_LATEST_POSTS, type LatestPostsBlockValue } from "@/components/adm
 // section needs at least one filled column for its background to have
 // somewhere to be saved; a fully empty section has no rows to carry it.
 
-export type BlockType = "text" | "image" | "link" | "video" | "map" | "contactForm" | "customForm" | "carousel" | "latestPosts";
+export type BlockType = "text" | "image" | "link" | "video" | "map" | "contactForm" | "customForm" | "carousel" | "latestPosts" | "linkedinPosts" | "quotes";
 
 export type BlockValue =
   | { type: "text"; content: { html: string } }
@@ -47,7 +49,9 @@ export type BlockValue =
   // instead of being stored here.
   | { type: "customForm"; content: CustomFormBlockValue }
   | { type: "carousel"; content: CarouselBlockValue }
-  | { type: "latestPosts"; content: LatestPostsBlockValue };
+  | { type: "latestPosts"; content: LatestPostsBlockValue }
+  | { type: "linkedinPosts"; content: LinkedinPostsBlockValue }
+  | { type: "quotes"; content: QuotesBlockValue };
 
 // One entry in a column's stack -- `id` is the ContentBlock row's id (or a
 // generated placeholder for a not-yet-saved block), separate from the
@@ -62,16 +66,33 @@ export type EditorColumn = { id: string; width: number; blocks: EditorBlockItem[
 export type EditorFreeBlockItem = EditorBlockItem & { x: number; y: number; width: number; height: number; zIndex: number };
 // videoUrl: an uploaded mp4/webm shown instead of imageUrl when set (the
 // section background picker's "Video" tab) -- see BackgroundOverlay.tsx.
-export type SectionBackground = { imageUrl: string; color: string; opacity: number; videoUrl: string; gradientEnd: string };
+export type SectionBackground = { imageUrl: string; color: string; opacity: number; videoUrl: string; gradientEnd: string; focalX: number; focalY: number; zoom: number };
 // "grid" (default): columns[] holds the content, exactly as before this
 // existed -- every page built before free sections did keeps rendering
 // identically. "free": freeBlocks[] holds the content instead, positioned
 // on a freeHeight-tall canvas -- "quiero poder ajustar/mover/redimensionar
 // elementos directamente ahí, aprovechando libremente el espacio de la
 // página" (opt-in per section, not a replacement of the grid system).
+// Where the section sits on the page: "full" = full width (default, as before), "main" = the centre
+// column of the three-column grid, "left"/"right" = a side rail. See PageRenderer.
+export type SectionZone = "full" | "main" | "left" | "right";
+export const SECTION_ZONE_LABELS: Record<SectionZone, string> = {
+  full: "Ancho completo",
+  main: "Centro",
+  left: "Lateral izquierdo",
+  right: "Lateral derecho",
+};
+export function parseZone(v: unknown): SectionZone {
+  return v === "main" || v === "left" || v === "right" ? v : "full";
+}
 export type EditorSection = {
   id: string;
   layoutMode: "grid" | "free";
+  zone: SectionZone;
+  // Minimum height in px (0 = as tall as its content); set by dragging the section's bottom edge.
+  minHeight?: number;
+  // Editor only (never saved): a just-added section that is still asking which layout it should have.
+  choosing?: boolean;
   columns: EditorColumn[];
   freeBlocks: EditorFreeBlockItem[];
   freeHeight: number;
@@ -84,6 +105,9 @@ export const EMPTY_SECTION_BACKGROUND: SectionBackground = {
   opacity: 0,
   videoUrl: "",
   gradientEnd: "",
+  focalX: 50,
+  focalY: 50,
+  zoom: 1,
 };
 
 export const DEFAULT_FREE_HEIGHT = 400;
@@ -150,6 +174,10 @@ export function emptyContent(type: BlockType): BlockValue {
       return { type, content: { ...EMPTY_CAROUSEL, slides: [] } };
     case "latestPosts":
       return { type, content: { ...EMPTY_LATEST_POSTS } };
+    case "linkedinPosts":
+      return { type, content: { ...EMPTY_LINKEDIN_POSTS, posts: [] } };
+    case "quotes":
+      return { type, content: { ...EMPTY_QUOTES, quotes: [] } };
   }
 }
 
@@ -164,6 +192,7 @@ export function newSection(columnCount: 1 | 2 | 3): EditorSection {
   return {
     id: generateId(),
     layoutMode: "grid",
+    zone: "full",
     columns: evenWidths(columnCount).map((width) => ({ id: generateId(), width, blocks: [] })),
     freeBlocks: [],
     freeHeight: DEFAULT_FREE_HEIGHT,
@@ -192,6 +221,11 @@ export function groupBlocksIntoSections(
     sectionBgOpacity: number;
     sectionBgVideoUrl: string | null;
     sectionBgGradientEnd: string | null;
+    sectionBgFocalX: number;
+    sectionBgFocalY: number;
+    sectionBgZoom: number;
+    sectionZone: string;
+    sectionMinHeight: number;
     sectionLayoutMode: string;
     sectionFreeHeight: number;
     freeX: number;
@@ -208,6 +242,8 @@ export function groupBlocksIntoSections(
       sections.push({
         id: generateId(),
         layoutMode: b.sectionLayoutMode === "free" ? "free" : "grid",
+        zone: parseZone(b.sectionZone),
+        minHeight: b.sectionMinHeight || 0,
         columns: [],
         freeBlocks: [],
         freeHeight: b.sectionFreeHeight || DEFAULT_FREE_HEIGHT,
@@ -217,6 +253,9 @@ export function groupBlocksIntoSections(
           opacity: b.sectionBgOpacity,
           videoUrl: b.sectionBgVideoUrl ?? "",
           gradientEnd: b.sectionBgGradientEnd ?? "",
+          focalX: b.sectionBgFocalX ?? 50,
+          focalY: b.sectionBgFocalY ?? 50,
+          zoom: b.sectionBgZoom ?? 1,
         },
       });
       currentPosition = b.position;
@@ -255,6 +294,11 @@ export function serializeSections(sections: EditorSection[]) {
     sectionBgOpacity: number;
     sectionBgVideoUrl: string;
     sectionBgGradientEnd: string;
+    sectionBgFocalX: number;
+    sectionBgFocalY: number;
+    sectionBgZoom: number;
+    sectionZone: SectionZone;
+    sectionMinHeight: number;
     sectionLayoutMode: string;
     sectionFreeHeight: number;
     freeX: number;
@@ -270,6 +314,11 @@ export function serializeSections(sections: EditorSection[]) {
       sectionBgOpacity: section.background.opacity,
       sectionBgVideoUrl: section.background.videoUrl,
       sectionBgGradientEnd: section.background.gradientEnd,
+      sectionBgFocalX: section.background.focalX,
+      sectionBgFocalY: section.background.focalY,
+      sectionBgZoom: section.background.zoom,
+      sectionZone: section.zone,
+      sectionMinHeight: section.minHeight ?? 0,
       sectionLayoutMode: section.layoutMode,
       sectionFreeHeight: section.freeHeight,
     };

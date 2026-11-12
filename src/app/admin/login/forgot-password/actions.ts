@@ -21,7 +21,9 @@ export async function requestPasswordReset(_prev: RequestResetState, formData: F
 
   const token = await createPasswordResetToken(email);
   if (token) {
-    const url = `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/admin/login/reset-password/${token}`;
+    // Server configuration only, never the address editable in the admin: a hijacked admin session
+    // must not be able to point password-reset links (which carry the token) at another domain.
+    const url = `${(process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/+$/, "")}/admin/login/reset-password/${token}`;
     // Not awaited: waiting for the mail server would make "this email has an account" visible in the
     // response time. sendMail never throws (it logs its own failures).
     void sendMail({

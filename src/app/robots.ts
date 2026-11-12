@@ -1,7 +1,11 @@
 import type { MetadataRoute } from "next";
+import { getSiteUrl } from "@/lib/settings";
 
-export default function robots(): MetadataRoute.Robots {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+// Reads the public address from the database, so it cannot be prepared at build time (no database there).
+export const dynamic = "force-dynamic";
+
+export default async function robots(): Promise<MetadataRoute.Robots> {
+  const siteUrl = await getSiteUrl();
   return {
     rules: [{ userAgent: "*", allow: "/", disallow: "/admin" }],
     sitemap: siteUrl ? `${siteUrl}/sitemap.xml` : undefined,

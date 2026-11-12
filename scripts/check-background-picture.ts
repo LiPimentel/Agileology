@@ -1,0 +1,11 @@
+import { backgroundPictureStyle, sanitizeFocal, sanitizeZoom } from "../src/lib/backgroundPicture";
+let fails = 0;
+const check = (name: string, ok: boolean) => { console.log(`${ok ? "✔" : "✘"} ${name}`); if (!ok) fails++; };
+const d = backgroundPictureStyle("/uploads/a.webp");
+check("por defecto queda centrado y sin zoom (como antes)", d.backgroundPosition === "50% 50%" && d.transform === undefined);
+const s = backgroundPictureStyle("/uploads/a.webp", 20, 80, 2);
+check("posición y zoom se aplican", s.backgroundPosition === "20% 80%" && s.transform === "scale(2)" && s.transformOrigin === "20% 80%");
+check("valores fuera de rango se acotan", sanitizeFocal(140) === 100 && sanitizeFocal(-5) === 0 && sanitizeZoom(9) === 3 && sanitizeZoom(0.2) === 1);
+check("NaN/null/undefined vuelven al centro", sanitizeFocal(NaN) === 50 && sanitizeFocal(null) === 50 && sanitizeZoom(undefined) === 1);
+check("una url con comillas o saltos de línea no rompe el CSS", !String(backgroundPictureStyle('/x"); background:red;/*\n').backgroundImage).slice(5, -2).includes('"'));
+process.exit(fails ? 1 : 0);

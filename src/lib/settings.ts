@@ -26,6 +26,12 @@ export async function getSiteSettings() {
   );
 }
 
+/** The site's public address: the one set in the admin, else the NEXT_PUBLIC_SITE_URL variable, else "". No trailing slash. */
+export async function getSiteUrl(): Promise<string> {
+  const settings = await getSiteSettings();
+  return (settings.publicUrl ?? process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/+$/, "");
+}
+
 export async function getCommunicationSettings() {
   return ensureSingleton(
     () => prisma.communicationSettings.findUnique({ where: { id: "singleton" } }),

@@ -20,10 +20,14 @@ export const imageBlockSchema = z.object({
   focalX: z.number().min(0).max(100).default(50),
   focalY: z.number().min(0).max(100).default(50),
   zoom: z.number().min(1).max(3).default(1),
+  // Fixed-proportion window ("Marco") the picture is cropped to; "auto" = the whole picture, as before.
+  frame: z.enum(["auto", "16/9", "4/3", "1/1", "3/4", "21/9"]).default("auto"),
   // Percentage of the column's width -- same "Tamaño" control video blocks
   // already have (see videoBlockSchema below). Previously there was no way
   // to shrink the shape itself, only zoom/crop the photo inside it.
   width: z.number().min(20).max(100).default(100),
+  // Effect on mouse-over (public site). Absent in older blocks = none.
+  hoverEffect: z.enum(["none", "zoom", "lift", "focus"]).default("none"),
 });
 export const linkBlockSchema = z.object({
   label: z.string(),
@@ -49,6 +53,12 @@ export const videoBlockSchema = z.object({
   // full width, matching the client's ask for an "ajustable size" video
   // component.
   width: z.number().min(20).max(100).default(100),
+  // Playback options for an uploaded video file (YouTube/Vimeo embeds ignore them).
+  // Autoplay is only honoured muted, and keeps the controls on (a way to pause), see UploadedVideo.
+  loop: z.boolean().default(false),
+  autoplay: z.boolean().default(false),
+  muted: z.boolean().default(false),
+  controls: z.boolean().default(true),
 });
 // Map/contact form used to be page-level singletons (a fixed "Componentes
 // de contacto" section shown on every page's editor, with no way to place
@@ -106,10 +116,55 @@ export const carouselBlockSchema = z.object({
 // Most recent published posts, rotating (3 shown at a time). The posts themselves are looked up
 // at render time (lib/latestPosts.ts); only the options are stored here.
 export const latestPostsBlockSchema = z.object({
-  count: z.number().int().min(3).max(5).default(5),
+  count: z.number().int().min(3).max(6).default(6),
   autoplay: z.boolean().default(true),
   intervalSeconds: z.number().min(3).max(15).default(6),
   author: z.string().max(80).default("Lissette Pimentel Sosa"),
+});
+
+// Rotating quotes: a pool of phrases (text + author), 3 shown at a time (fewer on small screens).
+export const MAX_QUOTES = 40;
+export const quoteSchema = z.object({
+  text: z.string().max(300).default(""),
+  author: z.string().max(80).default(""),
+});
+export const quotesBlockSchema = z.object({
+  title: z.string().max(80).default(""),
+  quotes: z.array(quoteSchema).max(MAX_QUOTES).default([]),
+  autoplay: z.boolean().default(true),
+  intervalSeconds: z.number().min(3).max(15).default(7),
+});
+
+// Compact cards linking to LinkedIn posts, filled in by hand (LinkedIn has no free public feed):
+// up to 5, `visible` of them shown at a time and rotating. Links must point at LinkedIn.
+export const MAX_LINKEDIN_POSTS = 5;
+const linkedinUrl = z
+  .string()
+  .max(2048)
+  .refine((u) => /^https:\/\/(([a-z]{2,3}|www)\.)?linkedin\.com\/[^\s]*$/i.test(u) || /^https:\/\/lnkd\.in\/[^\s]+$/i.test(u), "El enlace debe ser de LinkedIn (https://www.linkedin.com/...).");
+export const linkedinPostSchema = z.object({
+  url: linkedinUrl,
+  text: z.string().max(280).default(""),
+  // YYYY-MM-DD or empty.
+  date: z.string().regex(/^(\d{4}-\d{2}-\d{2})?$/, "La fecha debe tener el formato AAAA-MM-DD.").default(""),
+  // Optional thumbnail: an uploaded file or an https image.
+  image: z
+    .string()
+    .max(2048)
+    .refine((u) => u === "" || /^\/uploads\/[\w./-]+$/.test(u) || /^https:\/\/[^\s]+$/i.test(u), "La imagen debe ser un archivo de la biblioteca o un enlace https.")
+    .default(""),
+});
+export const linkedinPostsBlockSchema = z.object({
+  title: z.string().max(80).default("Últimas publicaciones en LinkedIn"),
+  posts: z.array(linkedinPostSchema).max(MAX_LINKEDIN_POSTS).default([]),
+  visible: z.number().int().min(2).max(4).default(4),
+  autoplay: z.boolean().default(true),
+  intervalSeconds: z.number().min(3).max(15).default(6),
+  // Automatic mode: the id of an Elfsight "LinkedIn Feed" widget (the UUID in its embed code). When set,
+  // the block shows that widget -- inside an isolated frame, see /embed/linkedin -- instead of the hand-filled cards.
+  elfsightId: z.string().regex(/^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})?$/i, "El ID del widget no es válido.").transform((s) => s.toLowerCase()).default(""),
+  // Height (px) of that frame.
+  height: z.number().int().min(240).max(1400).default(520),
 });
 
 export type EditorBlock =
@@ -121,7 +176,9 @@ export type EditorBlock =
   | { id: string; type: "contactForm"; content: z.infer<typeof contactFormBlockSchema> }
   | { id: string; type: "customForm"; content: z.infer<typeof customFormBlockSchema> }
   | { id: string; type: "carousel"; content: z.infer<typeof carouselBlockSchema> }
-  | { id: string; type: "latestPosts"; content: z.infer<typeof latestPostsBlockSchema> };
+  | { id: string; type: "latestPosts"; content: z.infer<typeof latestPostsBlockSchema> }
+  | { id: string; type: "linkedinPosts"; content: z.infer<typeof linkedinPostsBlockSchema> }
+  | { id: string; type: "quotes"; content: z.infer<typeof quotesBlockSchema> };
 
 /** Sanitizes a block's content before it's persisted (RS-06). */
 export function sanitizeBlockContent(type: string, content: unknown) {
@@ -164,6 +221,24 @@ export function sanitizeBlockContent(type: string, content: unknown) {
     case "latestPosts": {
       const parsed = latestPostsBlockSchema.parse(content);
       return { ...parsed, author: sanitizePlainText(parsed.author) };
+    }
+    case "linkedinPosts": {
+      const parsed = linkedinPostsBlockSchema.parse(content);
+      return {
+        ...parsed,
+        title: sanitizePlainText(parsed.title),
+        posts: parsed.posts.map((p) => ({ ...p, text: sanitizePlainText(p.text) })),
+      };
+    }
+    case "quotes": {
+      const parsed = quotesBlockSchema.parse(content);
+      return {
+        ...parsed,
+        title: sanitizePlainText(parsed.title),
+        quotes: parsed.quotes
+          .map((q) => ({ text: sanitizePlainText(q.text), author: sanitizePlainText(q.author) }))
+          .filter((q) => q.text.trim() !== ""),
+      };
     }
     default:
       throw new Error(`Unknown block type: ${type}`);

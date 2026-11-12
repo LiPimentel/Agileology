@@ -1,12 +1,22 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useId } from "react";
 import { submitCustomForm, type CustomFormState } from "@/lib/actions/customForm";
 
 const initialState: CustomFormState = {};
 
 const inputClass =
   "mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-violet-600 focus:outline-none focus:ring-1 focus:ring-violet-600";
+
+// Browser autofill hints (WCAG 1.3.5) for the usual personal-data fields, guessed from type and label.
+function autoCompleteFor(fieldType: string, label: string): string | undefined {
+  if (fieldType === "email") return "email";
+  if (fieldType === "tel") return "tel";
+  const l = label.toLowerCase();
+  if (/apellido/.test(l)) return "family-name";
+  if (/^(tu )?nombre/.test(l)) return "given-name";
+  return undefined;
+}
 
 export type PublicFormField = {
   id: string;
@@ -30,9 +40,10 @@ export function CustomFormRenderer({
   successMessage: string;
 }) {
   const [state, formAction, pending] = useActionState(submitCustomForm, initialState);
+  const uid = useId();
 
   if (state.success) {
-    return <p className="rounded-md bg-green-50 p-4 text-green-800">{successMessage}</p>;
+    return <p role="status" className="rounded-md bg-green-50 p-4 text-green-800">{successMessage}</p>;
   }
 
   return (
@@ -41,8 +52,8 @@ export function CustomFormRenderer({
       <input type="hidden" name="formId" value={formId} />
       {/* Honeypot field, hidden from real visitors via CSS (7.8) */}
       <div className="hidden" aria-hidden>
-        <label htmlFor="company">Empresa</label>
-        <input id="company" name="company" tabIndex={-1} autoComplete="off" />
+        <label htmlFor={`${uid}-company`}>Empresa</label>
+        <input id={`${uid}-company`} name="company" tabIndex={-1} autoComplete="off" />
       </div>
       {fields.map((field) => (
         <div key={field.id}>
@@ -54,14 +65,14 @@ export function CustomFormRenderer({
             </label>
           ) : (
             <>
-              <label className="block text-sm font-medium text-slate-700">
+              <label htmlFor={`${uid}-${field.id}`} className="block text-sm font-medium text-slate-700">
                 {field.label}
                 {field.required && " *"}
               </label>
               {field.fieldType === "textarea" ? (
-                <textarea name={field.id} required={field.required} placeholder={field.placeholder ?? ""} rows={5} className={inputClass} />
+                <textarea id={`${uid}-${field.id}`} name={field.id} required={field.required} placeholder={field.placeholder ?? ""} rows={5} className={inputClass} />
               ) : field.fieldType === "select" ? (
-                <select name={field.id} required={field.required} defaultValue="" className={inputClass}>
+                <select id={`${uid}-${field.id}`} name={field.id} required={field.required} defaultValue="" className={inputClass}>
                   <option value="" disabled>
                     Selecciona una opción
                   </option>
@@ -74,9 +85,11 @@ export function CustomFormRenderer({
               ) : (
                 <input
                   type={field.fieldType === "email" ? "email" : field.fieldType === "tel" ? "tel" : "text"}
+                  id={`${uid}-${field.id}`}
                   name={field.id}
                   required={field.required}
                   placeholder={field.placeholder ?? ""}
+                  autoComplete={autoCompleteFor(field.fieldType, field.label)}
                   className={inputClass}
                 />
               )}
@@ -84,7 +97,8 @@ export function CustomFormRenderer({
           )}
         </div>
       ))}
-      {state.error && <p className="text-sm text-red-600">{state.error}</p>}
+      {state.error && <p role="alert" className="text-sm text-red-600">{state.error}</p>}
+      {fields.some((f) => f.required) && <p className="text-sm text-slate-600">* Campo obligatorio</p>}
       <button
         type="submit"
         disabled={pending}

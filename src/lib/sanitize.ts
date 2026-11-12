@@ -43,6 +43,8 @@ export function sanitizeRichText(html: string) {
       "*": {
         "text-align": [/^left$|^right$|^center$|^justify$/],
         color: [/^#[0-9a-fA-F]{3,8}$/, /^rgb\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*\)$/],
+        // Text size from the editor's "Tamaño" menu (execCommand fontSize + styleWithCSS).
+        "font-size": [/^(x-small|small|medium|large|x-large|xx-large|xxx-large)$/],
         "font-family": [/^[a-zA-Z0-9\s,'"-]+$/],
         // execCommand('strikeThrough') with styleWithCSS on emits
         // text-decoration-line (rather than a plain <s> tag) -- without

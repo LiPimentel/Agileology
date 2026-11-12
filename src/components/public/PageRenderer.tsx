@@ -1,5 +1,6 @@
 import { BlockRenderer, type RenderableBlock } from "@/components/blocks/BlockRenderer";
 import { BackgroundOverlay } from "@/components/public/BackgroundOverlay";
+import { buildLayoutItems } from "@/lib/pageLayout";
 
 export type PageRenderData = {
   id: string;
@@ -9,6 +10,9 @@ export type PageRenderData = {
     imageUrl?: string | null;
     overlayColor?: string | null;
     overlayOpacity?: number | null;
+    focalX?: number | null;
+    focalY?: number | null;
+    zoom?: number | null;
     // A real image (logo, hero photo) shown in the banner above the
     // title -- distinct from imageUrl, which is a full-bleed CSS
     // background-cover behind everything.
@@ -21,6 +25,11 @@ export type PageRenderData = {
     // showBanner (which hides the whole block). Also defaults true for old
     // snapshots.
     showTitle?: boolean;
+    // Widths (%) of the side rails; absent on older snapshots (default 22).
+    sideLeftWidth?: number;
+    sideRightWidth?: number;
+    gridMaxWidth?: number;
+    wideLayout?: boolean;
   } | null;
 };
 
@@ -79,7 +88,10 @@ function groupIntoColumns(section: RenderableBlock[]) {
  */
 function forFreeBox(block: RenderableBlock): RenderableBlock {
   if (block.type !== "image" && block.type !== "video") return block;
-  return { ...block, content: { ...block.content, width: 100, alignment: "center" } };
+  // An image in a free box is shown through the box (cropped to fill it); its own pan/zoom
+  // (focalX/focalY/zoom) then chooses which part shows.
+  const frame = block.type === "image" ? { frame: "fill" } : {};
+  return { ...block, content: { ...block.content, width: 100, alignment: "center", ...frame } };
 }
 
 export function PageRenderer({ page }: { page: PageRenderData }) {
@@ -108,52 +120,13 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
   };
   const hasBands = sections.some(sectionHasBg);
 
-  return (
-    <article>
-      {showBanner ? (
-        <BackgroundOverlay
-          imageUrl={page.background?.imageUrl}
-          overlayColor={page.background?.overlayColor}
-          overlayOpacity={page.background?.overlayOpacity}
-        >
-          <div className={`mx-auto max-w-4xl px-6 py-16 ${page.background?.bannerImageUrl ? "text-center" : ""}`}>
-            {page.background?.bannerImageUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={page.background.bannerImageUrl} alt="" className="mx-auto mb-4 max-h-24 max-w-full object-contain" />
-            )}
-            <h1
-              className={
-                titleVisible
-                  ? page.background?.imageUrl
-                    ? "text-4xl font-bold text-white"
-                    : "text-4xl font-bold text-slate-900"
-                  : "sr-only"
-              }
-            >
-              {page.title}
-            </h1>
-          </div>
-        </BackgroundOverlay>
-      ) : (
-        // Banner turned off for this page -- still need exactly one <h1>
-        // for accessibility/SEO, just not shown visually (the page's own
-        // first section takes over immediately below the nav instead).
-        <h1 className="sr-only">{page.title}</h1>
-      )}
-
-      {/*
-        Grid sections stay in the narrow, centered, readable-width column
-        (below) like any article/page body -- but a free section is meant
-        to be used like Wix's canvas, "yo debería ser la que defina hasta
-        dónde queda [el contenido], no una limitante impuesta": it breaks
-        out of that column entirely and spans the full page width instead
-        of being boxed into the same ~768px column as regular text
-        content. Each section picks its own wrapper below (isFree), so a
-        page can freely mix narrow article-style sections with full-width
-        ones.
-      */}
-      <div className={hasBands ? "" : "space-y-8 py-12"}>
-        {sections.map((section, i) => {
+  // `where`: "full" = a full-width section (centred in a readable column); "center" / "rail" = inside the
+  // three-column grid, where the section fills its column instead of being centred in a narrow strip.
+  // A page that uses the three-column grid anywhere is laid out as one wide page (shared width, one type scale).
+  const wide = page.background?.wideLayout === true || sections.some((sec) => ['main', 'left', 'right'].includes(String(sec[0]?.sectionZone)));
+  const gridMax = Math.min(1920, Math.max(800, page.background?.gridMaxWidth ?? 1280));
+  const renderSection = (section: RenderableBlock[], i: number, where: "full" | "center" | "rail" = "full") => {
+    const inGrid = where !== "full";
           const first = section[0];
           const isFree = first?.sectionLayoutMode === "free";
           const columns = groupIntoColumns(section);
@@ -205,6 +178,10 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
               </div>
             );
 
+          // Taller than its content when the editor dragged the section's bottom edge down.
+          const minH = Math.min(2000, Math.max(0, Number(first?.sectionMinHeight ?? 0)));
+          const sized = minH > 0 && !isFree ? <div style={{ minHeight: `${minH}px` }}>{row}</div> : row;
+
           // A section's own background (separate from the page's overall
           // one) -- same imageUrl/color/opacity/videoUrl fields duplicated
           // across every block in this section (see ContentBlock schema
@@ -212,7 +189,11 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
           const hasSectionBg =
             Boolean(first?.sectionBgImageUrl) || Boolean(first?.sectionBgVideoUrl) || (first?.sectionBgOpacity ?? 0) > 0;
           // Multi-column sections get a wider container than single-column reading text.
-          const widthClass = columns.length > 1 ? "max-w-5xl" : "max-w-3xl";
+          // On a page that uses the three-column grid, every full-width section shares the grid's width so the whole page lines up.
+          const alignWide = wide && where === "full";
+          const widthClass = inGrid || alignWide ? "max-w-full" : columns.length > 1 ? "max-w-5xl" : "max-w-3xl";
+          const maxStyle = alignWide ? { maxWidth: `${gridMax}px` } : undefined;
+          const padX = where === "rail" ? "px-3" : "px-6";
           if (hasSectionBg && !isFree) {
             return (
               <div key={first?.id ?? i} className="w-full">
@@ -222,14 +203,18 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
                   overlayOpacity={first?.sectionBgOpacity}
                   videoUrl={first?.sectionBgVideoUrl}
                   gradientEnd={first?.sectionBgGradientEnd}
+                  focalX={first?.sectionBgFocalX}
+                  focalY={first?.sectionBgFocalY}
+                  zoom={first?.sectionBgZoom}
                 >
                   {/* A section with a background video is a hero: tall (like Wix's first screen), content centred, bigger heading. */}
                   <div
-                    className={`mx-auto ${widthClass} px-6 py-10 ${
+                    style={maxStyle}
+                    className={`mx-auto ${widthClass} ${padX} py-10 ${
                       first?.sectionBgVideoUrl ? "flex min-h-[min(75vh,46rem)] items-center [&>*]:w-full [&_h2]:text-4xl sm:[&_h2]:text-6xl" : ""
                     }`}
                   >
-                    {row}
+                    {sized}
                   </div>
                 </BackgroundOverlay>
               </div>
@@ -242,19 +227,111 @@ export function PageRenderer({ page }: { page: PageRenderData }) {
               overlayOpacity={first?.sectionBgOpacity}
               videoUrl={first?.sectionBgVideoUrl}
               gradientEnd={first?.sectionBgGradientEnd}
+                  focalX={first?.sectionBgFocalX}
+                  focalY={first?.sectionBgFocalY}
+                  zoom={first?.sectionBgZoom}
             >
-              <div className={isFree ? "" : "rounded-md p-6"}>{row}</div>
+              <div className={isFree ? "" : "rounded-md p-6"}>{sized}</div>
             </BackgroundOverlay>
           ) : (
-            row
+            sized
           );
 
           // Free sections span the full page width; grid sections stay in
           // the centered ~768px readable column, same as before this
           // existed -- see the comment on the outer wrapper above.
           return (
-            <div key={first?.id ?? i} className={isFree ? "w-full" : `mx-auto ${widthClass} px-6${hasBands ? " py-8" : ""}`}>
+            <div key={first?.id ?? i} style={isFree ? undefined : maxStyle} className={isFree ? "w-full" : `mx-auto ${widthClass} ${padX}${hasBands ? " py-8" : ""}`}>
               {content}
+            </div>
+          );
+  };
+
+  // Sections placed in the centre / a side rail (sectionZone) are laid out together as one three-column
+  // grid; "full" sections (the default, every page before this existed) keep spanning the whole width.
+  const leftWidth = page.background?.sideLeftWidth ?? 22;
+  const rightWidth = page.background?.sideRightWidth ?? 22;
+  const layoutItems = buildLayoutItems(sections, (sec) => sec[0]?.sectionZone);
+
+  // One type scale across a wide page: a title written as H1 looks like an H2 (they are the same size), body text one step larger. The hero keeps its own big heading.
+  // Sizes set by hand in the editor (inline styles) still win.
+  const articleClass = wide
+    ? "[&_.prose]:text-[1.125rem] [&_.prose_h1]:text-[1.5em] [&_.prose_h1]:leading-[1.33]"
+    : undefined;
+  return (
+    <article className={articleClass}>
+      {showBanner ? (
+        <BackgroundOverlay
+          imageUrl={page.background?.imageUrl}
+          overlayColor={page.background?.overlayColor}
+          overlayOpacity={page.background?.overlayOpacity}
+          focalX={page.background?.focalX}
+          focalY={page.background?.focalY}
+          zoom={page.background?.zoom}
+        >
+          <div className={`mx-auto max-w-4xl px-6 py-16 ${page.background?.bannerImageUrl ? "text-center" : ""}`}>
+            {page.background?.bannerImageUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={page.background.bannerImageUrl} alt="" className="mx-auto mb-4 max-h-24 max-w-full object-contain" />
+            )}
+            <h1
+              className={
+                titleVisible
+                  ? page.background?.imageUrl
+                    ? "text-4xl font-bold text-white"
+                    : "text-4xl font-bold text-slate-900"
+                  : "sr-only"
+              }
+            >
+              {page.title}
+            </h1>
+          </div>
+        </BackgroundOverlay>
+      ) : (
+        // Banner turned off for this page -- still need exactly one <h1>
+        // for accessibility/SEO, just not shown visually (the page's own
+        // first section takes over immediately below the nav instead).
+        <h1 className="sr-only">{page.title}</h1>
+      )}
+
+      {/*
+        Grid sections stay in the narrow, centered, readable-width column
+        (below) like any article/page body -- but a free section is meant
+        to be used like Wix's canvas, "yo debería ser la que defina hasta
+        dónde queda [el contenido], no una limitante impuesta": it breaks
+        out of that column entirely and spans the full page width instead
+        of being boxed into the same ~768px column as regular text
+        content. Each section picks its own wrapper below (isFree), so a
+        page can freely mix narrow article-style sections with full-width
+        ones.
+      */}
+      <div className={hasBands ? "" : "space-y-8 py-12"}>
+        {layoutItems.map((item, n) => {
+          if (item.kind === "full") return renderSection(item.section, item.index);
+          const hasLeft = item.sections.some((x) => x.zone === "left");
+          const hasRight = item.sections.some((x) => x.zone === "right");
+          const mainSections = item.sections.filter((x) => x.zone === "main" || (x.zone !== "left" && x.zone !== "right"));
+          // The strip behind the three columns takes the colour of its first section, so the rails
+          // are not white gaps beside coloured bands.
+          const f = item.sections[0].section[0];
+          const solid = !f?.sectionBgImageUrl && !f?.sectionBgVideoUrl && (f?.sectionBgOpacity ?? 0) > 0;
+          const stripBg = solid ? `color-mix(in srgb, ${f?.sectionBgColor ?? "#000000"} ${Math.round((f?.sectionBgOpacity ?? 0) * 100)}%, transparent)` : undefined;
+          return (
+            <div key={`grid-${n}`} style={stripBg ? { backgroundColor: stripBg } : undefined}>
+             {/* The columns sit in a container of at most gridMaxWidth, centred: the side columns stay close to the content instead of at the screen edges. */}
+             <div className="mx-auto flex flex-col lg:flex-row lg:items-start" style={{ maxWidth: `${gridMax}px` }}>
+              {hasLeft && (
+                <aside aria-label="Columna lateral izquierda" className="order-2 min-w-0 lg:order-1 lg:w-[var(--rail-w)] lg:shrink-0" style={{ "--rail-w": `${leftWidth}%` } as React.CSSProperties}>
+                  {item.sections.filter((x) => x.zone === "left").map((x) => renderSection(x.section, x.index, "rail"))}
+                </aside>
+              )}
+              <div className="order-1 min-w-0 flex-1 lg:order-2">{mainSections.map((x) => renderSection(x.section, x.index, "center"))}</div>
+              {hasRight && (
+                <aside aria-label="Columna lateral derecha" className="order-3 min-w-0 lg:w-[var(--rail-w)] lg:shrink-0" style={{ "--rail-w": `${rightWidth}%` } as React.CSSProperties}>
+                  {item.sections.filter((x) => x.zone === "right").map((x) => renderSection(x.section, x.index, "rail"))}
+                </aside>
+              )}
+             </div>
             </div>
           );
         })}

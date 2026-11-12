@@ -1,15 +1,23 @@
 import Image from "next/image";
 import { Carousel, type CarouselValue } from "@/components/blocks/Carousel";
 import { LatestPosts, type LatestPostsValue } from "@/components/blocks/LatestPosts";
+import { LinkedinPosts, type LinkedinPostsValue } from "@/components/blocks/LinkedinPosts";
+import { UploadedVideo } from "@/components/blocks/UploadedVideo";
+import { Quotes, type QuotesValue } from "@/components/blocks/Quotes";
+import { ElfsightFrame } from "@/components/blocks/ElfsightFrame";
 import { isUploadedVideo, parseVideoEmbed } from "@/lib/video";
 import { TrackedLink } from "@/components/public/TrackedLink";
 import {
   IMAGE_SHAPE_WRAPPER_CLASS,
   IMAGE_SHAPE_IMG_CLASS,
   VIDEO_SHAPE_WRAPPER_CLASS,
-  isCroppableShape,
+  FRAMED_IMG_CLASS,
+  framedImageStyle,
+  framedWrapperClass,
+  isFramedImage,
   imageMaxWidthClass,
   ALIGN_CLASS,
+  type ImageFrameOrFill,
   type ImageShape,
 } from "@/lib/imageShape";
 import { MapEmbed } from "@/components/public/MapEmbed";
@@ -18,7 +26,7 @@ import { CustomFormRenderer, type PublicFormField } from "@/components/public/Cu
 
 export type RenderableBlock = {
   id?: string;
-  type: "text" | "image" | "link" | "video" | "map" | "contactForm" | "customForm" | "carousel" | "latestPosts";
+  type: "text" | "image" | "link" | "video" | "map" | "contactForm" | "customForm" | "carousel" | "latestPosts" | "linkedinPosts" | "quotes";
   content: Record<string, unknown>;
   // Section/column layout (pages only -- see PageRenderer, which groups
   // blocks sharing the same `position` into one row and lays them out
@@ -34,6 +42,12 @@ export type RenderableBlock = {
   sectionBgOpacity?: number;
   sectionBgVideoUrl?: string | null;
   sectionBgGradientEnd?: string | null;
+  sectionBgFocalX?: number;
+  sectionBgFocalY?: number;
+  sectionBgZoom?: number;
+  // "full" (default/absent) | "main" | "left" | "right" -- see PageRenderer.
+  sectionZone?: string;
+  sectionMinHeight?: number;
   // Free-position ("Wix-style") layout, opt-in per section -- see the
   // comment on sections.ts's EditorSection.layoutMode. sectionLayoutMode
   // "free" means PageRenderer positions this block itself via free*
@@ -63,6 +77,7 @@ export function BlockRenderer({ block, pageId }: { block: RenderableBlock; pageI
       const altText = String(block.content.altText ?? "");
       const alignment = String(block.content.alignment ?? "center");
       const shape = (block.content.shape as ImageShape | undefined) ?? "none";
+      const frame = (block.content.frame as ImageFrameOrFill | undefined) ?? "auto";
       const focalX = Number(block.content.focalX ?? 50);
       const focalY = Number(block.content.focalY ?? 50);
       const zoom = Number(block.content.zoom ?? 1);
@@ -73,31 +88,34 @@ export function BlockRenderer({ block, pageId }: { block: RenderableBlock; pageI
       // sizing unchanged. The "Tamaño" slider (width%) then scales down
       // from there, same pattern video blocks already use.
       const maxWidth = imageMaxWidthClass(shape);
-      const croppable = isCroppableShape(shape);
+      // Through a window (circle/oval, or a chosen "Marco", or the box of a free section): the
+      // picture fills it and can be panned/zoomed. Otherwise the whole picture, as before.
+      const framed = isFramedImage(shape, frame);
       const img = (
         <Image
           src={url}
           alt={altText}
           width={1200}
           height={800}
-          className={IMAGE_SHAPE_IMG_CLASS[shape]}
-          style={
-            croppable
-              ? {
-                  objectPosition: `${focalX}% ${focalY}%`,
-                  transform: `scale(${zoom})`,
-                  // Anchor zoom on the focal point, matching the admin
-                  // editor's ImageShapeAdjuster -- keeps the public render
-                  // pixel-identical to what was previewed while editing.
-                  transformOrigin: `${focalX}% ${focalY}%`,
-                }
-              : undefined
-          }
+          className={framed ? FRAMED_IMG_CLASS : IMAGE_SHAPE_IMG_CLASS[shape]}
+          // Anchor the zoom on the focal point, matching the admin editor's adjuster -- keeps the
+          // public render pixel-identical to what was previewed while editing.
+          style={framed ? framedImageStyle(focalX, focalY, zoom) : undefined}
         />
       );
+      const wrapperClass = framed ? framedWrapperClass(shape, frame) : IMAGE_SHAPE_WRAPPER_CLASS[shape];
+      const inner = wrapperClass ? <div className={wrapperClass}>{img}</div> : img;
+      const hover = String(block.content.hoverEffect ?? "none");
+      const fx = hover === "zoom" || hover === "lift" || hover === "focus" ? hover : "";
+      // The effect lives on a clipping wrapper (the picture's own transform is used by pan/zoom).
+      const radius = shape === "circle" || shape === "oval" ? "rounded-full" : shape === "rounded" ? "rounded-2xl" : "rounded-md";
       return (
         <div className={`${maxWidth} ${ALIGN_CLASS[alignment] ?? "mx-auto"}`} style={{ width: `${width}%` }}>
-          {IMAGE_SHAPE_WRAPPER_CLASS[shape] ? <div className={IMAGE_SHAPE_WRAPPER_CLASS[shape]}>{img}</div> : img}
+          {fx ? (
+            <div className={`img-fx img-fx-${fx} overflow-hidden ${radius}`}>
+              <div className="img-fx-inner">{inner}</div>
+            </div>
+          ) : inner}
         </div>
       );
     }
@@ -126,7 +144,14 @@ export function BlockRenderer({ block, pageId }: { block: RenderableBlock; pageI
         return (
           <div className={`max-w-3xl ${ALIGN_CLASS[alignment] ?? "mx-auto"}`} style={{ width: `${width}%` }}>
             <div className={VIDEO_SHAPE_WRAPPER_CLASS[shape]}>
-              <video src={url} controls playsInline preload="metadata" className={`h-full w-full ${fit}`} />
+              <UploadedVideo
+                src={url}
+                className={`h-full w-full ${fit}`}
+                loop={block.content.loop === true}
+                autoplay={block.content.autoplay === true}
+                muted={block.content.muted === true}
+                controls={block.content.controls !== false}
+              />
             </div>
           </div>
         );
@@ -186,6 +211,61 @@ export function BlockRenderer({ block, pageId }: { block: RenderableBlock; pageI
             autoplay: block.content.autoplay !== false,
             intervalSeconds: Number(block.content.intervalSeconds ?? 6),
             author: String(block.content.author ?? "Lissette Pimentel Sosa"),
+          }}
+        />
+      );
+    }
+    case "linkedinPosts": {
+      const elfsightId = String(block.content.elfsightId ?? "");
+      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(elfsightId)) {
+        const height = Math.min(1400, Math.max(240, Number(block.content.height ?? 520)));
+        const heading = String(block.content.title ?? "");
+        const embedOrigin = String(block.content.embedOrigin ?? "");
+        if (!/^https?:\/\/[^\s/]+$/.test(embedOrigin)) {
+          // Not resolved (the editor canvas) or the widget address is not configured: say where it will appear.
+          return (
+            <div className="rounded-md border-2 border-dashed border-slate-300 p-4 text-center text-sm text-slate-600">
+              Publicaciones de LinkedIn (widget automático): se muestra aquí en el sitio.
+            </div>
+          );
+        }
+        return (
+          <section aria-label={heading || "Publicaciones de LinkedIn"} className="w-full">
+            {heading && <h2 className="mb-2 text-base font-semibold text-[#1F2A44]">{heading}</h2>}
+            {/* Third-party widget: served from its own origin (EMBED_ORIGIN), so allow-same-origin only applies to that origin and its scripts cannot touch this site or the backoffice. */}
+            <ElfsightFrame
+              src={`${embedOrigin}/embed/linkedin/${elfsightId.toLowerCase()}`}
+              embedOrigin={embedOrigin}
+              initialHeight={height}
+              title={heading || "Publicaciones de LinkedIn"}
+            />
+          </section>
+        );
+      }
+      const posts = Array.isArray(block.content.posts) ? (block.content.posts as LinkedinPostsValue["posts"]) : [];
+      if (posts.length === 0) return null;
+      return (
+        <LinkedinPosts
+          value={{
+            title: String(block.content.title ?? "Últimas publicaciones en LinkedIn"),
+            posts,
+            visible: Number(block.content.visible ?? 4),
+            autoplay: block.content.autoplay !== false,
+            intervalSeconds: Number(block.content.intervalSeconds ?? 6),
+          }}
+        />
+      );
+    }
+    case "quotes": {
+      const quotes = Array.isArray(block.content.quotes) ? (block.content.quotes as QuotesValue["quotes"]).filter((q) => String(q?.text ?? "").trim() !== "") : [];
+      if (quotes.length === 0) return null;
+      return (
+        <Quotes
+          value={{
+            title: String(block.content.title ?? ""),
+            quotes,
+            autoplay: block.content.autoplay !== false,
+            intervalSeconds: Number(block.content.intervalSeconds ?? 7),
           }}
         />
       );
