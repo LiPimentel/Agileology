@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { NavLink } from "@/lib/settings";
@@ -24,11 +24,11 @@ function LinkItem({ link: rawLink, className, active: forceActive }: { link: Nav
   if (link.href === "#proximamente") {
     return (
       <span className="group relative inline-block">
-        <span tabIndex={0} aria-describedby="soon-tip" className={`${className} cursor-default text-white/60 focus-visible:outline-2 focus-visible:outline-white`}>
+        <span role="link" aria-disabled="true" tabIndex={0} className={`${className} cursor-default text-white/60 focus-visible:outline-2 focus-visible:outline-white`}>
           {link.label}
           <span className="sr-only"> (Coming soon)</span>
         </span>
-        <span role="tooltip" id="soon-tip" aria-hidden="true" className="pointer-events-none absolute left-4 top-full z-20 mt-1 hidden whitespace-nowrap rounded bg-white px-2 py-1 text-xs font-medium text-[#1F2A44] shadow group-hover:block group-focus-within:block">
+        <span aria-hidden="true" className="pointer-events-none absolute left-4 top-full z-20 mt-1 hidden whitespace-nowrap rounded bg-white px-2 py-1 text-xs font-medium text-[#1F2A44] shadow group-hover:block group-focus-within:block">
           Coming soon
         </span>
       </span>
@@ -62,7 +62,7 @@ function LinkItem({ link: rawLink, className, active: forceActive }: { link: Nav
  * closes on an outside click, and the parent link itself still navigates
  * normally -- only the little chevron toggles the dropdown.
  */
-export function NavItem({ link }: { link: NavLink }) {
+export function NavItem({ link, isLast = false }: { link: NavLink; isLast?: boolean }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLLIElement>(null);
   const pathname = usePathname();
@@ -134,7 +134,7 @@ export function NavItem({ link }: { link: NavLink }) {
         </button>}
       </span>
       {open && (
-        <ul className="absolute left-0 top-full z-10 mt-2 min-w-[10rem] rounded-md border border-white/10 bg-[#1F2A44] py-1 shadow-lg">
+        <ul className={`absolute ${isLast ? "right-0" : "left-0"} top-full z-10 mt-2 min-w-[10rem] rounded-md border border-white/10 bg-[#1F2A44] py-1 shadow-lg`}>
           {link.children.map((child, i) => (
             <li key={`${child.href}-${i}`} onClick={() => setOpen(false)}>
               <LinkItem link={child} className="block px-4 py-2 hover:bg-white/10 hover:text-white focus-visible:bg-white/10 focus-visible:text-white focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white" />

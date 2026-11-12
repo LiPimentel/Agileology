@@ -19,7 +19,7 @@ export function MobileNav({ links }: { links: NavLink[] }) {
     <>
       <ul className="hidden items-center gap-6 text-sm text-white/90 sm:flex">
         {links.map((l, i) => (
-          <NavItem key={`${l.href}-${i}`} link={l} />
+          <NavItem key={`${l.href}-${i}`} link={l} isLast={i === links.length - 1} />
         ))}
       </ul>
 
@@ -42,9 +42,9 @@ export function MobileNav({ links }: { links: NavLink[] }) {
       </button>
 
       {open && (
-        <ul className="absolute left-0 top-full flex w-full flex-col gap-1 border-t border-white/10 bg-[#1F2A44] px-6 py-4 text-sm text-white/90 sm:hidden">
+        <ul className="absolute left-0 top-full z-30 flex w-full flex-col gap-1 border-t border-white/10 bg-[#1F2A44] px-6 py-4 text-sm text-white/90 sm:hidden">
           {links.map((l, i) => (
-            <NavItem key={`${l.href}-${i}`} link={l} />
+            <NavItem key={`${l.href}-${i}`} link={l} isLast={i === links.length - 1} />
           ))}
         </ul>
       )}

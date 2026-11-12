@@ -11,8 +11,10 @@ export const metadata: Metadata = {
   alternates: { canonical: "/blog", types: { "application/rss+xml": "/blog/rss.xml" } },
 };
 
-export default async function BlogIndexPage({ searchParams }: { searchParams: Promise<{ q?: string; tag?: string }> }) {
-  const { q, tag } = await searchParams;
+export default async function BlogIndexPage({ searchParams }: { searchParams: Promise<{ q?: string | string[]; tag?: string | string[] }> }) {
+  const sp = await searchParams;
+  const q = typeof sp.q === "string" ? sp.q.slice(0, 100) : undefined;
+  const tag = typeof sp.tag === "string" ? sp.tag.slice(0, 50) : undefined;
   const [{ posts }, blogSettings, tags] = await Promise.all([listPublishedPosts({ q, tag, take: 24 }), getBlogSettings(), publicPostTags()]);
   const chip = "rounded-full border px-3 py-1 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-700";
 
@@ -33,21 +35,25 @@ export default async function BlogIndexPage({ searchParams }: { searchParams: Pr
 
       {tags.length > 0 && (
         <nav aria-label="Filtrar por tema" className="mb-8 flex flex-wrap gap-2">
-          <Link href={q ? `/blog?q=${encodeURIComponent(q)}` : "/blog"} aria-current={!tag ? "true" : undefined}
-            className={`${chip} ${!tag ? "border-violet-700 bg-violet-700 text-white" : "border-slate-300 text-slate-700 hover:border-violet-700"}`}>
+          <Link href={q ? `/blog?q=${encodeURIComponent(q)}` : "/blog"} aria-current={!tag ? "page" : undefined}
+            className={`${chip} ${!tag ? "border-violet-700 bg-violet-700 text-white" : "border-slate-400 text-slate-700 hover:border-violet-700"}`}>
             Todos
           </Link>
           {tags.map((t) => (
             <Link key={t.tag} href={`/blog?tag=${encodeURIComponent(t.tag)}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
-              aria-current={tag === t.tag ? "true" : undefined}
-              className={`${chip} ${tag === t.tag ? "border-violet-700 bg-violet-700 text-white" : "border-slate-300 text-slate-700 hover:border-violet-700"}`}>
-              {t.tag} <span className="opacity-70">({t.count})</span>
+              aria-current={tag === t.tag ? "page" : undefined}
+              className={`${chip} ${tag === t.tag ? "border-violet-700 bg-violet-700 text-white" : "border-slate-400 text-slate-700 hover:border-violet-700"}`}>
+              {t.tag} <span className={tag === t.tag ? "" : "opacity-70"}>({t.count})</span>
             </Link>
           ))}
         </nav>
       )}
 
-      {posts.length === 0 && <p className="text-slate-500">No hay publicaciones todavía.</p>}
+      {posts.length === 0 && (
+        <p className="text-slate-500">
+          {tag || q ? (<>No hay publicaciones con ese filtro. <Link href="/blog" className="text-violet-700 underline">Ver todas</Link></>) : "No hay publicaciones todavía."}
+        </p>
+      )}
 
       {blogSettings.layoutType === "grid" ? (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
