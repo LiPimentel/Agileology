@@ -47,7 +47,8 @@ export async function saveMenuItems(_prev: MenuFormState, formData: FormData): P
   // missing.
   const validated = raw
     .map((item) => {
-      const label = sanitizePlainText(String(item.label ?? "")).slice(0, 60);
+      // sanitizePlainText HTML-escapes "&" and React escapes it again when rendering, so keep a plain "&".
+      const label = sanitizePlainText(String(item.label ?? "")).replace(/&amp;/g, "&").slice(0, 60);
       if (!label) return null;
       const linkType = item.linkType === "page" ? "page" : "url";
       if (linkType === "page" && !item.pageId) return null;

@@ -29,12 +29,14 @@ function LinkItem({ link: rawLink, className, active: forceActive }: { link: Nav
         className={className}
       >
         {link.label}
+        {link.newTab && <span className="sr-only"> (se abre en una pestaña nueva)</span>}
       </a>
     );
   }
   return (
-    <Link href={link.href} target={link.newTab ? "_blank" : undefined} className={className} aria-current={active ? "page" : undefined}>
+    <Link href={link.href} prefetch={link.newTab ? false : undefined} target={link.newTab ? "_blank" : undefined} className={className} aria-current={active ? "page" : undefined}>
       {link.label}
+      {link.newTab && <span className="sr-only"> (se abre en una pestaña nueva)</span>}
     </Link>
   );
 }
@@ -51,6 +53,10 @@ export function NavItem({ link }: { link: NavLink }) {
   const ref = useRef<HTMLLIElement>(null);
   const pathname = usePathname();
   const childActive = (link.children ?? []).some((c) => isActivePath(pathname, safeHref(c.href)));
+
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  // A parent whose address is "/" is only a heading for its submenu (it would otherwise just go Home).
+  const toggleOnly = link.href === "/" && (link.children?.length ?? 0) > 0;
 
   useEffect(() => {
     if (!open) return;
@@ -70,25 +76,53 @@ export function NavItem({ link }: { link: NavLink }) {
   }
 
   return (
-    <li ref={ref} className="relative">
+    <li
+      ref={ref}
+      className="relative"
+      onKeyDown={(e) => {
+        if (e.key === "Escape" && open) {
+          setOpen(false);
+          buttonRef.current?.focus();
+        }
+      }}
+      onBlur={(e) => {
+        if (open && !e.currentTarget.contains(e.relatedTarget as Node | null)) setOpen(false);
+      }}
+    >
       <span className="flex items-center gap-1">
-        <LinkItem link={link} active={childActive || undefined} className="rounded-sm hover:text-white focus-visible:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" />
-        <button
+        {toggleOnly ? (
+          <button
+            type="button"
+            ref={buttonRef}
+            onClick={() => setOpen((v) => !v)}
+            aria-expanded={open}
+            className={`nav-link ${childActive ? "nav-link-active" : ""} rounded-sm hover:text-white focus-visible:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white`}
+          >
+            {link.label}
+            <svg width="10" height="6" viewBox="0 0 10 6" aria-hidden="true" className={`ml-1 inline-block transition-transform ${open ? "rotate-180" : ""}`}>
+              <path d="M0 0L5 6L10 0" fill="currentColor" />
+            </svg>
+          </button>
+        ) : (
+          <LinkItem link={link} active={childActive} className="rounded-sm hover:text-white focus-visible:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" />
+        )}
+        {!toggleOnly && <button
           type="button"
+          ref={buttonRef}
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
           aria-label={`Submenú de ${link.label}`}
-          className="p-1 hover:text-white"
+          className="rounded-sm p-1 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
         >
           <svg width="10" height="6" viewBox="0 0 10 6" className={`transition-transform ${open ? "rotate-180" : ""}`}>
             <path d="M0 0L5 6L10 0" fill="currentColor" />
           </svg>
-        </button>
+        </button>}
       </span>
       {open && (
         <ul className="absolute left-0 top-full z-10 mt-2 min-w-[10rem] rounded-md border border-white/10 bg-[#1F2A44] py-1 shadow-lg">
           {link.children.map((child, i) => (
-            <li key={`${child.href}-${i}`}>
+            <li key={`${child.href}-${i}`} onClick={() => setOpen(false)}>
               <LinkItem link={child} className="block px-4 py-2 hover:bg-white/10 hover:text-white focus-visible:bg-white/10 focus-visible:text-white focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white" />
             </li>
           ))}

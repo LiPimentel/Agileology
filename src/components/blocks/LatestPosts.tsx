@@ -105,6 +105,10 @@ export function LatestPosts({ value }: { value: LatestPostsValue }) {
     return () => window.clearTimeout(t);
   }, [autoplaying, index, step, value.intervalSeconds]);
 
+  // Without animation there is no transitionend to snap back from the looping copies, so show the
+  // position modulo n instead (same cards, no empty gaps).
+  const pos = reduced && rotates ? index % n : index;
+
   if (n === 0) return null;
 
   const track = rotates ? [...posts, ...posts.slice(0, visible)] : posts;
@@ -148,7 +152,7 @@ export function LatestPosts({ value }: { value: LatestPostsValue }) {
         <div
           className="-mx-3 flex items-stretch"
           style={{
-            transform: `translateX(-${index * slideWidth}%)`,
+            transform: `translateX(-${pos * slideWidth}%)`,
             transition: animate && !reduced ? "transform 700ms cubic-bezier(0.45, 0, 0.2, 1)" : "none",
           }}
           onTransitionEnd={() => {
@@ -160,7 +164,7 @@ export function LatestPosts({ value }: { value: LatestPostsValue }) {
           }}
         >
           {track.map((p, i) => {
-            const inView = i >= index && i < index + visible;
+            const inView = i >= pos && i < pos + visible;
             const isCopy = i >= n;
             return (
               <div
@@ -179,11 +183,11 @@ export function LatestPosts({ value }: { value: LatestPostsValue }) {
       </div>
 
       {rotates && (
-        <div className="mt-5 flex items-center justify-center gap-3">
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
           <button type="button" aria-label="Entradas anteriores" className={NAV} onClick={() => step(-1)}>
             <ChevronLeftIcon size={22} />
           </button>
-          <div className="flex items-center">
+          <div className="flex min-w-0 flex-wrap items-center justify-center">
             {posts.map((p, i) => (
               <button
                 key={p.slug}

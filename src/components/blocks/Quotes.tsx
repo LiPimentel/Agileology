@@ -56,9 +56,9 @@ function Card({ quote, tone }: { quote: Quote; tone: number }) {
  * A pool of quotes as cards in a smooth sliding strip: every move slides the whole row sideways
  * (and loops round without a visible jump). Shows 3 at once (2 / 1 on smaller screens); with
  * fewer quotes than fit, it is a plain row with no controls. Accessible like the image carousel:
- * labelled group, arrow keys, buttons and dots, polite position announcement. There is no pause
- * button: the rotation stops by itself while the pointer is over it or something inside has keyboard
- * focus, and it never moves for visitors who prefer reduced motion (they use the arrows).
+ * labelled group, arrow keys, buttons and dots, polite position announcement. Automatic rotation has
+ * a visible pause/play button, stops while the pointer is over it or something inside has keyboard
+ * focus, and never runs for visitors who prefer reduced motion (they use the arrows).
  */
 export function Quotes({ value }: { value: QuotesValue }) {
   const posts = value.quotes ?? [];
@@ -75,6 +75,7 @@ export function Quotes({ value }: { value: QuotesValue }) {
   const [animate, setAnimate] = useState(true);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
+  const [paused, setPaused] = useState(false);
   const touchX = useRef<number | null>(null);
 
   const current = n ? ((index % n) + n) % n : 0;
@@ -95,18 +96,23 @@ export function Quotes({ value }: { value: QuotesValue }) {
   );
   const goTo = (i: number) => { setAnimate(true); setIndex(i); };
 
-  const autoplaying = value.autoplay && rotates && !hovered && !focused && !reduced;
+  const autoplaying = value.autoplay && rotates && !hovered && !focused && !reduced && !paused;
   useEffect(() => {
     if (!autoplaying) return;
     const t = window.setTimeout(() => step(1), Math.max(3, value.intervalSeconds) * 1000);
     return () => window.clearTimeout(t);
   }, [autoplaying, index, step, value.intervalSeconds]);
 
+  // Without animation there is no transitionend to snap back from the looping copies, so show the
+  // position modulo n instead (same cards, no empty gaps).
+  const pos = reduced && rotates ? index % n : index;
+
   if (n === 0) return null;
 
   const track = rotates ? [...posts, ...posts.slice(0, visible)] : posts;
   const shown = Array.from({ length: visible }, (_, k) => posts[(current + k) % n]);
-  const announce = `Mostrando frases ${shown.map((p) => `«${p.text}»${p.author ? `, de ${p.author}` : ""}`).join("; ")}. ${n} frases en total.`;
+  void shown;
+  const announce = `Frases ${current + 1} a ${Math.min(current + visible, n)} de ${n}.`;
   const slideWidth = 100 / visible;
 
   return (
@@ -147,7 +153,7 @@ export function Quotes({ value }: { value: QuotesValue }) {
         <div
           className="-mx-3 flex items-stretch"
           style={{
-            transform: `translateX(-${index * slideWidth}%)`,
+            transform: `translateX(-${pos * slideWidth}%)`,
             transition: animate && !reduced ? "transform 700ms cubic-bezier(0.45, 0, 0.2, 1)" : "none",
           }}
           onTransitionEnd={() => {
@@ -159,7 +165,7 @@ export function Quotes({ value }: { value: QuotesValue }) {
           }}
         >
           {track.map((p, i) => {
-            const inView = i >= index && i < index + visible;
+            const inView = i >= pos && i < pos + visible;
             const isCopy = i >= n;
             return (
               <div
@@ -178,11 +184,11 @@ export function Quotes({ value }: { value: QuotesValue }) {
       </div>
 
       {rotates && (
-        <div className="mt-5 flex items-center justify-center gap-3">
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
           <button type="button" aria-label="Frases anteriores" className={NAV} onClick={() => step(-1)}>
             <ChevronLeftIcon size={22} />
           </button>
-          <div className="flex items-center">
+          <div className="flex min-w-0 flex-wrap items-center justify-center">
             {posts.map((_p, i) => (
               <button
                 key={i}
@@ -199,6 +205,13 @@ export function Quotes({ value }: { value: QuotesValue }) {
           <button type="button" aria-label="Frases siguientes" className={NAV} onClick={() => step(1)}>
             <ChevronRightIcon size={22} />
           </button>
+          {value.autoplay && !reduced && (
+            <button type="button" aria-label={paused ? "Reanudar la rotación automática" : "Pausar la rotación automática"} className={NAV} onClick={() => setPaused((p) => !p)}>
+              <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" fill="currentColor">
+                {paused ? <path d="M5 3l10 6-10 6z" /> : <path d="M4 3h3.5v12H4zM10.5 3H14v12h-3.5z" />}
+              </svg>
+            </button>
+          )}
         </div>
       )}
     </div>
