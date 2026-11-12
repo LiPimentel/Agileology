@@ -66,7 +66,7 @@ export async function getPublishedPostBySlug(slug: string) {
   };
 }
 
-export async function listPublishedPosts(opts: { q?: string; skip?: number; take?: number } = {}) {
+export async function listPublishedPosts(opts: { q?: string; tag?: string; skip?: number; take?: number } = {}) {
   const where = {
     status: "published" as const,
     OR: opts.q
@@ -75,6 +75,7 @@ export async function listPublishedPosts(opts: { q?: string; skip?: number; take
           { excerpt: { contains: opts.q, mode: "insensitive" as const } },
         ]
       : undefined,
+    tags: opts.tag ? { has: opts.tag } : undefined,
     AND: [{ OR: [{ publishAt: null }, { publishAt: { lte: new Date() } }] }],
   };
 
@@ -141,4 +142,13 @@ export async function adminCountPosts(filter: AdminPostFilter) {
 export async function adminPostTags(): Promise<string[]> {
   const rows = await prisma.$queryRaw<Array<{ tag: string }>>`select distinct unnest(tags) as tag from "Post" order by 1`;
   return rows.map((r) => r.tag);
+}
+
+/** Tags in use on published posts, with how many posts each has (for the public blog's topic filter). */
+export async function publicPostTags(): Promise<Array<{ tag: string; count: number }>> {
+  const rows = await prisma.$queryRaw<Array<{ tag: string; count: bigint }>>`
+    select t as tag, count(*) as count from "Post", unnest(tags) t
+    where status = 'published' and ("publishAt" is null or "publishAt" <= now())
+    group by t order by count(*) desc, t`;
+  return rows.map((r) => ({ tag: r.tag, count: Number(r.count) }));
 }

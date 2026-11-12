@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
-import { listPublishedPosts } from "@/lib/posts";
+import { listPublishedPosts, publicPostTags } from "@/lib/posts";
 import { getBlogSettings } from "@/lib/settings";
 import { formatAstDate } from "@/lib/date";
 
@@ -11,15 +11,17 @@ export const metadata: Metadata = {
   alternates: { canonical: "/blog", types: { "application/rss+xml": "/blog/rss.xml" } },
 };
 
-export default async function BlogIndexPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
-  const { q } = await searchParams;
-  const [{ posts }, blogSettings] = await Promise.all([listPublishedPosts({ q, take: 24 }), getBlogSettings()]);
+export default async function BlogIndexPage({ searchParams }: { searchParams: Promise<{ q?: string; tag?: string }> }) {
+  const { q, tag } = await searchParams;
+  const [{ posts }, blogSettings, tags] = await Promise.all([listPublishedPosts({ q, tag, take: 24 }), getBlogSettings(), publicPostTags()]);
+  const chip = "rounded-full border px-3 py-1 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-700";
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-12">
       <h1 className="mb-6 text-3xl font-bold text-slate-900">Blog</h1>
 
       <form className="mb-8 max-w-sm">
+        {tag && <input type="hidden" name="tag" value={tag} />}
         <input
           type="search"
           name="q"
@@ -28,6 +30,22 @@ export default async function BlogIndexPage({ searchParams }: { searchParams: Pr
           className="w-full rounded-md border border-slate-300 px-3 py-2"
         />
       </form>
+
+      {tags.length > 0 && (
+        <nav aria-label="Filtrar por tema" className="mb-8 flex flex-wrap gap-2">
+          <Link href={q ? `/blog?q=${encodeURIComponent(q)}` : "/blog"} aria-current={!tag ? "true" : undefined}
+            className={`${chip} ${!tag ? "border-violet-700 bg-violet-700 text-white" : "border-slate-300 text-slate-700 hover:border-violet-700"}`}>
+            Todos
+          </Link>
+          {tags.map((t) => (
+            <Link key={t.tag} href={`/blog?tag=${encodeURIComponent(t.tag)}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
+              aria-current={tag === t.tag ? "true" : undefined}
+              className={`${chip} ${tag === t.tag ? "border-violet-700 bg-violet-700 text-white" : "border-slate-300 text-slate-700 hover:border-violet-700"}`}>
+              {t.tag} <span className="opacity-70">({t.count})</span>
+            </Link>
+          ))}
+        </nav>
+      )}
 
       {posts.length === 0 && <p className="text-slate-500">No hay publicaciones todavía.</p>}
 

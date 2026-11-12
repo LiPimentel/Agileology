@@ -20,6 +20,20 @@ function LinkItem({ link: rawLink, className, active: forceActive }: { link: Nav
   const isExternal = /^https?:\/\//i.test(link.href);
   const active = forceActive ?? (!isExternal && isActivePath(pathname, link.href));
   className = `nav-link ${active ? "nav-link-active" : ""} ${className ?? ""}`;
+  // Items whose address is "#proximamente" are placeholders: no page yet, only a "Coming soon" tooltip.
+  if (link.href === "#proximamente") {
+    return (
+      <span className="group relative inline-block">
+        <span tabIndex={0} aria-describedby="soon-tip" className={`${className} cursor-default text-white/60 focus-visible:outline-2 focus-visible:outline-white`}>
+          {link.label}
+          <span className="sr-only"> (Coming soon)</span>
+        </span>
+        <span role="tooltip" id="soon-tip" aria-hidden="true" className="pointer-events-none absolute left-4 top-full z-20 mt-1 hidden whitespace-nowrap rounded bg-white px-2 py-1 text-xs font-medium text-[#1F2A44] shadow group-hover:block group-focus-within:block">
+          Coming soon
+        </span>
+      </span>
+    );
+  }
   if (isExternal) {
     return (
       <a
