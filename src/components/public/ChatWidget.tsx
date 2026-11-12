@@ -22,7 +22,7 @@ export function ChatWidget({
   const [state, formAction, pending] = useActionState(submitChatMessage, initialState);
 
   return (
-    <div className="fixed bottom-5 right-5 left-5 z-40 flex flex-col items-end sm:left-auto">
+    <div className="fixed bottom-[calc(1.25rem+var(--cookie-h,0px))] right-5 left-5 z-40 sm:bottom-5 flex flex-col items-end sm:left-auto">
       {open && (
         // w-80 is fine from `sm:` up, but on a narrow phone (< ~360px) it can
         // overflow past the screen edge -- cap it to the viewport width

@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const STORAGE_KEY = "agileology_cookie_consent";
 
 export function CookieNotice() {
   const [visible, setVisible] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // localStorage only exists client-side, so this can't be read during the
@@ -16,10 +17,30 @@ export function CookieNotice() {
     if (!localStorage.getItem(STORAGE_KEY)) setVisible(true);
   }, []);
 
+  // While the banner is up, keep the end of the page scrollable above it (padding-bottom on <body>) and
+  // publish its height as --cookie-h so the chat bubble sits above it on small screens.
+  useEffect(() => {
+    if (!visible || !ref.current) return;
+    const el = ref.current;
+    const apply = () => {
+      const h = `${el.offsetHeight}px`;
+      document.body.style.paddingBottom = h;
+      document.documentElement.style.setProperty("--cookie-h", h);
+    };
+    apply();
+    const ro = new ResizeObserver(apply);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      document.body.style.paddingBottom = "";
+      document.documentElement.style.removeProperty("--cookie-h");
+    };
+  }, [visible]);
+
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-30 flex flex-col items-center justify-between gap-3 border-t border-slate-200 bg-white/95 p-4 text-sm text-slate-700 shadow-lg backdrop-blur sm:right-28 sm:flex-row">
+    <div ref={ref} className="fixed inset-x-0 bottom-0 z-30 flex flex-col items-center justify-between gap-3 border-t border-slate-200 bg-white/95 p-4 text-sm text-slate-700 shadow-lg backdrop-blur sm:right-28 sm:flex-row">
       <p>
         Usamos cookies para analizar las visitas del sitio. Consulta nuestra{" "}
         <Link href="/privacy-policy" className="underline">
